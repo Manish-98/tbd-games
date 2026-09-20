@@ -27,11 +27,11 @@
 .stats-summary span { display: block; margin-bottom: 21px; color: var(--muted); font-size: .7rem; text-transform: uppercase; letter-spacing: .08em; }
 .stats-summary strong { font: 600 1.65rem var(--display); letter-spacing: -.06em; }
 .positive { color: #3f8b68; }.negative { color: var(--coral-dark); }
+.chart-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
 .chart-block { padding-bottom: 32px; border-bottom: 1px solid var(--line); }
-.chart-key { display: flex; gap: 18px; margin-bottom: 15px; color: var(--muted); font-size: .7rem; text-transform: uppercase; letter-spacing: .08em; }
-.chart-key i { display: inline-block; width: 8px; height: 8px; margin-right: 5px; background: var(--coral); }.chart-key .key-accuracy { background: var(--lavender); }
+.chart-heading { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 15px; }.chart-heading h3 { margin: 0; font: 600 1.2rem var(--display); letter-spacing: -.05em; }.chart-heading span { color: var(--muted); font-size: .68rem; }
 .bar-chart { display: flex; align-items: end; gap: 5px; height: 180px; padding: 0 0 1px; border-bottom: 1px solid var(--ink); }
-.bar-group { display: flex; align-items: end; gap: 2px; align-self: stretch; flex: 1; min-width: 8px; }.bar { width: 50%; min-height: 8px; }.wpm-bar { background: var(--coral); }.accuracy-bar { background: var(--lavender); }
+.bar { flex: 1; min-width: 8px; min-height: 8px; }.wpm-chart .bar { background: var(--coral); }.accuracy-chart .bar { background: var(--lavender); }
 .empty-state { color: var(--muted); font-size: .85rem; }
 .runs-table { margin-top: 42px; }.table-heading { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 15px; }.table-heading h3 { margin: 0; font: 600 1.35rem var(--display); letter-spacing: -.05em; }.table-heading span { color: var(--muted); font-size: .75rem; }
 .run-row { display: grid; grid-template-columns: 1.5fr 1fr 1fr 1fr; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); font-size: .8rem; }.run-head { color: var(--muted); font-size: .68rem; text-transform: uppercase; letter-spacing: .08em; }.run-row strong { font-weight: 700; }
@@ -44,6 +44,7 @@
   .typing-meta, .typing-footer { align-items: start; flex-direction: column; gap: 9px; }
   .passage { padding: 42px 0 52px; font-size: 1.6rem; }
   .stats-summary { grid-template-columns: repeat(2, 1fr); }
+  .chart-grid { grid-template-columns: 1fr; gap: 28px; }
   .stats-summary div { min-height: 100px; padding: 13px; }
   .stats-summary span { margin-bottom: 15px; }
   .stats-summary strong { font-size: 1.25rem; }
