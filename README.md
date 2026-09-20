@@ -4,7 +4,7 @@ A small collection of framework-free browser games, built with plain HTML, CSS, 
 
 ## Run locally
 
-Open `index.html` directly in a browser, or serve the folder with any static file server:
+Serve the folder with any static file server so the game can load its local JSON data:
 
 ```bash
 python3 -m http.server
@@ -12,4 +12,4 @@ python3 -m http.server
 
 Then visit `http://localhost:8000`.
 
-Game placeholders live in `script.js`; add a game object there as new games are built.
+The lobby lives in `script.js`. Each playable game owns its code and assets in a directory under `games/`; the typing game is in `games/typing/`.
