@@ -12,4 +12,4 @@ python3 -m http.server
 
 Then visit `http://localhost:8000`.
 
-The lobby lives in `script.js`. Each playable game owns its code and assets in a directory under `games/`; the typing game is in `games/typing/`.
+The lobby lives in `script.js`. Each playable game owns its code and assets in a directory under `games/`; the typing game is in `games/typing/` and the circuit game is in `games/logic/`.
