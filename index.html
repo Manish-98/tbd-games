@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="A small collection of thoughtfully made browser games." />
+    <title>Playroom | A small collection of games</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+    <script src="script.js" defer></script>
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="site-header">
+        <a class="brand" href="index.html" aria-label="Playroom home">
+          <span class="brand-mark" aria-hidden="true">+</span>
+          <span>playroom</span>
+        </a>
+        <nav class="site-nav" aria-label="Main navigation">
+          <a class="active" href="#games">Games</a>
+          <a href="#about">About</a>
+        </nav>
+        <span class="header-note">made for a quick break</span>
+      </header>
+
+      <main>
+        <section class="intro" id="about">
+          <p class="eyebrow">A growing collection <span aria-hidden="true">/</span> 01</p>
+          <h1>Pick a game.<br /><em>Make some time.</em></h1>
+          <p class="intro-copy">Tiny games for curious minds, idle hands, and those five minutes between things.</p>
+        </section>
+
+        <section class="game-library" id="games" aria-labelledby="games-heading">
+          <div class="library-heading">
+            <div>
+              <p class="section-label">The lobby</p>
+              <h2 id="games-heading">Choose your next<br />little adventure</h2>
+            </div>
+            <div class="filter-bar" aria-label="Filter games" role="group">
+              <button class="filter-button active" type="button" data-filter="all">All <span>08</span></button>
+              <button class="filter-button" type="button" data-filter="arcade">Arcade</button>
+              <button class="filter-button" type="button" data-filter="puzzle">Puzzle</button>
+              <button class="filter-button" type="button" data-filter="strategy">Strategy</button>
+            </div>
+          </div>
+          <div class="game-grid" id="game-grid" aria-live="polite"></div>
+        </section>
+      </main>
+
+      <footer class="site-footer">
+        <p><span class="footer-dot" aria-hidden="true"></span> More tiny worlds are on the way.</p>
+        <p>Playroom <span aria-hidden="true">&copy;</span> 2025</p>
+      </footer>
+    </div>
+  </body>
+</html>
