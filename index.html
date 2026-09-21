@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="styles.css" />
     <link rel="stylesheet" href="games/typing/styles.css" />
     <link rel="stylesheet" href="games/logic/styles.css" />
+    <link rel="stylesheet" href="games/turtle/styles.css" />
     <script src="script.js" type="module"></script>
   </head>
   <body>
@@ -81,6 +82,20 @@
             <button class="logic-tab" type="button" role="tab" aria-selected="false" data-logic-mode="detective">Logic detective</button>
           </div>
           <div class="logic-view" id="logic-view"></div>
+        </section>
+
+        <section class="turtle-game" id="turtle-game" aria-labelledby="turtle-heading" hidden>
+          <div class="turtle-topline">
+            <div>
+              <p class="section-label">Third game / 03</p>
+              <h2 id="turtle-heading">Turtle run</h2>
+            </div>
+            <button class="text-button" id="close-turtle-game" type="button">Back to lobby</button>
+          </div>
+          <div class="turtle-tabs" role="tablist" aria-label="Turtle game modes">
+            <button class="turtle-tab active" type="button" role="tab" aria-selected="true" data-turtle-mode="draw">Draw mode</button>
+          </div>
+          <div class="turtle-view" id="turtle-view"></div>
         </section>
       </main>
 

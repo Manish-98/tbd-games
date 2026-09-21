@@ -1,0 +1,52 @@
+.turtle-game { padding: 75px 0 90px; border-bottom: 1px solid var(--line); }
+.turtle-topline { display: flex; align-items: end; justify-content: space-between; gap: 24px; }
+.turtle-tabs { display: flex; gap: 24px; margin: 48px 0 34px; border-bottom: 1px solid var(--line); }
+.turtle-tab { padding: 0 0 14px; border: 0; border-bottom: 2px solid transparent; background: none; color: var(--muted); cursor: pointer; font: 700 .78rem var(--body); }
+.turtle-tab.active { border-color: var(--coral); color: var(--ink); }
+.turtle-view { width: min(100%, 1200px); }
+
+.turtle-shell { width: 100%; }
+.turtle-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
+.turtle-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.primary-button, .secondary-button, .tool-button, .mini-button, .text-button.small { border-radius: 999px; cursor: pointer; }
+.primary-button, .secondary-button, .tool-button, .mini-button { padding: 10px 14px; border: 1px solid var(--ink); background: var(--white); }
+.primary-button { background: var(--ink); color: var(--white); }
+.secondary-button { color: var(--ink); }
+.secondary-button.full { width: 100%; }
+.tool-button { width: 100%; }
+.mini-button { padding: 7px 10px; font-size: .72rem; }
+.text-button.small { padding: 0; border: 0; background: none; color: var(--coral-dark); font-size: .72rem; }
+
+.turtle-layout { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(250px, .9fr); gap: 24px; }
+.turtle-canvas-panel { padding: 18px; border: 1px solid var(--ink); background: var(--white); }
+#turtle-canvas { display: block; width: 100%; height: auto; border: 1px solid var(--line); background: var(--paper); }
+
+.turtle-sidebar { display: flex; flex-direction: column; gap: 20px; }
+.palette, .program-panel { padding: 18px; border: 1px solid var(--ink); background: var(--white); }
+.tool-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
+.program-list { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; }
+.command-block { padding: 10px 12px; border: 1px solid var(--line); background: var(--paper); }
+.command-header { display: flex; align-items: center; gap: 8px; }
+.command-name { flex: 1; font-size: .78rem; font-weight: 700; letter-spacing: .02em; text-transform: capitalize; }
+.command-value { display: inline-flex; align-items: center; gap: 5px; color: var(--muted); font-size: .68rem; }
+.command-value input { width: 68px; padding: 5px 6px; border: 1px solid var(--line); background: var(--white); font: inherit; }
+.command-row-label { margin: 10px 0 8px; color: var(--muted); font-size: .68rem; letter-spacing: .08em; text-transform: uppercase; }
+.command-children { margin-left: 12px; padding-left: 10px; border-left: 2px solid var(--line); }
+.command-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.custom-panel { padding: 18px; border: 1px solid var(--ink); background: var(--white); }
+.custom-form { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
+.field-group { display: flex; flex-direction: column; gap: 6px; color: var(--muted); font-size: .7rem; letter-spacing: .08em; text-transform: uppercase; }
+.field-group input { padding: 8px 10px; border: 1px solid var(--line); background: var(--paper); font: inherit; }
+.custom-command-list { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+.custom-command-item { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 10px; border: 1px solid var(--line); background: var(--paper); }
+.custom-command-name { font-size: .8rem; font-weight: 700; }
+.custom-command-actions { display: flex; gap: 8px; }
+.custom-empty { margin: 0; color: var(--muted); font-size: .76rem; }
+.call-arg-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+
+@media (max-width: 900px) {
+  .turtle-layout { grid-template-columns: 1fr; }
+  .turtle-game { padding: 58px 0 66px; }
+  .turtle-topline { align-items: start; flex-direction: column; }
+  .turtle-tabs { gap: 17px; margin-top: 36px; }
+}
