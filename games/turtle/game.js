@@ -23,6 +23,9 @@ let program = cloneProgram(SAMPLE_PROGRAMS.draw);
 let strokes = [];
 let isRunning = false;
 let customCommands = loadCustomCommands();
+let editingCustomCommandName = '';
+let programBeforeCustomEdit = null;
+let customDraft = { name: '', params: '', bindings: '' };
 
 function cloneProgram(commands) {
   return JSON.parse(JSON.stringify(commands));
@@ -286,6 +289,36 @@ function appendCustomCommand(name) {
   render();
 }
 
+function bindingsToInput(bindings = {}) {
+  return Object.entries(bindings).map(([name, paths]) => `${name}: ${(paths || []).join(', ')}`).join('; ');
+}
+
+function editCustomCommand(name) {
+  const definition = findCustomCommand(name);
+  if (!definition) return;
+  if (!editingCustomCommandName) {
+    programBeforeCustomEdit = cloneProgram(program);
+  }
+  editingCustomCommandName = definition.name;
+  customDraft = {
+    name: definition.name,
+    params: (definition.params || []).join(', '),
+    bindings: bindingsToInput(definition.bindings)
+  };
+  program = cloneProgram(definition.body || []);
+  render();
+}
+
+function cancelCustomCommandEdit() {
+  if (programBeforeCustomEdit) {
+    program = programBeforeCustomEdit;
+  }
+  editingCustomCommandName = '';
+  programBeforeCustomEdit = null;
+  customDraft = { name: '', params: '', bindings: '' };
+  render();
+}
+
 function saveCurrentProgramAsCommand() {
   if (!program.length) {
     window.alert('Add a few commands before saving a custom one.');
@@ -331,11 +364,14 @@ function saveCurrentProgramAsCommand() {
     body: cloneProgram(program)
   };
   customCommands = customCommands.filter((entry) => entry.name.toLowerCase() !== normalized.toLowerCase());
+  if (editingCustomCommandName) {
+    customCommands = customCommands.filter((entry) => entry.name.toLowerCase() !== editingCustomCommandName.toLowerCase());
+  }
   customCommands.push(nextEntry);
   persistCustomCommands();
-  if (form) form.value = '';
-  if (paramsInput) paramsInput.value = '';
-  if (bindingsInput) bindingsInput.value = '';
+  editingCustomCommandName = '';
+  programBeforeCustomEdit = null;
+  customDraft = { name: '', params: '', bindings: '' };
   render();
 }
 
@@ -567,6 +603,7 @@ function renderCustomCommands() {
       <span class="custom-command-name">${command.name}${command.params.length ? `(${command.params.join(', ')})` : '()'}</span>
       <div class="custom-command-actions">
         <button type="button" class="mini-button" data-use-custom="${command.name}">Use</button>
+        <button type="button" class="mini-button" data-edit-custom="${command.name}">Edit</button>
         <button type="button" class="mini-button" data-delete-custom="${command.name}">Delete</button>
       </div>
     </div>
@@ -614,25 +651,40 @@ function render() {
             <div class="program-list">
               ${renderCommandList(program)}
             </div>
+            <div class="custom-editor">
+              <div class="custom-panel-header">
+                <p class="section-label">${editingCustomCommandName ? `Edit ${editingCustomCommandName}` : 'Save as custom command'}</p>
+                <button type="button" class="info-button" data-custom-help-toggle aria-label="Show binding help" aria-expanded="false">i</button>
+              </div>
+              <div class="custom-help-panel" data-custom-help-panel>
+                <p><strong>Parameters</strong> are placeholders. <strong>Bindings</strong> connect each parameter to one or more numeric values inside the saved program body.</p>
+                <p>Example: <strong>size: 0, 2; turn: 1.children.0</strong> maps one parameter to multiple saved values.</p>
+              </div>
+              <div class="custom-form">
+                <label class="field-group">
+                  <span>Name</span>
+                  <input id="custom-name-input" type="text" value="${customDraft.name}" placeholder="square" />
+                </label>
+                <label class="field-group">
+                  <span>Parameters</span>
+                  <input id="custom-params-input" type="text" value="${customDraft.params}" placeholder="size, turn" />
+                </label>
+                <label class="field-group">
+                  <span>Bindings</span>
+                  <input id="custom-bindings-input" type="text" value="${customDraft.bindings}" placeholder="size: 0, 2; turn: 1.children.0" />
+                </label>
+              </div>
+              <div class="custom-editor-actions">
+                <button type="button" class="secondary-button full" data-save-custom-command>${editingCustomCommandName ? 'Update custom command' : 'Save as custom command'}</button>
+                ${editingCustomCommandName ? '<button type="button" class="secondary-button full" data-cancel-custom-edit>Cancel edit</button>' : ''}
+              </div>
+            </div>
           </div>
 
           <div class="custom-panel">
-            <p class="section-label">My commands</p>
-            <div class="custom-form">
-              <label class="field-group">
-                <span>Name</span>
-                <input id="custom-name-input" type="text" placeholder="square" />
-              </label>
-              <label class="field-group">
-                <span>Parameters</span>
-                <input id="custom-params-input" type="text" placeholder="size, turn" />
-              </label>
-              <label class="field-group">
-                <span>Bindings</span>
-                <input id="custom-bindings-input" type="text" placeholder="size: 0, 2; turn: 1.children.0" />
-              </label>
+            <div class="custom-panel-header">
+              <p class="section-label">My commands</p>
             </div>
-            <button type="button" class="secondary-button full" data-save-custom-command>Save current program</button>
             <div class="custom-command-list">
               ${renderCustomCommands()}
             </div>
@@ -673,9 +725,30 @@ function handleAction(event) {
     return;
   }
 
+  const cancelEditTrigger = event.target.closest('[data-cancel-custom-edit]');
+  if (cancelEditTrigger) {
+    cancelCustomCommandEdit();
+    return;
+  }
+
+  const helpToggle = event.target.closest('[data-custom-help-toggle]');
+  if (helpToggle) {
+    const panel = view?.querySelector('[data-custom-help-panel]');
+    if (!panel) return;
+    const isOpen = panel.classList.toggle('is-open');
+    helpToggle.setAttribute('aria-expanded', String(isOpen));
+    return;
+  }
+
   const useCustomTrigger = event.target.closest('[data-use-custom]');
   if (useCustomTrigger) {
     appendCustomCommand(useCustomTrigger.dataset.useCustom);
+    return;
+  }
+
+  const editCustomTrigger = event.target.closest('[data-edit-custom]');
+  if (editCustomTrigger) {
+    editCustomCommand(editCustomTrigger.dataset.editCustom);
     return;
   }
 
@@ -694,6 +767,16 @@ function handleAction(event) {
   const programInput = event.target.closest('[data-program-path]');
   if (programInput) {
     updateProgramFromInput(event);
+    return;
+  }
+
+  const draftInput = event.target.closest('#custom-name-input, #custom-params-input, #custom-bindings-input');
+  if (draftInput) {
+    customDraft = {
+      name: view.querySelector('#custom-name-input')?.value || '',
+      params: view.querySelector('#custom-params-input')?.value || '',
+      bindings: view.querySelector('#custom-bindings-input')?.value || ''
+    };
   }
 }
 

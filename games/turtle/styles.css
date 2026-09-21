@@ -28,6 +28,8 @@
 .palette, .program-panel { padding: 18px; border: 1px solid var(--ink); background: var(--white); }
 .tool-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
 .program-list { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; }
+.custom-editor { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--line); }
+.custom-editor-actions { display: flex; flex-direction: column; gap: 8px; }
 .command-block { padding: 10px 12px; border: 1px solid var(--line); background: var(--paper); }
 .command-header { display: flex; align-items: center; gap: 8px; }
 .command-name { flex: 1; font-size: .78rem; font-weight: 700; letter-spacing: .02em; text-transform: capitalize; }
@@ -37,6 +39,13 @@
 .command-children { margin-left: 12px; padding-left: 10px; border-left: 2px solid var(--line); }
 .command-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 .custom-panel { padding: 18px; border: 1px solid var(--ink); background: var(--white); }
+.custom-panel-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.custom-panel-header .section-label { margin-bottom: 0; }
+.info-button { display: inline-grid; place-items: center; width: 24px; height: 24px; border: 1px solid var(--ink); border-radius: 50%; background: var(--paper); color: var(--ink); cursor: pointer; font: 700 .75rem var(--body); }
+.custom-help-panel { display: none; margin: 12px 0 14px; padding: 10px 12px; border: 1px solid var(--line); background: var(--paper); color: var(--ink); font-size: .72rem; line-height: 1.5; }
+.custom-help-panel.is-open { display: block; }
+.custom-help-panel p { margin: 0; }
+.custom-help-panel p + p { margin-top: 8px; }
 .custom-form { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
 .field-group { display: flex; flex-direction: column; gap: 6px; color: var(--muted); font-size: .7rem; letter-spacing: .08em; text-transform: uppercase; }
 .field-group input { padding: 8px 10px; border: 1px solid var(--line); background: var(--paper); font: inherit; }
