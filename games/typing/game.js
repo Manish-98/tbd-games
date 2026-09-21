@@ -1,3 +1,5 @@
+import { loadJson, saveJson } from '../../shared/storage.js';
+
 const historyKey = 'playroom-typing-history';
 let paragraphs = [];
 let config = { POLL_INTERVAL_SECONDS: 0.035 };
@@ -6,11 +8,11 @@ let activeSession;
 let typingView;
 
 function getHistory() {
-  try { return JSON.parse(localStorage.getItem(historyKey) || '[]'); } catch { return []; }
+  return loadJson(historyKey, []);
 }
 
 function saveRun(run) {
-  localStorage.setItem(historyKey, JSON.stringify([run, ...getHistory()].slice(0, 100)));
+  saveJson(historyKey, [run, ...getHistory()].slice(0, 100));
 }
 
 function formatNumber(value) { return Number.isFinite(value) ? value.toFixed(0) : '—'; }
@@ -132,8 +134,8 @@ function render(mode = 'type') {
   (renderers[mode] || renderTyping)(mode);
 }
 
-export function initTypingGame(view) {
-  typingView = view;
+export function initTypingGame(section) {
+  typingView = section.querySelector('.typing-view');
   const dataUrl = (file) => new URL(file, import.meta.url);
   Promise.all([fetch(dataUrl('./paragraphs.json')).then((response) => response.json()), fetch(dataUrl('./config.json')).then((response) => response.json())]).then(([loadedParagraphs, loadedConfig]) => {
     paragraphs = loadedParagraphs;
