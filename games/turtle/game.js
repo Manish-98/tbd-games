@@ -1,5 +1,11 @@
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
-const DEFAULT_TURTLE = { x: 320, y: 220, angle: -90, penDown: true };
+const MOVEMENT_MIN = 1;
+const MOVEMENT_MAX = 220;
+const REPEAT_MIN = 1;
+const REPEAT_MAX = 500;
+const TURN_MIN = 1;
+const TURN_MAX = 360;
+const DEFAULT_TURTLE = { x: 450, y: 300, angle: -90, penDown: true };
 const STORAGE_KEY = 'playroom-turtle-custom-commands';
 const SAMPLE_PROGRAMS = {
   draw: [
@@ -90,6 +96,41 @@ function parseBindingMap(raw = '') {
   return result;
 }
 
+function getCommandValueRange(command) {
+  if (command?.type === 'repeat') return { min: REPEAT_MIN, max: REPEAT_MAX, field: 'count' };
+  if (command?.type === 'left' || command?.type === 'right') return { min: TURN_MIN, max: TURN_MAX, field: 'value' };
+  if (command?.type === 'forward' || command?.type === 'back') return { min: MOVEMENT_MIN, max: MOVEMENT_MAX, field: 'value' };
+  return null;
+}
+
+function validateBindings(bindings, params, body) {
+  const parameterSet = new Set(params);
+  const seenPaths = new Set();
+
+  for (const [paramName, paths] of Object.entries(bindings)) {
+    if (!parameterSet.has(paramName)) {
+      return `Binding "${paramName}" must reference a declared parameter.`;
+    }
+    if (!paths.length) {
+      return `Binding "${paramName}" must include at least one command path.`;
+    }
+    for (const path of paths) {
+      if (seenPaths.has(path)) {
+        return `Binding path "${path}" is used more than once.`;
+      }
+      seenPaths.add(path);
+      if (!/^\d+(?:\.children\.\d+)*$/.test(path)) {
+        return `Binding path "${path}" is invalid.`;
+      }
+      const target = getNodeAtPath(body, path);
+      if (!getCommandValueRange(target)) {
+        return `Binding path "${path}" must target a movement, turn, or repeat value.`;
+      }
+    }
+  }
+  return '';
+}
+
 function applyBindingsToBody(body, bindings = {}, parameterMap = {}) {
   const nextBody = cloneProgram(body || []);
   Object.entries(bindings).forEach(([paramName, pathList]) => {
@@ -97,12 +138,9 @@ function applyBindingsToBody(body, bindings = {}, parameterMap = {}) {
     (Array.isArray(pathList) ? pathList : []).forEach((path) => {
       const target = getNodeAtPath(nextBody, path);
       if (!target) return;
-      if (Object.prototype.hasOwnProperty.call(target, 'value')) {
-        target.value = value;
-      }
-      if (Object.prototype.hasOwnProperty.call(target, 'count')) {
-        target.count = value;
-      }
+      const range = getCommandValueRange(target);
+      if (!range) return;
+      target[range.field] = clamp(Number.isFinite(value) ? value : range.min, range.min, range.max);
     });
   });
   return nextBody;
@@ -176,20 +214,24 @@ function updateProgramValue(path, value) {
   }
 
   if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(textValue)) {
-    node.value = textValue;
+    if (node.type === 'repeat') {
+      node.count = REPEAT_MIN;
+    } else {
+      node.value = textValue;
+    }
     return;
   }
 
   const numericValue = Number(textValue);
   if (node.type === 'repeat') {
-    node.count = clamp(Number.isFinite(numericValue) ? numericValue : 1, 1, 24);
+    node.count = clamp(Number.isFinite(numericValue) ? numericValue : REPEAT_MIN, REPEAT_MIN, REPEAT_MAX);
     return;
   }
   if (node.type === 'left' || node.type === 'right') {
-    node.value = clamp(Number.isFinite(numericValue) ? numericValue : 30, 1, 360);
+    node.value = clamp(Number.isFinite(numericValue) ? numericValue : 30, TURN_MIN, TURN_MAX);
     return;
   }
-  node.value = clamp(Number.isFinite(numericValue) ? numericValue : 10, 10, 220);
+  node.value = clamp(Number.isFinite(numericValue) ? numericValue : MOVEMENT_MIN, MOVEMENT_MIN, MOVEMENT_MAX);
 }
 
 function updateProgramFromInput(event) {
@@ -202,7 +244,8 @@ function updateCallParameter(path, paramName, value) {
   const node = getNodeAtPath(program, path);
   if (!node || node.type !== 'call') return;
   const paramValues = { ...(node.paramValues || {}) };
-  paramValues[paramName] = Number(value) || 0;
+  const numericValue = Number(value);
+  paramValues[paramName] = clamp(Number.isFinite(numericValue) ? numericValue : REPEAT_MIN, REPEAT_MIN, REPEAT_MAX);
   node.paramValues = paramValues;
 }
 
@@ -258,18 +301,32 @@ function saveCurrentProgramAsCommand() {
     return;
   }
 
-  const normalized = name.replace(/\s+/g, '').replace(/[^a-zA-Z0-9_]/g, '');
-  if (!normalized) {
-    window.alert('Use letters, numbers, or underscores only.');
+  if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)) {
+    window.alert('Use a name beginning with a letter or underscore, followed by letters, numbers, or underscores.');
     return;
   }
+  const normalized = name;
 
-  const params = String(paramsInput?.value || '').split(',').map((entry) => entry.trim()).filter(Boolean).map((entry) => entry.replace(/[^a-zA-Z0-9_]/g, ''));
+  const rawParams = String(paramsInput?.value || '').split(',').map((entry) => entry.trim()).filter(Boolean);
+  if (rawParams.some((param) => !/^[A-Za-z_][A-Za-z0-9_]*$/.test(param))) {
+    window.alert('Each parameter must begin with a letter or underscore and contain only letters, numbers, or underscores.');
+    return;
+  }
+  const params = rawParams.filter((value, index, all) => all.indexOf(value) === index);
+  if (params.length !== rawParams.length) {
+    window.alert('Parameter names must be unique.');
+    return;
+  }
   const rawBindings = String(bindingsInput?.value || '').trim();
   const bindings = parseBindingMap(rawBindings);
+  const bindingError = validateBindings(bindings, params, program);
+  if (bindingError) {
+    window.alert(bindingError);
+    return;
+  }
   const nextEntry = {
     name: normalized,
-    params: params.filter((value, index, all) => value && all.indexOf(value) === index),
+    params,
     bindings,
     body: cloneProgram(program)
   };
@@ -317,8 +374,8 @@ function moveTurtle(distance) {
     strokes.push({ x1: turtle.x, y1: turtle.y, x2: nextX, y2: nextY });
   }
 
-  turtle.x = clamp(nextX, 20, 620);
-  turtle.y = clamp(nextY, 20, 420);
+  turtle.x = clamp(nextX, 20, 880);
+  turtle.y = clamp(nextY, 20, 580);
   renderBoard();
 }
 
@@ -365,7 +422,7 @@ async function executeCommand(command, parameterMap = {}) {
     return;
   }
   if (resolved.type === 'repeat') {
-    const count = clamp(Math.round(Number(resolved.count) || 1), 1, 24);
+    const count = clamp(Math.round(Number(resolved.count) || REPEAT_MIN), REPEAT_MIN, REPEAT_MAX);
     for (let index = 0; index < count; index += 1) {
       if (!isRunning) return;
       for (const child of resolved.children || []) {
@@ -472,7 +529,7 @@ function renderCommandList(commands, pathPrefix = '') {
     const path = pathPrefix ? `${pathPrefix}.${index}` : `${index}`;
     const unitLabel = command.type === 'left' || command.type === 'right' ? '°' : command.type === 'repeat' ? 'x' : 'px';
     const valueInput = command.type === 'repeat' || command.type === 'forward' || command.type === 'back' || command.type === 'left' || command.type === 'right'
-      ? `<label class="command-value"><span>${unitLabel}</span><input type="number" inputmode="numeric" value="${command.type === 'repeat' ? command.count : command.value}" data-program-path="${path}" min="${command.type === 'repeat' ? '1' : '10'}" max="${command.type === 'repeat' ? '24' : command.type === 'left' || command.type === 'right' ? '360' : '220'}" /></label>`
+      ? `<label class="command-value"><span>${unitLabel}</span><input type="number" inputmode="numeric" value="${command.type === 'repeat' ? command.count : command.value}" data-program-path="${path}" min="${command.type === 'repeat' ? REPEAT_MIN : command.type === 'left' || command.type === 'right' ? TURN_MIN : MOVEMENT_MIN}" max="${command.type === 'repeat' ? REPEAT_MAX : command.type === 'left' || command.type === 'right' ? TURN_MAX : MOVEMENT_MAX}" /></label>`
       : '';
     const children = command.type === 'repeat'
       ? `<div class="command-children"><div class="command-row-label">Loop body</div>${renderCommandList(command.children || [], `${path}.children`)}</div>`
@@ -482,7 +539,7 @@ function renderCommandList(commands, pathPrefix = '') {
       : '';
     const label = command.type === 'call' ? `${command.name}()` : command.type === 'penUp' ? 'Pen up' : command.type === 'penDown' ? 'Pen down' : command.type === 'repeat' ? 'Repeat' : command.type === 'forward' ? 'Forward' : command.type === 'back' ? 'Back' : command.type === 'left' ? 'Left' : command.type === 'right' ? 'Right' : command.type;
     const callArgs = command.type === 'call'
-      ? `<div class="call-arg-list">${(command.args || []).map((param) => `<label class="command-value"><span>${param}</span><input type="number" inputmode="numeric" value="${command.paramValues?.[param] ?? 0}" data-call-path="${path}" data-call-param="${param}" /></label>`).join('')}</div>`
+      ? `<div class="call-arg-list">${(command.args || []).map((param) => `<label class="command-value"><span>${param}</span><input type="number" inputmode="numeric" min="${REPEAT_MIN}" max="${REPEAT_MAX}" step="1" value="${command.paramValues?.[param] ?? REPEAT_MIN}" data-call-path="${path}" data-call-param="${param}" /></label>`).join('')}</div>`
       : '';
 
     return `
@@ -541,7 +598,7 @@ function render() {
 
       <div class="turtle-layout">
         <div class="turtle-canvas-panel">
-          <canvas id="turtle-canvas" width="640" height="440" aria-label="Turtle drawing canvas"></canvas>
+          <canvas id="turtle-canvas" width="900" height="600" aria-label="Turtle drawing canvas"></canvas>
         </div>
 
         <aside class="turtle-sidebar">
