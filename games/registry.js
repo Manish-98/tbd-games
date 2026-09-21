@@ -16,5 +16,3 @@ export const games = [
   { title: 'Pocket Racer', type: 'Arcade', category: 'arcade', description: 'Small track. Serious speed.', symbol: '››' },
   { title: 'Unfold', type: 'Puzzle', category: 'puzzle', description: 'Make the impossible shape fit.', symbol: '◇' }
 ];
-
-export const playableGames = games.filter((game) => game.initialize);
