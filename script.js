@@ -2,8 +2,8 @@ import { initTypingGame } from './games/typing/game.js';
 import { initLogicGame } from './games/logic/game.js';
 
 const games = [
-  { title: 'Key / pace / repeat', type: 'Arcade', category: 'arcade', description: 'Type cleanly. Find your rhythm.', symbol: '⌁', playable: true, game: 'typing' },
-  { title: 'Signal / switch / solve', type: 'Puzzle', category: 'puzzle', description: 'Build a circuit. Chase the light.', symbol: '⊙', playable: true, game: 'logic' },
+  { id: 'typing', title: 'Key / pace / repeat', type: 'Arcade', category: 'arcade', description: 'Type cleanly. Find your rhythm.', symbol: '⌁', initialize: initTypingGame, sectionSelector: '#typing-game', viewSelector: '#typing-view', closeSelector: '#close-game', tabsSelector: '.mode-tab', modeAttribute: 'mode', initialMode: 'type' },
+  { id: 'logic', title: 'Signal / switch / solve', type: 'Puzzle', category: 'puzzle', description: 'Build a circuit. Chase the light.', symbol: '⊙', initialize: initLogicGame, sectionSelector: '#logic-game', viewSelector: '#logic-view', closeSelector: '#close-logic-game', tabsSelector: '.logic-tab', modeAttribute: 'logicMode', initialMode: 'lab' },
   { title: 'Tiny Towers', type: 'Strategy', category: 'strategy', description: 'Build carefully. Balance everything.', symbol: '△' },
   { title: 'Word Bloom', type: 'Puzzle', category: 'puzzle', description: 'A daily garden of letters.', symbol: '✳' },
   { title: 'Orbit', type: 'Arcade', category: 'arcade', description: 'Time your turn around the sun.', symbol: '◌' },
@@ -15,63 +15,68 @@ const games = [
 
 const grid = document.querySelector('#game-grid');
 const filterButtons = document.querySelectorAll('.filter-button');
-const typingGame = document.querySelector('#typing-game');
-const typingController = initTypingGame(document.querySelector('#typing-view'));
-const logicGame = document.querySelector('#logic-game');
-const logicController = initLogicGame(document.querySelector('#logic-view'));
+const intro = document.querySelector('.intro');
+const gameLibrary = document.querySelector('.game-library');
+let activeGame;
+
+games.filter((game) => game.initialize).forEach((game) => {
+  game.section = document.querySelector(game.sectionSelector);
+  game.tabs = document.querySelectorAll(game.tabsSelector);
+  game.controller = game.initialize(document.querySelector(game.viewSelector));
+});
 
 function renderGames(filter = 'all') {
   const visibleGames = filter === 'all' ? games : games.filter((game) => game.category === filter);
   grid.innerHTML = visibleGames.map((game) => `
-    <article class="game-card${game.playable ? ' playable' : ''}">
+    <article class="game-card${game.id ? ' playable' : ''}">
       <div class="game-art" aria-hidden="true"><span class="art-symbol">${game.symbol}</span></div>
       <div class="game-info"><p class="game-type">${game.type}</p><h3 class="game-name">${game.title}</h3><p class="game-description">${game.description}</p>
-        ${game.playable ? `<button class="game-link" type="button" data-open-game="${game.game}">Play now <span aria-hidden="true">→</span></button>` : '<span class="game-link">Coming soon <span aria-hidden="true">→</span></span>'}
+        ${game.id ? `<button class="game-link" type="button" data-open-game="${game.id}">Play now <span aria-hidden="true">→</span></button>` : '<span class="game-link">Coming soon <span aria-hidden="true">→</span></span>'}
       </div>
     </article>`).join('');
 }
 
-function openGame(game) {
-  const isLogic = game === 'logic';
-  const activeGame = isLogic ? logicGame : typingGame;
-  activeGame.hidden = false;
-  document.querySelector('.intro').hidden = true;
-  document.querySelector('.game-library').hidden = true;
-  activeGame.scrollIntoView({ behavior: 'smooth' });
-  if (isLogic) logicController.render('lab'); else typingController.renderTyping('type');
+function openGame(id) {
+  const game = games.find((entry) => entry.id === id);
+  if (!game) return;
+  if (activeGame) activeGame.controller.destroy();
+  games.filter((entry) => entry.section).forEach((entry) => { entry.section.hidden = entry !== game; });
+  activeGame = game;
+  intro.hidden = true;
+  gameLibrary.hidden = true;
+  game.section.scrollIntoView({ behavior: 'smooth' });
+  game.controller.render(game.initialMode);
 }
 
-document.addEventListener('click', (event) => { const button = event.target.closest('[data-open-game]'); if (button) openGame(button.dataset.openGame); });
-document.querySelector('#close-game').addEventListener('click', () => {
-  typingController.destroy();
-  typingGame.hidden = true;
-  document.querySelector('.intro').hidden = false;
-  document.querySelector('.game-library').hidden = false;
+function closeGame(game) {
+  game.controller.destroy();
+  game.section.hidden = true;
+  activeGame = null;
+  intro.hidden = false;
+  gameLibrary.hidden = false;
   window.scrollTo({ top: 0, behavior: 'smooth' });
-});
-document.querySelector('#close-logic-game').addEventListener('click', () => {
-  logicController.destroy();
-  logicGame.hidden = true;
-  document.querySelector('.intro').hidden = false;
-  document.querySelector('.game-library').hidden = false;
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-});
-document.querySelectorAll('.mode-tab').forEach((button) => button.addEventListener('click', () => {
-  document.querySelectorAll('.mode-tab').forEach((tab) => { tab.classList.remove('active'); tab.setAttribute('aria-selected', 'false'); });
+}
+
+function selectTab(game, button) {
+  game.tabs.forEach((tab) => { tab.classList.remove('active'); tab.setAttribute('aria-selected', 'false'); });
   button.classList.add('active');
   button.setAttribute('aria-selected', 'true');
-  if (button.dataset.mode === 'stats') typingController.renderStats(); else typingController.renderTyping(button.dataset.mode);
-}));
+  game.controller.render(button.dataset[game.modeAttribute]);
+}
+
+document.addEventListener('click', (event) => {
+  const openButton = event.target.closest('[data-open-game]');
+  if (openButton) return openGame(openButton.dataset.openGame);
+  const game = games.find((entry) => entry.closeSelector && event.target.closest(entry.closeSelector));
+  if (game) return closeGame(game);
+  const tabGame = games.find((entry) => entry.tabsSelector && event.target.closest(entry.tabsSelector));
+  if (tabGame) selectTab(tabGame, event.target.closest(tabGame.tabsSelector));
+});
+
 filterButtons.forEach((button) => button.addEventListener('click', () => {
   filterButtons.forEach((item) => item.classList.remove('active'));
   button.classList.add('active');
   renderGames(button.dataset.filter);
-}));
-document.querySelectorAll('.logic-tab').forEach((button) => button.addEventListener('click', () => {
-  document.querySelectorAll('.logic-tab').forEach((tab) => { tab.classList.remove('active'); tab.setAttribute('aria-selected', 'false'); });
-  button.classList.add('active');
-  button.setAttribute('aria-selected', 'true');
-  logicController.render(button.dataset.logicMode);
 }));
 
 renderGames();

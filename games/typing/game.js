@@ -127,6 +127,11 @@ function renderStats() {
   typingView.innerHTML = `<div class="stats-summary"><div><span>Latest run</span><strong>${recent[0] ? `${formatNumber(recent[0].wpm)} WPM` : '—'}</strong></div><div><span>Personal best</span><strong>${best ? `${formatNumber(best.wpm)} WPM` : '—'}</strong></div><div><span>Rolling average</span><strong>${recent.length ? `${formatNumber(average)} WPM` : '—'}</strong></div><div><span>Trend</span><strong class="${trend >= 0 ? 'positive' : 'negative'}">${recent.length > 1 ? `${trend >= 0 ? '+' : ''}${formatNumber(trend)} WPM` : '—'}</strong></div></div><div class="chart-grid"><div class="chart-block"><div class="chart-heading"><h3>WPM</h3><span>words per minute</span></div><div class="bar-chart wpm-chart">${wpmBars}</div></div><div class="chart-block"><div class="chart-heading"><h3>Accuracy</h3><span>percentage correct</span></div><div class="bar-chart accuracy-chart">${accuracyBars}</div></div></div><div class="runs-table"><div class="table-heading"><h3>Last 10 runs</h3><span>${history.length} total</span></div>${rows}</div>`;
 }
 
+function render(mode = 'type') {
+  const renderers = { stats: renderStats, type: renderTyping, race: renderTyping };
+  (renderers[mode] || renderTyping)(mode);
+}
+
 export function initTypingGame(view) {
   typingView = view;
   const dataUrl = (file) => new URL(file, import.meta.url);
@@ -136,8 +141,7 @@ export function initTypingGame(view) {
   }).catch(() => { paragraphs = ['Make a little time for the things that make you curious.']; });
 
   return {
-    renderTyping,
-    renderStats,
+    render,
     destroy() {
       if (activeSession) activeSession.destroy();
     }
