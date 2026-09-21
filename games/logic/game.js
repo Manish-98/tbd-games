@@ -1,3 +1,5 @@
+import { createLifecycle } from '../../shared/lifecycle.js';
+
 const gateTypes = {
   AND: { inputs: 2, symbol: '&', label: 'AND', meaning: 'all on' },
   OR: { inputs: 2, symbol: '>=1', label: 'OR', meaning: 'any on' },
@@ -243,15 +245,23 @@ function handleClick(event) {
   if (event.target.closest('[data-check]')) updateTruthResults();
 }
 
-export function initLogicGame(logicView) {
-  view = logicView;
+export function initLogicGame(section) {
+  view = section.querySelector('.logic-view');
+  const lifecycle = createLifecycle();
   makeNodes();
-  let active = false;
-  const activate = () => { if (!active) { view.addEventListener('click', handleClick); window.addEventListener('resize', drawWires); active = true; } };
-  const deactivate = () => { if (active) { view.removeEventListener('click', handleClick); window.removeEventListener('resize', drawWires); active = false; } };
-  activate();
+  lifecycle.on(view, 'click', handleClick);
+  lifecycle.on(window, 'resize', drawWires);
+
   return {
-    render(nextMode = 'lab') { activate(); mode = nextMode; if (mode === 'detective') generateChallenge(); makeNodes(); render(); },
-    destroy() { deactivate(); view.innerHTML = ''; }
+    render(nextMode = 'lab') {
+      mode = nextMode;
+      if (mode === 'detective') generateChallenge();
+      makeNodes();
+      render();
+    },
+    destroy() {
+      lifecycle.dispose();
+      view.innerHTML = '';
+    }
   };
 }
