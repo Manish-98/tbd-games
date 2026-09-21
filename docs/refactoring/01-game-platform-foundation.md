@@ -2,28 +2,15 @@
 
 ## Goal
 
-Create a consistent runtime boundary for every game before changing individual game internals.
+Establish a consistent runtime boundary for every implemented game before changing game internals.
 
-This PR is the foundation for the remaining refactoring work. It should make the lobby independent of each game's internal DOM structure and give every game the same lifecycle.
+This PR makes the lobby responsible for orchestration only. Each game owns its DOM, while the shared platform owns lifecycle and persistence primitives.
 
-## Scope
+## Changes
 
-### 1. Standardize the game controller contract
+### 1. Simplified game registry
 
-Every game should expose:
-
-```js
-const controller = initialize(container);
-
-controller.render(mode);
-controller.destroy();
-```
-
-Optional capabilities such as `setMode` should not be required by the lobby.
-
-### 2. Simplify the game registry
-
-The registry should contain game metadata and the initializer only:
+Game metadata now contains only:
 
 ```js
 {
@@ -38,57 +25,72 @@ The registry should contain game metadata and the initializer only:
 }
 ```
 
-Remove selectors such as `sectionSelector`, `viewSelector`, `closeSelector`, `tabsSelector`, and `modeAttribute` from the central registry.
+The registry no longer contains game-specific selectors or DOM event details.
 
-Each game owns its own view structure and controls.
+The lobby derives each game section from the stable `<game-id>-game` convention and passes the section to the game initializer.
+
+### 2. Standard game controller contract
+
+Every implemented game now follows:
+
+```js
+const controller = initialize(section);
+
+controller.render(mode);
+controller.destroy();
+```
+
+Game initializers resolve their own internal view elements.
 
 ### 3. Lazy initialization
 
-Do not initialize every game during page load.
+Games are no longer initialized at page load.
 
-Initialize a game when the user opens it, cache the controller while it is active, and destroy it when leaving the game.
+A controller is created when its game is opened and destroyed when the user leaves it. This prevents unused games from registering listeners or loading game-specific resources.
 
-This prevents unused games from loading assets, creating listeners, or starting timers.
+### 4. Shared lifecycle management
 
-### 4. Add shared lifecycle management
+Added `shared/lifecycle.js` with deterministic cleanup support for:
 
-Introduce a small lifecycle utility for:
-
-- DOM event listeners
-- window/document listeners
+- DOM/window event listeners
 - intervals
 - timeouts
-- cleanup
+- arbitrary cleanup callbacks
 
-Game `destroy()` implementations should have one deterministic cleanup path.
+Logic, Turtle, and Cellular now use the lifecycle utility for their event ownership.
 
-### 5. Add shared storage helper
+Typing retains its existing `TypingSession.destroy()` cleanup because the keyboard listener and timer belong to the session itself.
 
-Create a small JSON storage abstraction used by games instead of repeating `try/catch + JSON.parse/stringify` around localStorage.
+### 5. Shared localStorage access
 
-Keep it deliberately small; this is not a persistence framework.
+Added `shared/storage.js` for safe JSON load/save operations.
+
+Typing, Turtle, and Cellular now use the shared storage abstraction instead of duplicating localStorage parsing and error handling.
+
+### 6. Data-driven lobby counts
+
+The lobby now derives game/category counts from the registry instead of hardcoding them in HTML.
 
 ## Non-goals
 
 - No game-engine extraction.
 - No visual redesign.
 - No testing work.
-- No behavior changes to the games.
 - No framework introduction.
+- No intentional gameplay changes.
+- No rendering/security cleanup; those belong to later refactoring PRs.
 
 ## Acceptance criteria
 
-- The lobby does not know game-specific selectors.
-- Games are initialized lazily.
-- Every implemented game follows the same lifecycle contract.
-- Destroying a game removes all listeners/timers owned by that game.
-- Shared localStorage access is centralized.
-- Existing game behavior remains unchanged.
-
-## Dependency
-
-None. This is the first refactoring PR.
+- [x] Lobby registry contains metadata and initializer only.
+- [x] Games own their internal DOM queries.
+- [x] Games are initialized lazily.
+- [x] Every implemented game exposes `render()` and `destroy()`.
+- [x] Event listeners owned by Logic, Turtle, and Cellular have deterministic cleanup.
+- [x] Shared localStorage access is centralized.
+- [x] Lobby counts are derived from the registry.
+- [x] Existing game behavior remains conceptually unchanged.
 
 ## Follow-up
 
-PR 02 can safely extract domain/game engines once the lifecycle and ownership boundaries are stable.
+**PR 02 — Extract Game Engines** can now separate simulation/domain logic from UI rendering without also having to solve lifecycle and ownership boundaries.
