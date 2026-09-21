@@ -8,15 +8,14 @@ let activeGame = null;
 
 function prepareGame(game) {
   if (game.section) return;
-  game.section = document.querySelector(game.sectionSelector);
-  game.tabs = game.tabsSelector ? document.querySelectorAll(game.tabsSelector) : [];
+  game.section = document.querySelector(`#${game.id}-game`);
+  game.tabs = game.section ? game.section.querySelectorAll('[role="tab"]') : [];
 }
 
 function initializeGame(game) {
   prepareGame(game);
   if (!game.controller) {
-    const view = document.querySelector(game.viewSelector);
-    game.controller = game.initialize(view);
+    game.controller = game.initialize(game.section);
   }
   return game.controller;
 }
@@ -85,16 +84,16 @@ function selectTab(game, button) {
   });
   button.classList.add('active');
   button.setAttribute('aria-selected', 'true');
-  controller.render(button.dataset[game.modeAttribute]);
+  controller.render(button.dataset.gameMode);
 }
 
 document.addEventListener('click', (event) => {
   const openButton = event.target.closest('[data-open-game]');
   if (openButton) return openGame(openButton.dataset.openGame);
-  const game = games.find((entry) => entry.closeSelector && event.target.closest(entry.closeSelector));
+  const game = games.find((entry) => entry.section?.contains(event.target) && event.target.closest('[data-close-game]'));
   if (game) return closeGame(game);
-  const tabGame = games.find((entry) => entry.tabsSelector && event.target.closest(entry.tabsSelector));
-  if (tabGame) return selectTab(tabGame, event.target.closest(tabGame.tabsSelector));
+  const tabGame = games.find((entry) => entry.section?.contains(event.target) && event.target.closest('[role="tab"]'));
+  if (tabGame) return selectTab(tabGame, event.target.closest('[role="tab"]'));
 });
 
 filterButtons.forEach((button) => {
