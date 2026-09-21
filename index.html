@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="games/typing/styles.css" />
     <link rel="stylesheet" href="games/logic/styles.css" />
     <link rel="stylesheet" href="games/turtle/styles.css" />
+    <link rel="stylesheet" href="games/cellular/styles.css" />
     <script src="script.js" type="module"></script>
   </head>
   <body>
@@ -42,7 +43,7 @@
               <h2 id="games-heading">Choose your next<br />little adventure</h2>
             </div>
             <div class="filter-bar" aria-label="Filter games" role="group">
-              <button class="filter-button active" type="button" data-filter="all">All <span>09</span></button>
+              <button class="filter-button active" type="button" data-filter="all">All <span>10</span></button>
               <button class="filter-button" type="button" data-filter="arcade">Arcade</button>
               <button class="filter-button" type="button" data-filter="puzzle">Puzzle</button>
               <button class="filter-button" type="button" data-filter="strategy">Strategy</button>
@@ -96,6 +97,17 @@
             <button class="turtle-tab active" type="button" role="tab" aria-selected="true" data-turtle-mode="draw">Draw mode</button>
           </div>
           <div class="turtle-view" id="turtle-view"></div>
+        </section>
+
+        <section class="cellular-game" id="cellular-game" aria-labelledby="cellular-heading" hidden>
+          <div class="cellular-topline">
+            <div>
+              <p class="section-label">Fourth game / 04</p>
+              <h2 id="cellular-heading">Cell / bloom / rerun</h2>
+            </div>
+            <button class="text-button" id="close-cellular-game" type="button">Back to lobby</button>
+          </div>
+          <div class="cellular-view" id="cellular-view"></div>
         </section>
       </main>
 

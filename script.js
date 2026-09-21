@@ -1,11 +1,13 @@
 import { initTypingGame } from './games/typing/game.js';
 import { initLogicGame } from './games/logic/game.js';
 import { initTurtleGame } from './games/turtle/game.js';
+import { initCellularGame } from './games/cellular/game.js';
 
 const games = [
   { id: 'typing', title: 'Key / pace / repeat', type: 'Arcade', category: 'arcade', description: 'Type cleanly. Find your rhythm.', symbol: '⌁', initialize: initTypingGame, sectionSelector: '#typing-game', viewSelector: '#typing-view', closeSelector: '#close-game', tabsSelector: '.mode-tab', modeAttribute: 'mode', initialMode: 'type' },
   { id: 'logic', title: 'Signal / switch / solve', type: 'Puzzle', category: 'puzzle', description: 'Build a circuit. Chase the light.', symbol: '⊙', initialize: initLogicGame, sectionSelector: '#logic-game', viewSelector: '#logic-view', closeSelector: '#close-logic-game', tabsSelector: '.logic-tab', modeAttribute: 'logicMode', initialMode: 'lab' },
   { id: 'turtle', title: 'Turtle run', type: 'Creative', category: 'arcade', description: 'Program a little drawing robot.', symbol: '🐢', initialize: initTurtleGame, sectionSelector: '#turtle-game', viewSelector: '#turtle-view', closeSelector: '#close-turtle-game', tabsSelector: '.turtle-tab', modeAttribute: 'turtleMode', initialMode: 'draw' },
+  { id: 'cellular', title: 'Cell / bloom / rerun', type: 'Creative', category: 'arcade', description: 'Shape a tiny world and watch it evolve.', symbol: '◈', initialize: initCellularGame, sectionSelector: '#cellular-game', viewSelector: '#cellular-view', closeSelector: '#close-cellular-game', initialMode: 'play' },
   { title: 'Tiny Towers', type: 'Strategy', category: 'strategy', description: 'Build carefully. Balance everything.', symbol: '△' },
   { title: 'Word Bloom', type: 'Puzzle', category: 'puzzle', description: 'A daily garden of letters.', symbol: '✳' },
   { title: 'Orbit', type: 'Arcade', category: 'arcade', description: 'Time your turn around the sun.', symbol: '◌' },
