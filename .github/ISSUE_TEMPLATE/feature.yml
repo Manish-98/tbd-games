@@ -1,22 +1,37 @@
----
 name: New Feature
-about: Propose a new feature or gameplay idea
+description: Propose a new feature or gameplay idea
 title: "[Feature] "
-labels: ["enhancement"]
-assignees: []
----
-
-## Summary
-<!-- Briefly describe the feature. -->
-
-## Problem / Goal
-<!-- What problem does this solve, or what should the player/developer be able to do? -->
-
-## Proposed Solution
-<!-- Describe the intended behavior and interaction. -->
-
-## Scope
-<!-- What is included? What is explicitly out of scope? -->
-
-## Additional Context
-<!-- Mockups, examples, references, or related issues. -->
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: Briefly describe the feature.
+    validations:
+      required: true
+  - type: textarea
+    id: goal
+    attributes:
+      label: Problem / Goal
+      description: What problem does this solve, or what should the player/developer be able to do?
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: Describe the intended behavior and interaction.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: What is included? What is explicitly out of scope?
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Add mockups, examples, references, or related issues.
