@@ -14,6 +14,7 @@ concurrency:
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
   preview:
@@ -62,13 +63,45 @@ jobs:
           git add -A
           if git diff --cached --quiet; then
             echo "Preview state is already up to date."
-            exit 0
+          else
+            if [ "${ACTION}" = "closed" ]; then
+              git commit -m "deploy: remove PR preview #${PR_NUMBER}"
+            else
+              git commit -m "deploy: update PR preview #${PR_NUMBER}"
+            fi
+
+            git push origin HEAD:gh-pages
           fi
+
+      - name: Add or update PR preview link
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          ACTION: ${{ github.event.action }}
+          PREVIEW_URL: https://manish-98.github.io/tbd-games/pr-preview/pr-${{ github.event.pull_request.number }}/
+          MARKER: "<!-- pr-preview-link -->"
+        run: |
+          set -euo pipefail
+
+          comments="$(gh api "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments?per_page=100")"
+          comment_id="$(printf '%s' "${comments}" | jq -r --arg marker "${MARKER}" '.[] | select(.body | contains($marker)) | .id' | head -n 1)"
 
           if [ "${ACTION}" = "closed" ]; then
-            git commit -m "deploy: remove PR preview #${PR_NUMBER}"
+            body="${MARKER}
+          ## PR preview
+
+          The preview deployment for this PR has been removed because the PR is closed."
           else
-            git commit -m "deploy: update PR preview #${PR_NUMBER}"
+            body="${MARKER}
+          ## PR preview
+
+          **[Open the latest preview deployment](${PREVIEW_URL})**
+
+          This preview updates automatically when new commits are pushed to the PR."
           fi
 
-          git push origin HEAD:gh-pages
+          if [ -n "${comment_id}" ]; then
+            gh api --method PATCH "repos/${GITHUB_REPOSITORY}/issues/comments/${comment_id}" -f body="${body}"
+          else
+            gh api --method POST "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" -f body="${body}"
+          fi
