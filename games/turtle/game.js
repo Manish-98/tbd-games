@@ -1,4 +1,5 @@
 import { createLifecycle } from '../../shared/lifecycle.js';
+import { createCommand as createEngineCommand, cloneProgram as cloneEngineProgram, executeProgram } from './engine.js';
 import { loadJson, saveJson } from '../../shared/storage.js';
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
@@ -25,14 +26,13 @@ let turtle = { ...DEFAULT_TURTLE };
 let program = cloneProgram(SAMPLE_PROGRAMS.draw);
 let strokes = [];
 let isRunning = false;
+let activeRunId = 0;
 let customCommands = loadCustomCommands();
 let editingCustomCommandName = '';
 let programBeforeCustomEdit = null;
 let customDraft = { name: '', params: '', bindings: '' };
 
-function cloneProgram(commands) {
-  return JSON.parse(JSON.stringify(commands));
-}
+function cloneProgram(commands) { return cloneEngineProgram(commands); }
 
 function isParameterToken(value) {
   return typeof value === 'string' && /^[$A-Z_][0-9A-Z_$]*$/i.test(value.trim());
@@ -170,24 +170,17 @@ function getParentAndIndex(list, path) {
 }
 
 function createCommand(type) {
-  if (type === 'forward') return { type, value: 80 };
-  if (type === 'back') return { type: 'back', value: 80 };
-  if (type === 'left') return { type: 'left', value: 30 };
-  if (type === 'right') return { type: 'right', value: 30 };
-  if (type === 'penUp') return { type: 'penUp' };
-  if (type === 'penDown') return { type: 'penDown' };
-  if (type === 'repeat') return { type: 'repeat', count: 4, children: [
-    { type: 'forward', value: 60 },
-    { type: 'right', value: 90 }
-  ] };
-  if (type === 'call') {
-    const fallback = customCommands[0]?.name || 'square';
-    return { type: 'call', name: fallback, args: [] };
-  }
-  return { type: 'forward', value: 80 };
+  const command = createEngineCommand(type);
+  if (!command) return { type: 'forward', value: 80 };
+  if (type === 'forward' || type === 'back') command.value = type === 'back' ? 80 : 80;
+  if (type === 'repeat') { command.count = 4; command.children = [{ type: 'forward', value: 60 }, { type: 'right', value: 90 }]; }
+  if (type === 'call') command.name = customCommands[0]?.name || 'square';
+  return command;
 }
 
 function resetTurtle() {
+  activeRunId += 1;
+  isRunning = false;
   turtle = { ...DEFAULT_TURTLE };
   strokes = [];
   renderBoard();
@@ -414,90 +407,25 @@ function turnTurtle(delta) {
   renderBoard();
 }
 
-async function executeCommand(command, parameterMap = {}) {
-  if (!isRunning) return;
-
-  const resolved = prepareCommand(command, parameterMap);
-
-  if (resolved.type === 'forward') {
-    moveTurtle(Number(resolved.value) || 0);
-    await wait(90);
-    return;
-  }
-  if (resolved.type === 'back') {
-    moveTurtle(-Number(resolved.value) || 0);
-    await wait(90);
-    return;
-  }
-  if (resolved.type === 'left') {
-    turnTurtle(-Number(resolved.value) || 0);
-    await wait(90);
-    return;
-  }
-  if (resolved.type === 'right') {
-    turnTurtle(Number(resolved.value) || 0);
-    await wait(90);
-    return;
-  }
-  if (resolved.type === 'penUp') {
-    turtle.penDown = false;
-    renderBoard();
-    await wait(90);
-    return;
-  }
-  if (resolved.type === 'penDown') {
-    turtle.penDown = true;
-    renderBoard();
-    await wait(90);
-    return;
-  }
-  if (resolved.type === 'repeat') {
-    const count = clamp(Math.round(Number(resolved.count) || REPEAT_MIN), REPEAT_MIN, REPEAT_MAX);
-    for (let index = 0; index < count; index += 1) {
-      if (!isRunning) return;
-      for (const child of resolved.children || []) {
-        if (!isRunning) return;
-        await executeCommand(child, parameterMap);
-      }
-    }
-    return;
-  }
-
-  if (resolved.type === 'call') {
-    const definition = findCustomCommand(resolved.name);
-    if (!definition) return;
-    const localParams = { ...(resolved.paramValues || {}) };
-    for (const param of definition.params || []) {
-      if (!Object.prototype.hasOwnProperty.call(localParams, param)) {
-        localParams[param] = '0';
-      }
-    }
-    const boundBody = applyBindingsToBody(definition.body || [], definition.bindings || {}, localParams);
-    for (const child of boundBody) {
-      if (!isRunning) return;
-      await executeCommand(child, localParams);
-    }
-  }
-}
-
-function wait(duration) {
-  return new Promise((resolve) => {
-    window.setTimeout(resolve, duration);
-  });
-}
-
 async function runProgram() {
   if (isRunning) return;
+  const runId = activeRunId + 1;
+  activeRunId = runId;
   isRunning = true;
-
   try {
-    for (const command of program) {
-      if (!isRunning) break;
-      await executeCommand(command);
+    const initialState = { ...turtle };
+    for (const step of executeProgram(program, customCommands, initialState, { bounds: { minX: 20, maxX: 880, minY: 20, maxY: 580 } })) {
+      if (!isRunning || runId !== activeRunId) break;
+      turtle = step.state;
+      if (step.stroke) strokes.push(step.stroke);
+      renderBoard();
+      await new Promise((resolve) => window.setTimeout(resolve, 90));
     }
   } finally {
-    isRunning = false;
-    render();
+    if (runId === activeRunId) {
+      isRunning = false;
+      render();
+    }
   }
 }
 
@@ -785,6 +713,7 @@ export function initTurtleGame(section) {
       setProgramFromMode(nextMode);
     },
     destroy() {
+      activeRunId += 1;
       isRunning = false;
       lifecycle.dispose();
       view.innerHTML = '';

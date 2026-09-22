@@ -1,13 +1,5 @@
 import { createLifecycle } from '../../shared/lifecycle.js';
-
-const gateTypes = {
-  AND: { inputs: 2, symbol: '&', label: 'AND', meaning: 'all on' },
-  OR: { inputs: 2, symbol: '>=1', label: 'OR', meaning: 'any on' },
-  NOT: { inputs: 1, symbol: '!', label: 'NOT', meaning: 'flips' },
-  XOR: { inputs: 2, symbol: '=1', label: 'XOR', meaning: 'one on' },
-  NAND: { inputs: 2, symbol: 'N&', label: 'NAND', meaning: 'not all' },
-  NOR: { inputs: 2, symbol: 'N>=1', label: 'NOR', meaning: 'none on' }
-};
+import { gateTypes, canConnect, evaluateCircuit } from './engine.js';
 
 let view;
 let mode = 'lab';
@@ -86,21 +78,9 @@ function removeWireAt(target) {
   wires = wires.filter((wire) => !samePort(wire.to, target));
 }
 
-function hasPath(startNode, targetNode, visited = new Set()) {
-  if (startNode === targetNode) return true;
-  if (visited.has(startNode)) return false;
-  visited.add(startNode);
-  return wires.filter((wire) => wire.from.node === startNode).some((wire) => hasPath(wire.to.node, targetNode, visited));
-}
-
 function connect(source, target) {
-  if (source.node === target.node || source.port !== 'out' || target.port === 'out') return;
-  const replacedWires = wires.filter((wire) => samePort(wire.to, target));
+  if (!canConnect(source, target, wires)) return;
   removeWireAt(target);
-  if (hasPath(target.node, source.node)) {
-    wires.push(...replacedWires);
-    return;
-  }
   wires.push({ from: source, to: target });
 }
 
@@ -109,30 +89,8 @@ function addGate(type) {
   render();
 }
 
-function valueAt(port, inputs, stack = new Set()) {
-  const node = getNode(port.node);
-  if (!node || stack.has(node.id)) return null;
-  if (node.kind === 'input') return inputs[node.index] ?? node.value;
-  if (node.kind === 'output') {
-    const wire = wires.find((item) => samePort(item.to, port));
-    return wire ? valueAt(wire.from, inputs, stack) : null;
-  }
-  const nextStack = new Set(stack).add(node.id);
-  const values = Array.from({ length: gateTypes[node.type].inputs }, (_, index) => {
-    const wire = wires.find((item) => item.to.node === node.id && item.to.port === `in-${index}`);
-    return wire ? valueAt(wire.from, inputs, nextStack) : null;
-  });
-  if (values.some((value) => value === null)) return null;
-  if (node.type === 'NOT') return !values[0];
-  if (node.type === 'AND') return values.every(Boolean);
-  if (node.type === 'OR') return values.some(Boolean);
-  if (node.type === 'XOR') return values.filter(Boolean).length === 1;
-  if (node.type === 'NAND') return !values.every(Boolean);
-  return !values.some(Boolean);
-}
-
 function circuitOutputs(inputs = nodes.filter((node) => node.kind === 'input').map((node) => node.value)) {
-  return nodes.filter((node) => node.kind === 'output').map((node) => valueAt({ node: node.id, port: 'in-0' }, inputs));
+  return evaluateCircuit(nodes, wires, inputs);
 }
 
 function positionStyle(node) {
