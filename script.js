@@ -84,7 +84,7 @@ function setTabState(game, activeButton) {
 function renderAboutMode(game) {
   if (!game.aboutView) return;
   if (game.controller) destroyGame(game);
-  game.aboutView.innerHTML = renderAbout(game.about);
+  game.aboutView.innerHTML = renderAbout(game.about, game.id);
   game.aboutView.hidden = false;
   if (game.gameView) game.gameView.hidden = true;
 }
