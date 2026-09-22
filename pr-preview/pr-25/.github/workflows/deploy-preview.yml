@@ -85,7 +85,7 @@ jobs:
           pr_body="$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" --jq '.body // ""')"
 
           if printf '%s' "${pr_body}" | grep -qF "${MARKER}"; then
-            base_body="$(printf '%s' "${pr_body}" | sed "/${MARKER}/,$d")"
+            base_body="$(printf '%s' "${pr_body}" | sed "/${MARKER}/,$\d")"
           else
             base_body="${pr_body}"
           fi
