@@ -512,3 +512,15 @@ The player doesn't need to learn syntax first.
 They simply need to answer:
 
 > **"What instructions would make the turtle draw this?"**
+
+
+# Repeat Composition
+
+A `REPEAT` block can contain the complete command set, not only movement and nested-repeat commands. Its body may include:
+
+- `FORWARD`, `BACK`, `LEFT`, and `RIGHT`
+- `PEN UP` and `PEN DOWN`
+- Nested `REPEAT` blocks
+- Calls to any saved custom command, including parameterized commands
+
+The repeat-body controls use the same command creation model as the main program, so nested levels remain composable. The execution engine already evaluates the resulting command tree recursively; this feature expands the UI to expose that capability.

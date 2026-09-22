@@ -14,6 +14,16 @@ const STORAGE_KEY = 'playroom-turtle-custom-commands';
 const DEFAULT_ANIMATION_DELAY = 90;
 const MIN_ANIMATION_DELAY = 0;
 const MAX_ANIMATION_DELAY = 200;
+const BUILT_IN_COMMANDS = [
+  { type: 'forward', label: 'Forward' },
+  { type: 'back', label: 'Back' },
+  { type: 'left', label: 'Left' },
+  { type: 'right', label: 'Right' },
+  { type: 'penUp', label: 'Pen up' },
+  { type: 'penDown', label: 'Pen down' },
+  { type: 'repeat', label: 'Repeat' }
+];
+
 const SAMPLE_PROGRAMS = {
   draw: [
     { type: 'repeat', count: 4, children: [
@@ -173,13 +183,30 @@ function getParentAndIndex(list, path) {
   return { list: parent, index: lastIndex, parent: Array.isArray(parent) ? null : parent };
 }
 
-function createCommand(type) {
+function createCommand(type, customName = '') {
   const command = createEngineCommand(type);
   if (!command) return { type: 'forward', value: 80 };
-  if (type === 'forward' || type === 'back') command.value = type === 'back' ? 80 : 80;
+  if (type === 'forward' || type === 'back') command.value = 80;
   if (type === 'repeat') { command.count = 4; command.children = [{ type: 'forward', value: 60 }, { type: 'right', value: 90 }]; }
-  if (type === 'call') command.name = customCommands[0]?.name || 'square';
+  if (type === 'call') {
+    const definition = findCustomCommand(customName) || customCommands[0];
+    if (definition) {
+      command.name = definition.name;
+      command.args = [...(definition.params || [])];
+      command.paramValues = Object.fromEntries((definition.params || []).map((param) => [param, '0']));
+    }
+  }
   return command;
+}
+
+function renderCommandActions(parentPath = '') {
+  const builtIns = BUILT_IN_COMMANDS.map((button) =>
+    `<button type="button" class="mini-button" data-add-command="${button.type}" data-command-parent="${parentPath}">+ ${button.label.toLowerCase()}</button>`
+  ).join('');
+  const custom = customCommands.map((command) =>
+    `<button type="button" class="mini-button" data-add-custom="${command.name}" data-command-parent="${parentPath}">+ ${command.name}</button>`
+  ).join('');
+  return builtIns + custom;
 }
 
 function resetTurtle() {
@@ -243,8 +270,9 @@ function updateCallParameter(path, paramName, value) {
   node.paramValues = paramValues;
 }
 
-function addCommand(type, path = '') {
-  const command = createCommand(type);
+function addCommand(type, path = '', customName = '') {
+  const command = createCommand(type, customName);
+  if (type === 'call' && !command.name) return;
   if (!path) {
     program.push(command);
     render();
@@ -265,19 +293,10 @@ function addCommand(type, path = '') {
   }
 }
 
-function appendCustomCommand(name) {
+function appendCustomCommand(name, path = '') {
   const customName = String(name || '').trim();
-  if (!customName) return;
-  const definition = findCustomCommand(customName);
-  if (!definition) return;
-
-  const values = {};
-  definition.params.forEach((param) => {
-    values[param] = '0';
-  });
-
-  program.push({ type: 'call', name: customName, args: definition.params, paramValues: values });
-  render();
+  if (!customName || !findCustomCommand(customName)) return;
+  addCommand('call', path, customName);
 }
 
 function bindingsToInput(bindings = {}) {
@@ -499,7 +518,7 @@ function renderCommandList(commands, pathPrefix = '') {
       ? `<div class="command-children"><div class="command-row-label">Loop body</div>${renderCommandList(command.children || [], `${path}.children`)}</div>`
       : '';
     const addButtons = command.type === 'repeat'
-      ? `<div class="command-actions"><button type="button" class="mini-button" data-add-command="forward" data-command-parent="${path}">+ forward</button><button type="button" class="mini-button" data-add-command="right" data-command-parent="${path}">+ right</button><button type="button" class="mini-button" data-add-command="repeat" data-command-parent="${path}">+ repeat</button></div>`
+      ? `<div class="command-actions">${renderCommandActions(path)}</div>`
       : '';
     const label = command.type === 'call' ? `${command.name}()` : command.type === 'penUp' ? 'Pen up' : command.type === 'penDown' ? 'Pen down' : command.type === 'repeat' ? 'Repeat' : command.type === 'forward' ? 'Forward' : command.type === 'back' ? 'Back' : command.type === 'left' ? 'Left' : command.type === 'right' ? 'Right' : command.type;
     const callArgs = command.type === 'call'
@@ -541,15 +560,7 @@ function renderCustomCommands() {
 function render() {
   if (!view) return;
 
-  const buttons = [
-    { type: 'forward', label: 'Forward' },
-    { type: 'back', label: 'Back' },
-    { type: 'left', label: 'Left' },
-    { type: 'right', label: 'Right' },
-    { type: 'penUp', label: 'Pen up' },
-    { type: 'penDown', label: 'Pen down' },
-    { type: 'repeat', label: 'Repeat' }
-  ];
+  const buttons = BUILT_IN_COMMANDS;
 
   view.innerHTML = `
     <div class="turtle-shell">
@@ -665,6 +676,12 @@ function handleAction(event) {
   const addCommandTrigger = event.target.closest('[data-add-command]');
   if (addCommandTrigger) {
     addCommand(addCommandTrigger.dataset.addCommand, addCommandTrigger.dataset.commandParent || '');
+    return;
+  }
+
+  const addCustomTrigger = event.target.closest('[data-add-custom]');
+  if (addCustomTrigger) {
+    appendCustomCommand(addCustomTrigger.dataset.addCustom, addCustomTrigger.dataset.commandParent || '');
     return;
   }
 
