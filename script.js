@@ -68,12 +68,15 @@ function renderGameAbout(game) {
 function openGame(id) {
   const game = games.find((entry) => entry.id === id);
   if (!game || !validateGame(game)) return;
+
+  const controller = initializeGame(game);
+
   if (activeGame && activeGame !== game) destroyGame(activeGame);
   games.filter(isPlayableGame).forEach((entry) => {
     prepareGame(entry);
     entry.section.hidden = entry !== game;
   });
-  const controller = initializeGame(game);
+
   activeGame = game;
   intro.hidden = true;
   gameLibrary.hidden = true;
