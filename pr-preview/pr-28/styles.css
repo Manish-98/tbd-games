@@ -49,7 +49,7 @@ button { color: inherit; font: inherit; }
   gap: 44px;
   border-bottom: 1px solid var(--line);
 }
-.brand { display: inline-flex; align-items: center; gap: 10px; font: 700 1.12rem var(--display); letter-spacing: -0.04em; }
+.brand { display: inline-flex; align-items: center; gap: 10px; padding: 0; border: 0; color: inherit; background: none; font: 700 1.12rem var(--display); letter-spacing: -0.04em; cursor: pointer; }
 .brand-mark { display: grid; width: 29px; height: 29px; place-items: center; color: var(--ink); background: var(--coral); border-radius: 50%; font-size: 1.5rem; line-height: 1; }
 .site-nav { display: flex; gap: 25px; color: var(--muted); font-size: .88rem; }
 .site-nav a { padding: 8px 0; }
