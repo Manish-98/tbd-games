@@ -28,6 +28,16 @@ Updating a PR replaces the contents of its existing preview. Closing a PR remove
 
 Preview deployment is intentionally separate from the production root, so merging is still the only path that changes the production site.
 
+### Preview smoke test
+
+To verify a preview before merging:
+
+1. Confirm the **Deploy PR Preview** workflow succeeds for the PR.
+2. Open the PR-specific preview URL.
+3. Push another commit to the same PR and confirm the same URL reflects the update.
+4. Confirm the production URL is unchanged.
+5. Close the PR and confirm its preview is removed.
+
 ## One-time GitHub Pages configuration
 
 After these workflows are merged, configure GitHub Pages to use the `gh-pages` branch as its publishing source:
