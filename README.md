@@ -38,7 +38,8 @@ Shared platform utilities live in `shared/`:
 3. Keep engine logic independent of the DOM.
 4. Register game metadata in `games/registry.js`.
 5. Keep game-specific CSS local to `games/<game>/styles.css`.
-6. Use shared lifecycle/storage utilities where applicable.
+6. Add the required player-facing `about` metadata to the game registry.
+7. Use shared lifecycle/storage utilities where applicable.
 
 The lobby only knows the registry and controller contracts. A new game's internal implementation should not require changes to unrelated game modules.
 
@@ -51,3 +52,6 @@ Game-specific localStorage values are versioned at the owning module boundary. V
 ```
 
 Stored data must match the current versioned envelope. Unversioned or incompatible payloads fall back to the owning game's default data.
+
+
+See [`docs/game-contract.md`](docs/game-contract.md) for the required game contract, including About content.
