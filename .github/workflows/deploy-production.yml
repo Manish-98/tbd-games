@@ -30,8 +30,9 @@ jobs:
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
           if git ls-remote --exit-code --heads origin gh-pages >/dev/null 2>&1; then
-            git fetch origin gh-pages
-            git worktree add ../pages-deploy origin/gh-pages
+            git clone --branch gh-pages --single-branch \
+              "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" \
+              ../pages-deploy
           else
             mkdir ../pages-deploy
             cd ../pages-deploy
