@@ -85,7 +85,11 @@ function textMarkup(text, position, ghostPosition = -1) {
 function renderTyping(mode = 'type') {
   activeMode = mode;
   if (activeSession) activeSession.destroy();
-  const text = paragraphs[Math.floor(Math.random() * paragraphs.length)] || 'Loading a small paragraph...';
+  if (!paragraphs.length) {
+    typingView.innerHTML = '<div class="typing-meta"><span>Type the passage exactly</span><span id="live-stats">Loading a passage…</span></div>';
+    return;
+  }
+  const text = paragraphs[Math.floor(Math.random() * paragraphs.length)];
   const best = getHistory().filter((run) => run.mode !== 'race').sort((a, b) => b.cpm - a.cpm)[0];
   const ghostProvider = mode === 'race' && best ? (session) => {
     if (!session.startedAt) return 0;
@@ -146,9 +150,11 @@ export function initTypingGame(section) {
     if (destroyed) return;
     paragraphs = loadedParagraphs;
     config = loadedConfig;
+    render(activeMode);
   }).catch((error) => {
     if (destroyed || error.name === 'AbortError') return;
     paragraphs = ['Make a little time for the things that make you curious.'];
+    render(activeMode);
   });
 
   return {
