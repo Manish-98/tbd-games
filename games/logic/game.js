@@ -13,6 +13,9 @@ let selectedPort = null;
 let challenge;
 let resizeMessage = '';
 
+const MIN_IO_COUNT = 1;
+const MAX_IO_COUNT = 4;
+
 const inputId = (index) => `input-${index}`;
 const outputId = (index) => `output-${index}`;
 const gateId = () => `gate-${nextGateId++}`;
@@ -70,9 +73,6 @@ function resizeCircuit(key, next) {
   return true;
 }
 
-function getNode(id) { return nodes.find((node) => node.id === id); }
-function sourcePort(node) { return { node: node.id, port: 'out' }; }
-function targetPort(node, index) { return { node: node.id, port: `in-${index}` }; }
 function samePort(first, second) { return Boolean(first && second) && first.node === second.node && first.port === second.port; }
 
 function removeWireAt(target) {
@@ -220,7 +220,7 @@ function handleClick(event) {
   if (count) {
     const key = count.dataset.count;
     const next = (key === 'inputs' ? inputCount : outputCount) + Number(count.dataset.step);
-    if (next < 1 || next > 4) return;
+    if (next < MIN_IO_COUNT || next > MAX_IO_COUNT) return;
     resizeCircuit(key, next);
     render();
     return;
