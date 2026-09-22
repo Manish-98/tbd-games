@@ -56,14 +56,18 @@ export function* executeProgram(program, customCommands, initialState, options =
         const localParams = { ...params, ...(command.paramValues || {}) };
         for (const param of definition.params || []) if (!Object.prototype.hasOwnProperty.call(localParams, param)) localParams[param] = '0';
         const boundBody = applyBindings(definition.body || [], definition.bindings || {}, localParams);
-        yield* execute(boundBody, state, localParams, depth + 1);
-        state = execute.state;
+        for (const step of execute(boundBody, state, localParams, depth + 1)) {
+          state = step.state;
+          yield step;
+        }
         continue;
       }
       if (command.type === 'repeat') {
         for (let i = 0; i < Number(command.count) || 0; i += 1) {
-          yield* execute(command.children || [], state, params, depth + 1);
-          state = execute.state;
+          for (const step of execute(command.children || [], state, params, depth + 1)) {
+            state = step.state;
+            yield step;
+          }
         }
         continue;
       }
@@ -78,7 +82,6 @@ export function* executeProgram(program, customCommands, initialState, options =
         state = { ...state, penDown: command.type === 'penDown' };
         yield { state, stroke: null };
       }
-      execute.state = state;
     }
   }
   function* root() {
@@ -101,8 +104,10 @@ function applyBindings(body, bindings, params) {
       const parts = path.split('.');
       let node = next[Number(parts.shift())];
       for (let i = 0; i < parts.length; i += 2) node = node?.[parts[i]] === 'children' ? node.children?.[Number(parts[i + 1])] : null;
-      if (node && Object.prototype.hasOwnProperty.call(node, 'value')) node.value = params[name] ?? node.value;
-      if (node && Object.prototype.hasOwnProperty.call(node, 'count')) node.count = params[name] ?? node.count;
+      if (!node) continue;
+      const definition = COMMANDS[node.type];
+      if (!definition?.valueField) continue;
+      clampCommandValue(node, params[name] ?? node[definition.valueField]);
     }
   }
   return next;
