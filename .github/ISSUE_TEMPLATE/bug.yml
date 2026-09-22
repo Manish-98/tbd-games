@@ -1,0 +1,30 @@
+---
+name: Bug Report
+about: Report a reproducible problem
+title: "[Bug] "
+labels: ["bug"]
+assignees: []
+---
+
+## Description
+<!-- Clearly describe what went wrong. -->
+
+## Steps to Reproduce
+1.
+2.
+3.
+
+## Expected Behavior
+<!-- What should have happened? -->
+
+## Actual Behavior
+<!-- What happened instead? -->
+
+## Environment
+- Browser:
+- OS:
+- Game / Feature:
+- Version / Commit:
+
+## Additional Context
+<!-- Screenshots, recordings, console errors, or other useful information. -->
