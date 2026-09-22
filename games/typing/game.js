@@ -136,15 +136,26 @@ function render(mode = 'type') {
 
 export function initTypingGame(section) {
   typingView = section.querySelector('.typing-view');
+  const abortController = new AbortController();
+  let destroyed = false;
   const dataUrl = (file) => new URL(file, import.meta.url);
-  Promise.all([fetch(dataUrl('./paragraphs.json')).then((response) => response.json()), fetch(dataUrl('./config.json')).then((response) => response.json())]).then(([loadedParagraphs, loadedConfig]) => {
+  Promise.all([
+    fetch(dataUrl('./paragraphs.json'), { signal: abortController.signal }).then((response) => response.json()),
+    fetch(dataUrl('./config.json'), { signal: abortController.signal }).then((response) => response.json())
+  ]).then(([loadedParagraphs, loadedConfig]) => {
+    if (destroyed) return;
     paragraphs = loadedParagraphs;
     config = loadedConfig;
-  }).catch(() => { paragraphs = ['Make a little time for the things that make you curious.']; });
+  }).catch((error) => {
+    if (destroyed || error.name === 'AbortError') return;
+    paragraphs = ['Make a little time for the things that make you curious.'];
+  });
 
   return {
     render,
     destroy() {
+      destroyed = true;
+      abortController.abort();
       if (activeSession) activeSession.destroy();
     }
   };
