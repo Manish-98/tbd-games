@@ -1,3 +1,4 @@
+import { escapeHtml } from './dom.js';
 import { games } from './games/registry.js';
 
 const grid = document.querySelector('#game-grid');
@@ -35,21 +36,28 @@ function renderFilterCounts() {
   });
 }
 
-function renderGames(filter = 'all') {
-  const visibleGames = filter === 'all' ? games : games.filter((game) => game.category === filter);
-  grid.innerHTML = visibleGames.map((game) => `
+function renderGameCard(game) {
+  const title = escapeHtml(game.title);
+  const type = escapeHtml(game.type);
+  const description = escapeHtml(game.description);
+  const symbol = escapeHtml(game.symbol);
+  const id = escapeHtml(game.id || '');
+  return `
     <article class="game-card${game.id ? ' playable' : ''}">
-      <div class="game-art" aria-hidden="true"><span class="art-symbol">${game.symbol}</span></div>
+      <div class="game-art" aria-hidden="true"><span class="art-symbol">${symbol}</span></div>
       <div class="game-info">
-        <p class="game-type">${game.type}</p>
-        <h3 class="game-name">${game.title}</h3>
-        <p class="game-description">${game.description}</p>
-        ${game.id ? `<button class="game-link" type="button" data-open-game="${game.id}">Play now <span aria-hidden="true">→</span></button>` : '<span class="game-link">Coming soon <span aria-hidden="true">→</span></span>'}
+        <p class="game-type">${type}</p>
+        <h3 class="game-name">${title}</h3>
+        <p class="game-description">${description}</p>
+        ${game.id ? `<button class="game-link" type="button" data-open-game="${id}">Play now <span aria-hidden="true">→</span></button>` : '<span class="game-link">Coming soon <span aria-hidden="true">→</span></span>'}
       </div>
-    </article>
-  `).join('');
+    </article>`;
 }
 
+function renderGames(filter = 'all') {
+  const visibleGames = filter === 'all' ? games : games.filter((game) => game.category === filter);
+  grid.innerHTML = visibleGames.map(renderGameCard).join('');
+}
 function openGame(id) {
   const game = games.find((entry) => entry.id === id);
   if (!game) return;
