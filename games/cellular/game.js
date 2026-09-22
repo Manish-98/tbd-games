@@ -1,7 +1,7 @@
 import { escapeHtml } from '../../dom.js';
 import { createGrid, cloneGrid, maskFromList as createRuleMask, listFromMask, countLivingCells as countLiving, randomGrid, setCell as engineSetCell, getCell as engineGetCell, nextGeneration, ruleExpression as formatRule } from './engine.js';
 import { createLifecycle } from '../../shared/lifecycle.js';
-import { loadJson, saveJson } from '../../shared/storage.js';
+import { loadVersionedJson, saveVersionedJson } from '../../shared/storage.js';
 
 const STORAGE_KEY = 'playroom-cellular-custom-worlds';
 const DEFAULT_BIRTH = [3];
@@ -12,9 +12,11 @@ const DEFAULT_COLS = 48;
 const DEFAULT_ROWS = 48;
 const DEFAULT_CELL_SIZE = 12;
 const DEFAULT_WORLD_NAME = 'My world';
+const RANDOM_FILL_PROBABILITY = 0.18;
+const MIN_TICK_DELAY_MS = 80;
+const STORAGE_VERSION = 1;
 
 let view;
-let mode = 'play';
 let cols = DEFAULT_COLS;
 let rows = DEFAULT_ROWS;
 let cellSize = DEFAULT_CELL_SIZE;
@@ -42,7 +44,7 @@ function ruleExpression() { return formatRule(birthMask, surviveMask); }
 function countLivingCells() { return countLiving(grid); }
 
 function randomizeGrid() {
-  grid = randomGrid(cols, rows);
+  grid = randomGrid(cols, rows, RANDOM_FILL_PROBABILITY);
   initialGrid = cloneGridState(grid);
   generation = 0;
   changedCells = 0;
@@ -87,7 +89,7 @@ function stepSimulation() {
 function startLoop() {
   stopLoop();
   running = true;
-  loopId = window.setInterval(() => stepSimulation(), Math.max(80, Math.round(1000 / speed)));
+  loopId = window.setInterval(() => stepSimulation(), Math.max(MIN_TICK_DELAY_MS, Math.round(1000 / speed)));
 }
 
 function stopLoop() {
@@ -99,11 +101,14 @@ function stopLoop() {
 }
 
 function loadCustomWorlds() {
-  return loadJson(STORAGE_KEY, []);
+  return loadVersionedJson(STORAGE_KEY, [], {
+    version: STORAGE_VERSION,
+    migrate: (value) => Array.isArray(value) ? value : []
+  });
 }
 
 function persistCustomWorlds() {
-  saveJson(STORAGE_KEY, customWorlds);
+  saveVersionedJson(STORAGE_KEY, customWorlds, STORAGE_VERSION);
 }
 
 function applyWorldSnapshot(world) {
@@ -409,8 +414,7 @@ export function initCellularGame(section) {
   render();
 
   return {
-    render(nextMode = 'play') {
-      mode = nextMode;
+    render() {
       render();
     },
     destroy() {
