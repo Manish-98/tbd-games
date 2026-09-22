@@ -50,4 +50,4 @@ Game-specific localStorage values are versioned at the owning module boundary. V
 { version: 1, data: /* game-owned payload */ }
 ```
 
-Existing unversioned payloads remain readable and are migrated in memory when loaded.
+Stored data must match the current versioned envelope. Unversioned or incompatible payloads fall back to the owning game's default data.
