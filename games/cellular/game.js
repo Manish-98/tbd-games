@@ -47,8 +47,6 @@ function randomizeGrid() {
   generation = 0;
   changedCells = 0;
   livingCells = countLiving(grid);
-  render();
-}
 
 function clearGrid() {
   grid.fill(0);
@@ -56,16 +54,12 @@ function clearGrid() {
   generation = 0;
   changedCells = 0;
   livingCells = 0;
-  render();
-}
 
 function resetToInitial() {
   grid = cloneGridState(initialGrid);
   generation = 0;
   changedCells = 0;
   livingCells = countLivingCells();
-  render();
-}
 
 function getCell(x, y) { return engineGetCell(grid, cols, rows, x, y); }
 function setCell(x, y, nextValue) { engineSetCell(grid, cols, rows, x, y, nextValue); }
@@ -128,8 +122,6 @@ function applyWorldSnapshot(world) {
   generation = 0;
   changedCells = 0;
   livingCells = countLivingCells();
-  render();
-}
 
 function saveCurrentWorld() {
   const trimmedName = String(customWorldName || '').trim();
@@ -150,14 +142,10 @@ function saveCurrentWorld() {
   customWorlds = customWorlds.filter((world) => world.name.toLowerCase() !== trimmedName.toLowerCase());
   customWorlds.unshift(entry);
   persistCustomWorlds();
-  render();
-}
 
 function deleteWorld(name) {
   customWorlds = customWorlds.filter((world) => world.name.toLowerCase() !== String(name).toLowerCase());
   persistCustomWorlds();
-  render();
-}
 
 function renderCanvas() {
   const canvas = view?.querySelector('[data-cell-canvas]');
