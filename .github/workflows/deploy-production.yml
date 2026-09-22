@@ -1,0 +1,55 @@
+name: Deploy Production
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: github-pages-publish
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v6
+
+      - name: Publish production site
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          if git ls-remote --exit-code --heads origin gh-pages >/dev/null 2>&1; then
+            git fetch origin gh-pages
+            git worktree add ../pages-deploy origin/gh-pages
+          else
+            mkdir ../pages-deploy
+            cd ../pages-deploy
+            git init
+            git checkout --orphan gh-pages
+            git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          fi
+
+          rsync -a --delete             --exclude ".git/"             --exclude "pr-preview/"             "${GITHUB_WORKSPACE}/" "../pages-deploy/"
+
+          touch "../pages-deploy/.nojekyll"
+
+          cd ../pages-deploy
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Production site is already up to date."
+            exit 0
+          fi
+
+          git commit -m "deploy: production ${GITHUB_SHA}"
+          git push origin HEAD:gh-pages
