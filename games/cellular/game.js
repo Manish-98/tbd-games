@@ -47,6 +47,7 @@ function randomizeGrid() {
   generation = 0;
   changedCells = 0;
   livingCells = countLiving(grid);
+}
 
 function clearGrid() {
   grid.fill(0);
@@ -54,12 +55,14 @@ function clearGrid() {
   generation = 0;
   changedCells = 0;
   livingCells = 0;
+}
 
 function resetToInitial() {
   grid = cloneGridState(initialGrid);
   generation = 0;
   changedCells = 0;
   livingCells = countLivingCells();
+}
 
 function getCell(x, y) { return engineGetCell(grid, cols, rows, x, y); }
 function setCell(x, y, nextValue) { engineSetCell(grid, cols, rows, x, y, nextValue); }
@@ -84,9 +87,7 @@ function stepSimulation() {
 function startLoop() {
   stopLoop();
   running = true;
-  loopId = window.setInterval(() => {
-    stepSimulation();
-  }, Math.max(80, Math.round(1000 / speed)));
+  loopId = window.setInterval(() => stepSimulation(), Math.max(80, Math.round(1000 / speed)));
 }
 
 function stopLoop() {
@@ -114,14 +115,13 @@ function applyWorldSnapshot(world) {
   grid = new Uint8Array(cols * rows);
   const snapshot = Array.isArray(world.cells) ? world.cells : [];
   snapshot.forEach((value, index) => {
-    if (index < grid.length) {
-      grid[index] = value ? 1 : 0;
-    }
+    if (index < grid.length) grid[index] = value ? 1 : 0;
   });
   initialGrid = cloneGridState(grid);
   generation = 0;
   changedCells = 0;
   livingCells = countLivingCells();
+}
 
 function saveCurrentWorld() {
   const trimmedName = String(customWorldName || '').trim();
@@ -129,7 +129,6 @@ function saveCurrentWorld() {
     window.alert('Give the world a name before saving it.');
     return;
   }
-
   const entry = {
     name: trimmedName,
     cols,
@@ -138,14 +137,15 @@ function saveCurrentWorld() {
     survive: listFromMask(surviveMask),
     cells: Array.from(grid)
   };
-
   customWorlds = customWorlds.filter((world) => world.name.toLowerCase() !== trimmedName.toLowerCase());
   customWorlds.unshift(entry);
   persistCustomWorlds();
+}
 
 function deleteWorld(name) {
   customWorlds = customWorlds.filter((world) => world.name.toLowerCase() !== String(name).toLowerCase());
   persistCustomWorlds();
+}
 
 function renderCanvas() {
   const canvas = view?.querySelector('[data-cell-canvas]');
