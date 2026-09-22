@@ -1,3 +1,6 @@
+import { createLifecycle } from '../../shared/lifecycle.js';
+import { loadJson, saveJson } from '../../shared/storage.js';
+
 const STORAGE_KEY = 'playroom-cellular-custom-worlds';
 const DEFAULT_BIRTH = [3];
 const DEFAULT_SURVIVE = [2, 3];
@@ -166,20 +169,11 @@ function stopLoop() {
 }
 
 function loadCustomWorlds() {
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
+  return loadJson(STORAGE_KEY, []);
 }
 
 function persistCustomWorlds() {
-  try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(customWorlds));
-  } catch {
-    // Local storage can fail in private browsing or quota-limited contexts.
-  }
+  saveJson(STORAGE_KEY, customWorlds);
 }
 
 function applyWorldSnapshot(world) {
@@ -497,42 +491,25 @@ function handleAction(event) {
   }
 }
 
-export function initCellularGame(cellularView) {
-  view = cellularView;
-  let active = false;
-
-  const activate = () => {
-    if (active) return;
-    view.addEventListener('click', handleAction);
-    view.addEventListener('input', handleAction);
-    view.addEventListener('pointerdown', handlePointerDown);
-    view.addEventListener('pointermove', handlePointerMove);
-    window.addEventListener('pointerup', handlePointerUp);
-    active = true;
-  };
-
-  const deactivate = () => {
-    if (!active) return;
-    view.removeEventListener('click', handleAction);
-    view.removeEventListener('input', handleAction);
-    view.removeEventListener('pointerdown', handlePointerDown);
-    view.removeEventListener('pointermove', handlePointerMove);
-    window.removeEventListener('pointerup', handlePointerUp);
-    active = false;
-  };
+export function initCellularGame(section) {
+  view = section.querySelector('.cellular-view');
+  const lifecycle = createLifecycle();
+  lifecycle.on(view, 'click', handleAction);
+  lifecycle.on(view, 'input', handleAction);
+  lifecycle.on(view, 'pointerdown', handlePointerDown);
+  lifecycle.on(view, 'pointermove', handlePointerMove);
+  lifecycle.on(window, 'pointerup', handlePointerUp);
 
   randomizeGrid();
-  activate();
 
   return {
     render(nextMode = 'play') {
       mode = nextMode;
-      activate();
       render();
     },
     destroy() {
       stopLoop();
-      deactivate();
+      lifecycle.dispose();
       view.innerHTML = '';
     }
   };

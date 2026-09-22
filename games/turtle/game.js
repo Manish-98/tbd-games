@@ -1,3 +1,6 @@
+import { createLifecycle } from '../../shared/lifecycle.js';
+import { loadJson, saveJson } from '../../shared/storage.js';
+
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 const MOVEMENT_MIN = 1;
 const MOVEMENT_MAX = 220;
@@ -64,20 +67,11 @@ function prepareCommand(command, parameterMap = {}) {
 }
 
 function loadCustomCommands() {
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
+  return loadJson(STORAGE_KEY, []);
 }
 
 function persistCustomCommands() {
-  try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(customCommands));
-  } catch {
-    // quiet fail for browser storage limits
-  }
+  saveJson(STORAGE_KEY, customCommands);
 }
 
 function findCustomCommand(name) {
@@ -780,34 +774,19 @@ function handleAction(event) {
   }
 }
 
-export function initTurtleGame(turtleView) {
-  view = turtleView;
-  let active = false;
-
-  const activate = () => {
-    if (active) return;
-    view.addEventListener('click', handleAction);
-    view.addEventListener('input', handleAction);
-    active = true;
-  };
-
-  const deactivate = () => {
-    if (!active) return;
-    view.removeEventListener('click', handleAction);
-    view.removeEventListener('input', handleAction);
-    active = false;
-  };
-
-  activate();
+export function initTurtleGame(section) {
+  view = section.querySelector('.turtle-view');
+  const lifecycle = createLifecycle();
+  lifecycle.on(view, 'click', handleAction);
+  lifecycle.on(view, 'input', handleAction);
 
   return {
     render(nextMode = 'draw') {
       setProgramFromMode(nextMode);
-      activate();
     },
     destroy() {
       isRunning = false;
-      deactivate();
+      lifecycle.dispose();
       view.innerHTML = '';
     }
   };
