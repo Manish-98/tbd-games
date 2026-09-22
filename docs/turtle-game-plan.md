@@ -524,3 +524,27 @@ A `REPEAT` block can contain the complete command set, not only movement and nes
 - Calls to any saved custom command, including parameterized commands
 
 The repeat-body controls use the same command creation model as the main program, so nested levels remain composable. The execution engine already evaluates the resulting command tree recursively; this feature expands the UI to expose that capability.
+
+# Nested Custom Command Parameters
+
+A custom command can forward one of its parameters into a parameter of a custom command used inside its body.
+
+Example:
+
+    SQUARE(size)
+        REPEAT [4]
+            FORWARD [size]
+            RIGHT [90]
+
+    FLOWER(size)
+        REPEAT [6]
+            SQUARE(size)
+            RIGHT [60]
+
+In FLOWER, bind the outer parameter to the inner call using:
+
+    size: 0.children.0.paramValues.size
+
+The path points to the SQUARE call and its size argument. Calling FLOWER(100) therefore passes 100 into SQUARE(size).
+
+The same syntax works through nested REPEAT blocks and multiple custom-command levels. Existing numeric bindings continue to use normal command paths such as 0.children.0.
