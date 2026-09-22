@@ -27,12 +27,13 @@ function renderVisualSteps(visual) {
     </section>`;
 }
 
-export function renderAbout(about) {
+export function renderAbout(about, gameId = 'game') {
   if (!about) return '';
-  return `<section class="game-about" aria-labelledby="game-about-heading">
+  const headingId = `game-about-heading-${escapeHtml(gameId)}`;
+  return `<section class="game-about" aria-labelledby="${headingId}">
     <div class="about-heading">
       <p class="section-label">About this game</p>
-      <h3 id="game-about-heading">Learn the rules.<br />Then play with intent.</h3>
+      <h3 id="${headingId}">Learn the rules.<br />Then play with intent.</h3>
     </div>
     <div class="about-body">
       ${renderVisualSteps(about.visual)}
