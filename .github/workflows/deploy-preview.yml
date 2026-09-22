@@ -21,7 +21,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout pull request
-        if: github.event.action != 'closed'
         uses: actions/checkout@v6
         with:
           ref: ${{ github.event.pull_request.head.sha }}
@@ -86,7 +85,7 @@ jobs:
           pr_body="$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" --jq '.body // ""')"
 
           if printf '%s' "${pr_body}" | grep -qF "${MARKER}"; then
-            base_body="$(printf '%s' "${pr_body}" | sed "/${MARKER}/,$d")"
+            base_body="$(printf '%s' "${pr_body}" | awk -v marker="${MARKER}" '$0 == marker { exit } { print }')"
           else
             base_body="${pr_body}"
           fi
