@@ -1,3 +1,4 @@
+import { escapeHtml } from '../../dom.js';
 import { createGrid, cloneGrid, maskFromList as createRuleMask, listFromMask, countLivingCells as countLiving, randomGrid, setCell as engineSetCell, getCell as engineGetCell, nextGeneration, ruleExpression as formatRule } from './engine.js';
 import { createLifecycle } from '../../shared/lifecycle.js';
 import { loadJson, saveJson } from '../../shared/storage.js';
@@ -213,89 +214,66 @@ function renderRuleButtons(kind) {
 }
 
 function renderCustomWorlds() {
-  if (!customWorlds.length) {
-    return '<p class="cellular-empty">No saved worlds yet.</p>';
-  }
-
-  return customWorlds.map((world) => `
-    <div class="saved-world-item">
-      <button type="button" class="saved-world-name" data-load-custom-world="${world.name}">${world.name}</button>
-      <button type="button" class="mini-button" data-delete-custom-world="${world.name}" aria-label="Delete ${world.name}">Delete</button>
-    </div>
-  `).join('');
+  if (!customWorlds.length) return '<p class="cellular-empty">No saved worlds yet.</p>';
+  return customWorlds.map((world) => {
+    const name = escapeHtml(world.name);
+    return `
+      <div class="saved-world-item">
+        <button type="button" class="saved-world-name" data-load-custom-world="${name}">${name}</button>
+        <button type="button" class="mini-button" data-delete-custom-world="${name}" aria-label="Delete ${name}">Delete</button>
+      </div>`;
+  }).join('');
 }
 
+function renderToolbar() {
+  return `
+    <div class="cellular-toolbar"><div class="cellular-actions">
+      <button class="primary-button" type="button" data-cell-action="toggle-run">${running ? 'Pause' : 'Run'}</button>
+      <button class="secondary-button" type="button" data-cell-action="step">Step</button>
+      <button class="secondary-button" type="button" data-cell-action="reset">Reset</button>
+      <button class="secondary-button" type="button" data-cell-action="randomize">Randomize</button>
+      <button class="secondary-button" type="button" data-cell-action="clear">Clear</button>
+    </div></div>`;
+}
+function renderWorldPanel() {
+  return `
+    <div class="cellular-panel"><p class="section-label">World</p>
+      <div class="stat-grid">
+        <div class="stat-box"><span>Generation</span><strong data-metric="generation">${generation}</strong></div>
+        <div class="stat-box"><span>Living</span><strong data-metric="living">${livingCells}</strong></div>
+        <div class="stat-box"><span>Changed</span><strong data-metric="changed">${changedCells}</strong></div>
+        <div class="stat-box"><span>Rule</span><strong data-metric="rule">${ruleExpression()}</strong></div>
+      </div>
+      <label class="field-group"><span>Simulation speed</span><input type="range" min="${MIN_SPEED}" max="${MAX_SPEED}" step="1" value="${speed}" data-cell-speed /></label>
+    </div>`;
+}
+function renderRulePanel() {
+  return `
+    <div class="cellular-panel"><p class="section-label">Rule lab</p>
+      <div class="rule-grid">
+        <div class="rule-column"><span class="rule-tag">Birth</span><div class="rule-buttons">${renderRuleButtons('birth')}</div></div>
+        <div class="rule-column"><span class="rule-tag">Survive</span><div class="rule-buttons">${renderRuleButtons('survive')}</div></div>
+      </div>
+      <p class="rule-readout">${ruleExpression()}</p>
+    </div>`;
+}
+function renderCustomWorldPanel() {
+  return `
+    <div class="cellular-panel"><p class="section-label">Custom worlds</p>
+      <label class="field-group"><span>World name</span><input type="text" value="${escapeHtml(customWorldName)}" data-custom-world-name /></label>
+      <div class="custom-world-actions"><button type="button" class="secondary-button full" data-save-world>Save world</button></div>
+      <div class="saved-world-list">${renderCustomWorlds()}</div>
+    </div>`;
+}
+function renderStage() {
+  return `
+    <div class="cellular-stage"><div class="cellular-stage-header">
+      <p class="section-label">Play mode</p><p>Paint a seed, then let the small local rules do the rest.</p>
+    </div><canvas class="cellular-canvas" data-cell-canvas width="${cols * cellSize}" height="${rows * cellSize}" aria-label="Cellular automata grid"></canvas></div>`;
+}
 function render() {
   if (!view) return;
-  view.innerHTML = `
-    <div class="cellular-shell">
-      <div class="cellular-toolbar">
-        <div class="cellular-actions">
-          <button class="primary-button" type="button" data-cell-action="toggle-run">${running ? 'Pause' : 'Run'}</button>
-          <button class="secondary-button" type="button" data-cell-action="step">Step</button>
-          <button class="secondary-button" type="button" data-cell-action="reset">Reset</button>
-          <button class="secondary-button" type="button" data-cell-action="randomize">Randomize</button>
-          <button class="secondary-button" type="button" data-cell-action="clear">Clear</button>
-        </div>
-      </div>
-
-      <div class="cellular-layout">
-        <div class="cellular-stage">
-          <div class="cellular-stage-header">
-            <p class="section-label">Play mode</p>
-            <p>Paint a seed, then let the small local rules do the rest.</p>
-          </div>
-          <canvas class="cellular-canvas" data-cell-canvas width="${cols * cellSize}" height="${rows * cellSize}" aria-label="Cellular automata grid"></canvas>
-        </div>
-
-        <aside class="cellular-sidebar">
-          <div class="cellular-panel">
-            <p class="section-label">World</p>
-            <div class="stat-grid">
-              <div class="stat-box"><span>Generation</span><strong data-metric="generation">${generation}</strong></div>
-              <div class="stat-box"><span>Living</span><strong data-metric="living">${livingCells}</strong></div>
-              <div class="stat-box"><span>Changed</span><strong data-metric="changed">${changedCells}</strong></div>
-              <div class="stat-box"><span>Rule</span><strong data-metric="rule">${ruleExpression()}</strong></div>
-            </div>
-            <label class="field-group">
-              <span>Simulation speed</span>
-              <input type="range" min="${MIN_SPEED}" max="${MAX_SPEED}" step="1" value="${speed}" data-cell-speed />
-            </label>
-          </div>
-
-          <div class="cellular-panel">
-            <p class="section-label">Rule lab</p>
-            <div class="rule-grid">
-              <div class="rule-column">
-                <span class="rule-tag">Birth</span>
-                <div class="rule-buttons">${renderRuleButtons('birth')}</div>
-              </div>
-              <div class="rule-column">
-                <span class="rule-tag">Survive</span>
-                <div class="rule-buttons">${renderRuleButtons('survive')}</div>
-              </div>
-            </div>
-            <p class="rule-readout">${ruleExpression()}</p>
-          </div>
-
-          <div class="cellular-panel">
-            <p class="section-label">Custom worlds</p>
-            <label class="field-group">
-              <span>World name</span>
-              <input type="text" value="${customWorldName}" data-custom-world-name />
-            </label>
-            <div class="custom-world-actions">
-              <button type="button" class="secondary-button full" data-save-world>Save world</button>
-            </div>
-            <div class="saved-world-list">
-              ${renderCustomWorlds()}
-            </div>
-          </div>
-        </aside>
-      </div>
-    </div>
-  `;
-
+  view.innerHTML = `<div class="cellular-shell">${renderToolbar()}<div class="cellular-layout">${renderStage()}<aside class="cellular-sidebar">${renderWorldPanel()}${renderRulePanel()}${renderCustomWorldPanel()}</aside></div></div>`;
   renderCanvas();
   renderMetrics();
 }
