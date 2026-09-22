@@ -112,10 +112,24 @@ function applyBindings(body, bindings, params) {
   for (const [name, paths] of Object.entries(bindings || {})) {
     for (const path of paths || []) {
       const node = getNodeAtPath(next, path);
-      if (!node) continue;
-      const definition = COMMANDS[node.type];
-      if (!definition?.valueField) continue;
-      clampCommandValue(node, params[name] ?? node[definition.valueField]);
+      if (node) {
+        const definition = COMMANDS[node.type];
+        if (definition?.valueField) {
+          clampCommandValue(node, params[name] ?? node[definition.valueField]);
+          continue;
+        }
+      }
+
+      const match = /^(.*)\\.paramValues\\.([A-Za-z_][A-Za-z0-9_]*)$/.exec(path);
+      if (!match) continue;
+      const call = getNodeAtPath(next, match[1]);
+      if (!call || call.type !== 'call') continue;
+      const parameterName = match[2];
+      const currentValue = call.paramValues?.[parameterName];
+      call.paramValues = {
+        ...(call.paramValues || {}),
+        [parameterName]: String(params[name] ?? currentValue ?? 0)
+      };
     }
   }
   return next;
