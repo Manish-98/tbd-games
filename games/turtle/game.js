@@ -114,6 +114,18 @@ function getCommandValueRange(command) {
   return null;
 }
 
+function getCallParameterTarget(body, path) {
+  const match = /^(.*)\\.paramValues\\.([A-Za-z_][A-Za-z0-9_]*)$/.exec(path);
+  if (!match) return null;
+  const commandPath = match[1];
+  const paramName = match[2];
+  const command = getNodeAtPath(body, commandPath);
+  if (!command || command.type !== 'call') return null;
+  const definition = findCustomCommand(command.name);
+  if (!definition || !(definition.params || []).includes(paramName)) return null;
+  return { command, paramName };
+}
+
 function validateBindings(bindings, params, body) {
   const parameterSet = new Set(params);
   const seenPaths = new Set();
@@ -130,13 +142,18 @@ function validateBindings(bindings, params, body) {
         return `Binding path "${path}" is used more than once.`;
       }
       seenPaths.add(path);
-      if (!/^\d+(?:\.children\.\d+)*$/.test(path)) {
-        return `Binding path "${path}" is invalid.`;
+
+      if (/^\\d+(?:\\.children\\.\\d+)*$/.test(path)) {
+        const target = getNodeAtPath(body, path);
+        if (!getCommandValueRange(target)) {
+          return `Binding path "${path}" must target a movement, turn, or repeat value.`;
+        }
+        continue;
       }
-      const target = getNodeAtPath(body, path);
-      if (!getCommandValueRange(target)) {
-        return `Binding path "${path}" must target a movement, turn, or repeat value.`;
-      }
+
+      if (getCallParameterTarget(body, path)) continue;
+
+      return `Binding path "${path}" is invalid. Use a command path or a custom-call parameter path ending in ".paramValues.<parameter>".`;
     }
   }
   return '';
@@ -148,10 +165,21 @@ function applyBindingsToBody(body, bindings = {}, parameterMap = {}) {
     const value = Number(parameterMap[paramName] ?? 0);
     (Array.isArray(pathList) ? pathList : []).forEach((path) => {
       const target = getNodeAtPath(nextBody, path);
-      if (!target) return;
-      const range = getCommandValueRange(target);
-      if (!range) return;
-      target[range.field] = clamp(Number.isFinite(value) ? value : range.min, range.min, range.max);
+      if (target) {
+        const range = getCommandValueRange(target);
+        if (range) {
+          target[range.field] = clamp(Number.isFinite(value) ? value : range.min, range.min, range.max);
+          return;
+        }
+      }
+
+      const callTarget = getCallParameterTarget(nextBody, path);
+      if (callTarget) {
+        callTarget.command.paramValues = {
+          ...(callTarget.command.paramValues || {}),
+          [callTarget.paramName]: String(Number.isFinite(value) ? value : 0)
+        };
+      }
     });
   });
   return nextBody;
