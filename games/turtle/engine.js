@@ -97,13 +97,21 @@ function resolveValue(value, params) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+function getNodeAtPath(list, path) {
+  let current = list;
+  for (const part of String(path).split('.')) {
+    if (part === '') continue;
+    if (current === undefined || current === null) return undefined;
+    current = current[part];
+  }
+  return current;
+}
+
 function applyBindings(body, bindings, params) {
   const next = cloneProgram(body);
   for (const [name, paths] of Object.entries(bindings || {})) {
     for (const path of paths || []) {
-      const parts = path.split('.');
-      let node = next[Number(parts.shift())];
-      for (let i = 0; i < parts.length; i += 2) node = node?.[parts[i]] === 'children' ? node.children?.[Number(parts[i + 1])] : null;
+      const node = getNodeAtPath(next, path);
       if (!node) continue;
       const definition = COMMANDS[node.type];
       if (!definition?.valueField) continue;
