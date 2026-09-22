@@ -637,8 +637,9 @@ function render() {
                 <button type="button" class="info-button" data-custom-help-toggle aria-label="Show binding help" aria-expanded="false">i</button>
               </div>
               <div class="custom-help-panel" data-custom-help-panel>
-                <p><strong>Parameters</strong> are placeholders. <strong>Bindings</strong> connect each parameter to one or more numeric values inside the saved program body.</p>
-                <p>Example: <strong>size: 0, 2; turn: 1.children.0</strong> maps one parameter to multiple saved values.</p>
+                <p><strong>Parameters</strong> are placeholders. <strong>Bindings</strong> connect each parameter to one or more values inside the saved program body.</p>
+                <p>Example: <strong>size: 0, 2; turn: 1.children.0</strong> maps one parameter to numeric values.</p>
+                <p>To forward a parameter into a nested custom command, target its argument: <strong>size: 0.children.0.paramValues.size</strong>.</p>
               </div>
               <div class="custom-form">
                 <label class="field-group">
@@ -651,7 +652,7 @@ function render() {
                 </label>
                 <label class="field-group">
                   <span>Bindings</span>
-                  <input id="custom-bindings-input" type="text" value="${customDraft.bindings}" placeholder="size: 0, 2; turn: 1.children.0" />
+                  <input id="custom-bindings-input" type="text" value="${customDraft.bindings}" placeholder="size: 0, 2; innerSize: 0.children.0.paramValues.size" />
                 </label>
               </div>
               <div class="custom-editor-actions">
