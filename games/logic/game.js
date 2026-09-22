@@ -1,3 +1,4 @@
+import { escapeHtml } from '../../dom.js';
 import { createLifecycle } from '../../shared/lifecycle.js';
 import { gateTypes, canConnect, evaluateCircuit } from './engine.js';
 
@@ -161,14 +162,40 @@ function updateTruthResults() {
   if (status) { status.textContent = solved ? 'Solved. Every row matches.' : `${passed} of ${2 ** inputCount} rows match`; status.classList.toggle('solved', solved); }
 }
 
+function renderControls(actionMarkup) {
+  return `<div class="logic-controls">
+    <div class="control-group"><span class="control-label">Inputs</span><div class="stepper"><button type="button" data-count="inputs" data-step="-1" aria-label="Fewer inputs">-</button><strong>${inputCount}</strong><button type="button" data-count="inputs" data-step="1" aria-label="More inputs">+</button></div></div>
+    <div class="control-group"><span class="control-label">Outputs</span><div class="stepper"><button type="button" data-count="outputs" data-step="-1" aria-label="Fewer outputs">-</button><strong>${outputCount}</strong><button type="button" data-count="outputs" data-step="1" aria-label="More outputs">+</button></div></div>${actionMarkup}</div>`;
+}
+function renderGatePalette() {
+  const gates = Object.keys(gateTypes).map((type) => {
+    const gate = gateTypes[type];
+    return `<button class="gate-tool" type="button" data-add-gate="${escapeHtml(type)}" title="${escapeHtml(type)}: ${escapeHtml(gate.meaning)}"><strong>${escapeHtml(gate.symbol)}</strong><span>${escapeHtml(type)}</span><small>${escapeHtml(gate.meaning)}</small></button>`;
+  }).join('');
+  return `<div class="gate-palette" aria-label="Logic gate legend"><span class="legend-title">Gate legend / add one</span>${gates}</div>`;
+}
+function renderCircuitBoard(values, outputValues) {
+  return `<div class="circuit-board"><svg class="wire-layer" aria-hidden="true"></svg><div class="node-grid">${nodes.map((node) => nodeMarkup(node, values, outputValues)).join('')}</div></div>`;
+}
+function renderIntro(actionMarkup) {
+  const copy = mode === 'lab'
+    ? 'Toggle a switch, choose a gate, and connect the dots. Click an output port, then an input port. Click a connected input port to disconnect it.'
+    : 'Build any circuit that produces the target signals. Green rows pass when you check the circuit.';
+  return `<div class="logic-intro"><div><p class="section-label">${mode === 'lab' ? 'Freeform sandbox' : 'Unknown circuit'}</p><p>${copy}</p></div>${renderGatePalette()}</div>`;
+}
+function renderModeContent(boardMarkup, outputValues) {
+  if (mode === 'detective') {
+    return `<div class="detective-layout"><div>${boardMarkup}<div class="detective-footer"><div><span class="section-label">Truth table</span><p class="detective-status">Press check to test all ${2 ** inputCount} rows</p></div><button class="primary-button" type="button" data-check>Check circuit</button></div></div>${renderTruthTable()}</div>`;
+  }
+  return `${boardMarkup}<div class="lab-readout"><span class="section-label">Live readout</span><p>${outputValues.map((value, index) => `Output ${index + 1} is <strong>${value === true ? 'high' : value === false ? 'low' : 'unknown'}</strong>`).join(' / ')}</p></div>`;
+}
 function render() {
   const values = nodes.filter((node) => node.kind === 'input').map((node) => node.value);
-  const gates = Object.keys(gateTypes).map((type) => `<button class="gate-tool" type="button" data-add-gate="${type}" title="${type}: ${gateTypes[type].meaning}"><strong>${gateTypes[type].symbol}</strong><span>${type}</span><small>${gateTypes[type].meaning}</small></button>`).join('');
   const outputValues = circuitOutputs(values);
-  const boardMarkup = `<div class="circuit-board"><svg class="wire-layer" aria-hidden="true"></svg><div class="node-grid">${nodes.map((node) => nodeMarkup(node, values, outputValues)).join('')}</div></div>`;
   const actionMarkup = `<div class="circuit-actions"><button class="text-button" type="button" data-clear-circuit>Clear circuit</button>${mode === 'detective' ? '<button class="text-button" type="button" data-new-circuit>New circuit</button>' : ''}</div>`;
-  const resizeMessageMarkup = resizeMessage ? `<p class="resize-message" role="status">${resizeMessage}</p>` : '';
-  view.innerHTML = `<div class="logic-controls"><div class="control-group"><span class="control-label">Inputs</span><div class="stepper"><button type="button" data-count="inputs" data-step="-1" aria-label="Fewer inputs">-</button><strong>${inputCount}</strong><button type="button" data-count="inputs" data-step="1" aria-label="More inputs">+</button></div></div><div class="control-group"><span class="control-label">Outputs</span><div class="stepper"><button type="button" data-count="outputs" data-step="-1" aria-label="Fewer outputs">-</button><strong>${outputCount}</strong><button type="button" data-count="outputs" data-step="1" aria-label="More outputs">+</button></div></div>${actionMarkup}</div>${resizeMessageMarkup}<div class="logic-intro"><div><p class="section-label">${mode === 'lab' ? 'Freeform sandbox' : 'Unknown circuit'}</p><p>${mode === 'lab' ? 'Toggle a switch, choose a gate, and connect the dots. Click an output port, then an input port. Click a connected input port to disconnect it.' : 'Build any circuit that produces the target signals. Green rows pass when you check the circuit.'}</p></div><div class="gate-palette" aria-label="Logic gate legend"><span class="legend-title">Gate legend / add one</span>${gates}</div></div>${mode === 'detective' ? `<div class="detective-layout"><div>${boardMarkup}<div class="detective-footer"><div><span class="section-label">Truth table</span><p class="detective-status">Press check to test all ${2 ** inputCount} rows</p></div><button class="primary-button" type="button" data-check>Check circuit</button></div></div>${renderTruthTable()}</div>` : `${boardMarkup}<div class="lab-readout"><span class="section-label">Live readout</span><p>${outputValues.map((value, index) => `Output ${index + 1} is <strong>${value === true ? 'high' : value === false ? 'low' : 'unknown'}</strong>`).join(' / ')}</p></div>`}`;
+  const resizeMessageMarkup = resizeMessage ? `<p class="resize-message" role="status">${escapeHtml(resizeMessage)}</p>` : '';
+  const boardMarkup = renderCircuitBoard(values, outputValues);
+  view.innerHTML = `${renderControls(actionMarkup)}${resizeMessageMarkup}${renderIntro(actionMarkup)}${renderModeContent(boardMarkup, outputValues)}`;
   drawWires();
 }
 
