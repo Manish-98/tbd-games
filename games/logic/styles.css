@@ -1,4 +1,3 @@
-[hidden] { display: none !important; }
 .logic-game { padding: 75px 0 90px; border-bottom: 1px solid var(--line); }
 .logic-topline { display: flex; align-items: end; justify-content: space-between; gap: 24px; }
 .logic-tabs { display: flex; gap: 24px; margin: 48px 0 34px; border-bottom: 1px solid var(--line); }
