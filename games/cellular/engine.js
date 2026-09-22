@@ -36,7 +36,7 @@ export function getCell(grid, cols, rows, x, y) {
   return Boolean(grid[wrappedY * cols + wrappedX]);
 }
 
-export function randomGrid(cols, rows, probability = 0.18, random = Math.random) {
+export function randomGrid(cols, rows, probability, random = Math.random) {
   const grid = createGrid(cols, rows);
   for (let index = 0; index < grid.length; index += 1) grid[index] = random() < probability ? 1 : 0;
   return grid;
