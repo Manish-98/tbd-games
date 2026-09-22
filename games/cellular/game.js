@@ -1,8 +1,6 @@
 import { createGrid, cloneGrid, maskFromList as createRuleMask, listFromMask, countLivingCells as countLiving, randomGrid, setCell as engineSetCell, getCell as engineGetCell, nextGeneration, ruleExpression as formatRule } from './engine.js';
 import { createLifecycle } from '../../shared/lifecycle.js';
 import { loadJson, saveJson } from '../../shared/storage.js';
-import { createLifecycle } from '../../shared/lifecycle.js';
-import { loadJson, saveJson } from '../../shared/storage.js';
 
 const STORAGE_KEY = 'playroom-cellular-custom-worlds';
 const DEFAULT_BIRTH = [3];
@@ -36,7 +34,7 @@ let paintValue = true;
 let lastPaintCell = null;
 
 function createGridState() { return createGrid(cols, rows); }
-function cloneGridState(source) { return cloneGridState(source); }
+function cloneGridState(source) { return cloneGrid(source); }
 function maskFromList(values) { return createRuleMask(values); }
 function ruleExpression() { return formatRule(birthMask, surviveMask); }
 
