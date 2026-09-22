@@ -6,6 +6,8 @@ const grid = document.querySelector('#game-grid');
 const filterButtons = document.querySelectorAll('.filter-button');
 const intro = document.querySelector('.intro');
 const gameLibrary = document.querySelector('.game-library');
+const brand = document.querySelector('.brand');
+const GAME_ROUTE_PREFIX = '#game/';
 let activeGame = null;
 
 function prepareGame(game) {
@@ -99,9 +101,9 @@ function renderGameMode(game, button) {
   controller.render(button.dataset.gameMode);
 }
 
-function openGame(id) {
+function openGame(id, { scroll = true } = {}) {
   const game = games.find((entry) => entry.id === id);
-  if (!game) return;
+  if (!game) return false;
 
   if (activeGame && activeGame !== game) destroyGame(activeGame);
   games.filter(isPlayableGame).forEach((entry) => {
@@ -114,7 +116,8 @@ function openGame(id) {
   gameLibrary.hidden = true;
   const initialTab = Array.from(game.tabs).find((tab) => tab.dataset.gameMode === game.initialMode);
   selectTab(game, initialTab || game.tabs[0]);
-  game.section.scrollIntoView({ behavior: 'smooth' });
+  if (scroll) game.section.scrollIntoView({ behavior: 'smooth' });
+  return true;
 }
 
 function closeGame(game) {
@@ -141,11 +144,68 @@ function selectTab(game, button) {
   renderGameMode(game, button);
 }
 
+function getGameRoute(id) {
+  return `${GAME_ROUTE_PREFIX}${encodeURIComponent(id)}`;
+}
+
+function getGameIdFromRoute() {
+  if (!window.location.hash.startsWith(GAME_ROUTE_PREFIX)) return null;
+  const encodedId = window.location.hash.slice(GAME_ROUTE_PREFIX.length);
+  if (!encodedId) return null;
+
+  try {
+    return decodeURIComponent(encodedId);
+  } catch {
+    return null;
+  }
+}
+
+function syncRoute() {
+  const gameId = getGameIdFromRoute();
+  if (!gameId) {
+    if (window.location.hash) {
+      window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
+    }
+    if (activeGame) closeGame(activeGame);
+    return;
+  }
+
+  if (!openGame(gameId)) {
+    window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
+    if (activeGame) closeGame(activeGame);
+  }
+}
+
+function navigateHome() {
+  const homePath = new URL('.', window.location.href).pathname;
+  window.history.replaceState(null, '', homePath);
+  syncRoute();
+}
+
+function navigateToGame(id) {
+  const game = games.find((entry) => entry.id === id && isPlayableGame(entry));
+  if (!game) return;
+
+  const route = getGameRoute(game.id);
+  if (window.location.hash === route) {
+    openGame(game.id);
+    return;
+  }
+  window.location.hash = route;
+}
+
 document.addEventListener('click', (event) => {
+  if (brand?.contains(event.target)) {
+    event.preventDefault();
+    return navigateHome();
+  }
   const openButton = event.target.closest('[data-open-game]');
-  if (openButton) return openGame(openButton.dataset.openGame);
+  if (openButton) return navigateToGame(openButton.dataset.openGame);
   const game = games.find((entry) => entry.section?.contains(event.target) && event.target.closest('[data-close-game]'));
-  if (game) return closeGame(game);
+  if (game) {
+    window.location.hash = '';
+    return;
+  }
   const tabGame = games.find((entry) => entry.section?.contains(event.target) && event.target.closest('[role="tab"]'));
   if (tabGame) return selectTab(tabGame, event.target.closest('[role="tab"]'));
 });
@@ -161,3 +221,5 @@ filterButtons.forEach((button) => {
 games.filter(isPlayableGame).forEach(prepareGame);
 renderFilterCounts();
 renderGames();
+window.addEventListener('hashchange', syncRoute);
+syncRoute();
