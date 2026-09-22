@@ -61,12 +61,13 @@
             <button class="text-button" data-close-game type="button">Back to lobby</button>
           </div>
           <div class="mode-tabs" role="tablist" aria-label="Typing game modes">
-            <button class="mode-tab active" type="button" role="tab" aria-selected="true" data-game-mode="type">Type mode</button>
+            <button class="game-about-tab active" type="button" role="tab" aria-selected="true" data-game-mode="about">About</button>
+            <button class="mode-tab" type="button" role="tab" aria-selected="false" data-game-mode="type">Type mode</button>
             <button class="mode-tab" type="button" role="tab" aria-selected="false" data-game-mode="race">Ghost race</button>
             <button class="mode-tab" type="button" role="tab" aria-selected="false" data-game-mode="stats">Stats</button>
           </div>
-          <div class="game-about-container" data-game-about></div>
-          <div class="typing-view" id="typing-view"></div>
+          <div class="game-about-view" data-game-about hidden></div>
+          <div class="typing-view" id="typing-view" data-game-view></div>
         </section>
 
         <section class="logic-game" id="logic-game" aria-labelledby="logic-heading" hidden>
@@ -78,11 +79,12 @@
             <button class="text-button" data-close-game type="button">Back to lobby</button>
           </div>
           <div class="logic-tabs" role="tablist" aria-label="Logic game modes">
-            <button class="logic-tab active" type="button" role="tab" aria-selected="true" data-game-mode="lab">Circuit lab</button>
+            <button class="game-about-tab active" type="button" role="tab" aria-selected="true" data-game-mode="about">About</button>
+            <button class="logic-tab" type="button" role="tab" aria-selected="false" data-game-mode="lab">Circuit lab</button>
             <button class="logic-tab" type="button" role="tab" aria-selected="false" data-game-mode="detective">Logic detective</button>
           </div>
-          <div class="game-about-container" data-game-about></div>
-          <div class="logic-view" id="logic-view"></div>
+          <div class="game-about-view" data-game-about hidden></div>
+          <div class="logic-view" id="logic-view" data-game-view></div>
         </section>
 
         <section class="turtle-game" id="turtle-game" aria-labelledby="turtle-heading" hidden>
@@ -94,10 +96,11 @@
             <button class="text-button" data-close-game type="button">Back to lobby</button>
           </div>
           <div class="turtle-tabs" role="tablist" aria-label="Turtle game modes">
-            <button class="turtle-tab active" type="button" role="tab" aria-selected="true" data-game-mode="draw">Draw mode</button>
+            <button class="game-about-tab active" type="button" role="tab" aria-selected="true" data-game-mode="about">About</button>
+            <button class="turtle-tab" type="button" role="tab" aria-selected="false" data-game-mode="draw">Draw mode</button>
           </div>
-          <div class="game-about-container" data-game-about></div>
-          <div class="turtle-view" id="turtle-view"></div>
+          <div class="game-about-view" data-game-about hidden></div>
+          <div class="turtle-view" id="turtle-view" data-game-view></div>
         </section>
 
         <section class="cellular-game" id="cellular-game" aria-labelledby="cellular-heading" hidden>
@@ -108,8 +111,12 @@
             </div>
             <button class="text-button" data-close-game type="button">Back to lobby</button>
           </div>
-          <div class="game-about-container" data-game-about></div>
-          <div class="cellular-view" id="cellular-view"></div>
+          <div class="cellular-tabs" role="tablist" aria-label="Cellular automata game modes">
+            <button class="game-about-tab active" type="button" role="tab" aria-selected="true" data-game-mode="about">About</button>
+            <button class="cellular-tab" type="button" role="tab" aria-selected="false" data-game-mode="play">Play mode</button>
+          </div>
+          <div class="game-about-view" data-game-about hidden></div>
+          <div class="cellular-view" id="cellular-view" data-game-view></div>
         </section>
       </main>
 
