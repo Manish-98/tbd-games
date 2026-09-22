@@ -73,35 +73,44 @@ jobs:
             git push origin HEAD:gh-pages
           fi
 
-      - name: Add or update PR preview link
+      - name: Update PR description
         env:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           ACTION: ${{ github.event.action }}
           PREVIEW_URL: https://manish-98.github.io/tbd-games/pr-preview/pr-${{ github.event.pull_request.number }}/
-          MARKER: "<!-- pr-preview-link -->"
+          MARKER: "<!-- pr-preview -->"
         run: |
           set -euo pipefail
 
-          comments="$(gh api "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments?per_page=100")"
-          comment_id="$(printf '%s' "${comments}" | jq -r --arg marker "${MARKER}" '.[] | select(.body | contains($marker)) | .id' | head -n 1)"
+          pr_body="$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" --jq '.body // ""')"
+
+          if printf '%s' "${pr_body}" | grep -qF "${MARKER}"; then
+            base_body="$(printf '%s' "${pr_body}" | sed "/${MARKER}/,$d")"
+          else
+            base_body="${pr_body}"
+          fi
+
+          if [ -n "${base_body}" ]; then
+            base_body="${base_body}
+
+          "
+          fi
 
           if [ "${ACTION}" = "closed" ]; then
-            body="${MARKER}
-          ## PR preview
+            preview_section="${MARKER}
+          ## Preview
 
-          The preview deployment for this PR has been removed because the PR is closed."
+          Preview deployment removed because this PR is closed."
           else
-            body="${MARKER}
-          ## PR preview
+            preview_section="${MARKER}
+          ## Preview
 
-          <a href="${PREVIEW_URL}" target="_blank" rel="noopener noreferrer">Open the latest preview deployment ↗</a>
+          [Open the latest preview deployment ↗](${PREVIEW_URL})
 
-          This preview updates automatically when new commits are pushed to the PR."
+          Preview updates automatically when new commits are pushed to this PR."
           fi
 
-          if [ -n "${comment_id}" ]; then
-            gh api --method PATCH "repos/${GITHUB_REPOSITORY}/issues/comments/${comment_id}" -f body="${body}"
-          else
-            gh api --method POST "repos/${GITHUB_REPOSITORY}/issues/${PR_NUMBER}/comments" -f body="${body}"
-          fi
+          updated_body="${base_body}${preview_section}"
+
+          gh api --method PATCH "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" -f body="${updated_body}"
