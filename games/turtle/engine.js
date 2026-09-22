@@ -9,6 +9,39 @@ export const COMMANDS = {
   call: {}
 };
 
+export function parseBindingPath(path = '') {
+  const text = String(path).trim();
+  if (!text) return null;
+
+  if (text.startsWith('$')) {
+    const parts = [];
+    let cursor = 1;
+
+    while (cursor < text.length) {
+      const indexMatch = text.slice(cursor).match(/^\[(\d+)\]/);
+      if (indexMatch) {
+        parts.push(Number(indexMatch[1]));
+        cursor += indexMatch[0].length;
+        continue;
+      }
+
+      const propertyMatch = text.slice(cursor).match(/^\.([A-Za-z_][A-Za-z0-9_]*)/);
+      if (propertyMatch) {
+        parts.push(propertyMatch[1]);
+        cursor += propertyMatch[0].length;
+        continue;
+      }
+
+      return null;
+    }
+
+    return parts.length ? parts : null;
+  }
+
+  if (!/^\d+(?:\.children\.\d+)*(?:\.paramValues\.[A-Za-z_][A-Za-z0-9_]*)?$/.test(text)) return null;
+  return text.split('.').map((segment) => /^\d+$/.test(segment) ? Number(segment) : segment);
+}
+
 export function cloneProgram(commands) {
   return JSON.parse(JSON.stringify(commands));
 }
@@ -98,9 +131,10 @@ function resolveValue(value, params) {
 }
 
 function getNodeAtPath(list, path) {
+  const parts = parseBindingPath(path);
+  if (!parts) return undefined;
   let current = list;
-  for (const part of String(path).split('.')) {
-    if (part === '') continue;
+  for (const part of parts) {
     if (current === undefined || current === null) return undefined;
     current = current[part];
   }
