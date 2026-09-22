@@ -1,5 +1,5 @@
 import { createLifecycle } from '../../shared/lifecycle.js';
-import { createCommand as createEngineCommand, cloneProgram as cloneEngineProgram, executeProgram } from './engine.js';
+import { createCommand as createEngineCommand, cloneProgram as cloneEngineProgram, executeProgram, parseBindingPath } from './engine.js';
 import { loadJson, saveJson } from '../../shared/storage.js';
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
@@ -114,16 +114,29 @@ function getCommandValueRange(command) {
   return null;
 }
 
+function getNodeAtBindingPath(list, path) {
+  const parts = parseBindingPath(path);
+  if (!parts) return undefined;
+  let current = list;
+  for (const part of parts) {
+    if (current === undefined || current === null) return undefined;
+    current = current[part];
+  }
+  return current;
+}
+
 function getCallParameterTarget(body, path) {
-  const match = /^(.*)\\.paramValues\\.([A-Za-z_][A-Za-z0-9_]*)$/.exec(path);
-  if (!match) return null;
-  const commandPath = match[1];
-  const paramName = match[2];
-  const command = getNodeAtPath(body, commandPath);
+  const parts = parseBindingPath(path);
+  if (!parts || parts.length < 3) return null;
+  const parameterName = parts.at(-1);
+  const parameterValuesKey = parts.at(-2);
+  if (parameterValuesKey !== 'paramValues' || typeof parameterName !== 'string') return null;
+  const commandPath = parts.slice(0, -2);
+  const command = getNodeAtBindingPath(body, commandPath.join('.'));
   if (!command || command.type !== 'call') return null;
   const definition = findCustomCommand(command.name);
-  if (!definition || !(definition.params || []).includes(paramName)) return null;
-  return { command, paramName };
+  if (!definition || !(definition.params || []).includes(parameterName)) return null;
+  return { command, paramName: parameterName };
 }
 
 function validateBindings(bindings, params, body) {
@@ -132,28 +145,29 @@ function validateBindings(bindings, params, body) {
 
   for (const [paramName, paths] of Object.entries(bindings)) {
     if (!parameterSet.has(paramName)) {
-      return `Binding "${paramName}" must reference a declared parameter.`;
+      return `Binding "\${paramName}" must reference a declared parameter.`;
     }
     if (!paths.length) {
-      return `Binding "${paramName}" must include at least one command path.`;
+      return `Binding "\${paramName}" must include at least one command path.`;
     }
     for (const path of paths) {
       if (seenPaths.has(path)) {
-        return `Binding path "${path}" is used more than once.`;
+        return `Binding path "\${path}" is used more than once.`;
       }
       seenPaths.add(path);
 
-      if (/^\\d+(?:\\.children\\.\\d+)*$/.test(path)) {
-        const target = getNodeAtPath(body, path);
-        if (!getCommandValueRange(target)) {
-          return `Binding path "${path}" must target a movement, turn, or repeat value.`;
-        }
-        continue;
+      const parts = parseBindingPath(path);
+      if (!parts) {
+        return `Binding path "\${path}" is invalid. Use JSONPath-style paths such as "$[0].children[0]".`;
       }
+
+      const target = getNodeAtBindingPath(body, path);
+      const range = getCommandValueRange(target);
+      if (range) continue;
 
       if (getCallParameterTarget(body, path)) continue;
 
-      return `Binding path "${path}" is invalid. Use a command path or a custom-call parameter path ending in ".paramValues.<parameter>".`;
+      return `Binding path "\${path}" must target a movement, turn, repeat value, or custom-call parameter.`;
     }
   }
   return '';
@@ -164,7 +178,7 @@ function applyBindingsToBody(body, bindings = {}, parameterMap = {}) {
   Object.entries(bindings).forEach(([paramName, pathList]) => {
     const value = Number(parameterMap[paramName] ?? 0);
     (Array.isArray(pathList) ? pathList : []).forEach((path) => {
-      const target = getNodeAtPath(nextBody, path);
+      const target = getNodeAtBindingPath(nextBody, path);
       if (target) {
         const range = getCommandValueRange(target);
         if (range) {
@@ -638,8 +652,9 @@ function render() {
               </div>
               <div class="custom-help-panel" data-custom-help-panel>
                 <p><strong>Parameters</strong> are placeholders. <strong>Bindings</strong> connect each parameter to one or more values inside the saved program body.</p>
-                <p>Example: <strong>size: 0, 2; turn: 1.children.0</strong> maps one parameter to numeric values.</p>
-                <p>To forward a parameter into a nested custom command, target its argument: <strong>size: 0.children.0.paramValues.size</strong>.</p>
+                <p>Use JSONPath-style bindings. Example: <strong>size: $[0], $[2]; turn: $[1].children[0]</strong>.</p>
+                <p>To forward a parameter into a nested custom command, target its argument: <strong>size: $[0].children[0].paramValues.size</strong>.</p>
+                <p>Legacy dotted paths such as <strong>0.children.0</strong> are still supported for existing commands.</p>
               </div>
               <div class="custom-form">
                 <label class="field-group">

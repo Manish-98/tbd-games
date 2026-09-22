@@ -9,6 +9,39 @@ export const COMMANDS = {
   call: {}
 };
 
+export function parseBindingPath(path = '') {
+  const text = String(path).trim();
+  if (!text) return null;
+
+  if (text.startsWith('$')) {
+    const parts = [];
+    let cursor = 1;
+
+    while (cursor < text.length) {
+      const indexMatch = text.slice(cursor).match(/^\[(\d+)\]/);
+      if (indexMatch) {
+        parts.push(Number(indexMatch[1]));
+        cursor += indexMatch[0].length;
+        continue;
+      }
+
+      const propertyMatch = text.slice(cursor).match(/^\.([A-Za-z_][A-Za-z0-9_]*)/);
+      if (propertyMatch) {
+        parts.push(propertyMatch[1]);
+        cursor += propertyMatch[0].length;
+        continue;
+      }
+
+      return null;
+    }
+
+    return parts.length ? parts : null;
+  }
+
+  if (!/^\d+(?:\.children\.\d+)*(?:\.paramValues\.[A-Za-z_][A-Za-z0-9_]*)?$/.test(text)) return null;
+  return text.split('.').map((segment) => /^\d+$/.test(segment) ? Number(segment) : segment);
+}
+
 export function cloneProgram(commands) {
   return JSON.parse(JSON.stringify(commands));
 }
@@ -97,21 +130,27 @@ function resolveValue(value, params) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-function getNodeAtPath(list, path) {
+function getNodeAtParts(list, parts) {
   let current = list;
-  for (const part of String(path).split('.')) {
-    if (part === '') continue;
+  for (const part of parts || []) {
     if (current === undefined || current === null) return undefined;
     current = current[part];
   }
   return current;
 }
 
+function getNodeAtPath(list, path) {
+  return getNodeAtParts(list, parseBindingPath(path));
+}
+
 function applyBindings(body, bindings, params) {
   const next = cloneProgram(body);
   for (const [name, paths] of Object.entries(bindings || {})) {
     for (const path of paths || []) {
-      const node = getNodeAtPath(next, path);
+      const parts = parseBindingPath(path);
+      if (!parts) continue;
+
+      const node = getNodeAtParts(next, parts);
       if (node) {
         const definition = COMMANDS[node.type];
         if (definition?.valueField) {
@@ -120,11 +159,11 @@ function applyBindings(body, bindings, params) {
         }
       }
 
-      const match = /^(.*)\\.paramValues\\.([A-Za-z_][A-Za-z0-9_]*)$/.exec(path);
-      if (!match) continue;
-      const call = getNodeAtPath(next, match[1]);
+      if (parts.length < 3 || parts.at(-2) !== 'paramValues') continue;
+      const parameterName = parts.at(-1);
+      if (typeof parameterName !== 'string') continue;
+      const call = getNodeAtParts(next, parts.slice(0, -2));
       if (!call || call.type !== 'call') continue;
-      const parameterName = match[2];
       const currentValue = call.paramValues?.[parameterName];
       call.paramValues = {
         ...(call.paramValues || {}),

@@ -525,11 +525,19 @@ A `REPEAT` block can contain the complete command set, not only movement and nes
 
 The repeat-body controls use the same command creation model as the main program, so nested levels remain composable. The execution engine already evaluates the resulting command tree recursively; this feature expands the UI to expose that capability.
 
-# Nested Custom Command Parameters
+# Parameter Binding Paths
 
-A custom command can forward one of its parameters into a parameter of a custom command used inside its body.
+Custom-command parameters can be bound to values in the command tree using JSONPath-style paths.
 
-Example:
+Examples:
+
+    size: $[0], $[2]
+    turn: $[1].children[0]
+    innerSize: $[0].children[0].paramValues.size
+
+The leading `$` represents the program root. Bracket notation addresses array entries, while dotted properties traverse command fields.
+
+For example, given:
 
     SQUARE(size)
         REPEAT [4]
@@ -541,10 +549,10 @@ Example:
             SQUARE(size)
             RIGHT [60]
 
-In FLOWER, bind the outer parameter to the inner call using:
+the `FLOWER` definition can bind:
 
-    size: 0.children.0.paramValues.size
+    size: $[0].children[0].paramValues.size
 
-The path points to the SQUARE call and its size argument. Calling FLOWER(100) therefore passes 100 into SQUARE(size).
+Calling `FLOWER(100)` then forwards `100` into the nested `SQUARE(size)` call.
 
-The same syntax works through nested REPEAT blocks and multiple custom-command levels. Existing numeric bindings continue to use normal command paths such as 0.children.0.
+Legacy dotted bindings such as `0.children.0` remain supported for existing saved commands.
