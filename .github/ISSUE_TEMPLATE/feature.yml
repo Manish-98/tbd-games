@@ -1,0 +1,22 @@
+---
+name: New Feature
+about: Propose a new feature or gameplay idea
+title: "[Feature] "
+labels: ["enhancement"]
+assignees: []
+---
+
+## Summary
+<!-- Briefly describe the feature. -->
+
+## Problem / Goal
+<!-- What problem does this solve, or what should the player/developer be able to do? -->
+
+## Proposed Solution
+<!-- Describe the intended behavior and interaction. -->
+
+## Scope
+<!-- What is included? What is explicitly out of scope? -->
+
+## Additional Context
+<!-- Mockups, examples, references, or related issues. -->
