@@ -13,10 +13,7 @@ let activeSession;
 let typingView;
 
 function getHistory() {
-  return loadVersionedJson(historyKey, [], {
-    version: HISTORY_VERSION,
-    migrate: (value) => Array.isArray(value) ? value : []
-  });
+  return loadVersionedJson(historyKey, [], HISTORY_VERSION);
 }
 
 function saveRun(run) {
