@@ -337,16 +337,19 @@ function handleAction(event) {
     if (value === 'reset') {
       stopLoop();
       resetToInitial();
+      render();
       return;
     }
     if (value === 'randomize') {
       stopLoop();
       randomizeGrid();
+      render();
       return;
     }
     if (value === 'clear') {
       stopLoop();
       clearGrid();
+      render();
       return;
     }
   }
@@ -379,12 +382,14 @@ function handleAction(event) {
   const saveWorldTrigger = event.target.closest('[data-save-world]');
   if (saveWorldTrigger) {
     saveCurrentWorld();
+    render();
     return;
   }
 
   const deleteWorldTrigger = event.target.closest('[data-delete-custom-world]');
   if (deleteWorldTrigger) {
     deleteWorld(deleteWorldTrigger.dataset.deleteCustomWorld);
+    render();
     return;
   }
 
