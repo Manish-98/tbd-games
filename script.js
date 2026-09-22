@@ -1,5 +1,5 @@
 import { escapeHtml } from './dom.js';
-import { games } from './games/registry.js';
+import { games, isPlayableGame, countGames } from './games/registry.js';
 
 const grid = document.querySelector('#game-grid');
 const filterButtons = document.querySelectorAll('.filter-button');
@@ -30,7 +30,7 @@ function destroyGame(game) {
 function renderFilterCounts() {
   filterButtons.forEach((button) => {
     const filter = button.dataset.filter;
-    const count = filter === 'all' ? games.length : games.filter((game) => game.category === filter).length;
+    const count = countGames(filter);
     const countElement = button.querySelector('[data-filter-count]');
     if (countElement) countElement.textContent = count;
   });
@@ -42,14 +42,15 @@ function renderGameCard(game) {
   const description = escapeHtml(game.description);
   const symbol = escapeHtml(game.symbol);
   const id = escapeHtml(game.id || '');
+  const playable = isPlayableGame(game);
   return `
-    <article class="game-card${game.id ? ' playable' : ''}">
+    <article class="game-card${playable ? ' playable' : ''}">
       <div class="game-art" aria-hidden="true"><span class="art-symbol">${symbol}</span></div>
       <div class="game-info">
         <p class="game-type">${type}</p>
         <h3 class="game-name">${title}</h3>
         <p class="game-description">${description}</p>
-        ${game.id ? `<button class="game-link" type="button" data-open-game="${id}">Play now <span aria-hidden="true">→</span></button>` : '<span class="game-link">Coming soon <span aria-hidden="true">→</span></span>'}
+${playable ? `<button class="game-link" type="button" data-open-game="${id}">Play now <span aria-hidden="true">→</span></button>` : '<span class="game-link">Coming soon <span aria-hidden="true">→</span></span>'}
       </div>
     </article>`;
 }
@@ -62,7 +63,7 @@ function openGame(id) {
   const game = games.find((entry) => entry.id === id);
   if (!game) return;
   if (activeGame && activeGame !== game) destroyGame(activeGame);
-  games.filter((entry) => entry.initialize).forEach((entry) => {
+  games.filter(isPlayableGame).forEach((entry) => {
     prepareGame(entry);
     entry.section.hidden = entry !== game;
   });

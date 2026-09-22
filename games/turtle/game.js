@@ -1,7 +1,7 @@
 import { escapeHtml } from '../../dom.js';
 import { createLifecycle } from '../../shared/lifecycle.js';
 import { createCommand as createEngineCommand, cloneProgram as cloneEngineProgram, executeProgram, parseBindingPath } from './engine.js';
-import { loadJson, saveJson } from '../../shared/storage.js';
+import { loadVersionedJson, saveVersionedJson } from '../../shared/storage.js';
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 const MOVEMENT_MIN = 1;
@@ -10,8 +10,24 @@ const REPEAT_MIN = 1;
 const REPEAT_MAX = 500;
 const TURN_MIN = 1;
 const TURN_MAX = 360;
-const DEFAULT_TURTLE = { x: 450, y: 300, angle: -90, penDown: true };
+const CANVAS = {
+  width: 900,
+  height: 600,
+  minX: 20,
+  maxX: 880,
+  minY: 20,
+  maxY: 580,
+  gridSpacing: 40
+};
+const TURTLE_BOUNDS = {
+  minX: CANVAS.minX,
+  maxX: CANVAS.maxX,
+  minY: CANVAS.minY,
+  maxY: CANVAS.maxY
+};
+const DEFAULT_TURTLE = { x: CANVAS.width / 2, y: CANVAS.height / 2, angle: -90, penDown: true };
 const STORAGE_KEY = 'playroom-turtle-custom-commands';
+const STORAGE_VERSION = 1;
 const DEFAULT_ANIMATION_DELAY = 90;
 const MIN_ANIMATION_DELAY = 0;
 const MAX_ANIMATION_DELAY = 200;
@@ -49,44 +65,12 @@ let customDraft = { name: '', params: '', bindings: '' };
 
 function cloneProgram(commands) { return cloneEngineProgram(commands); }
 
-function isParameterToken(value) {
-  return typeof value === 'string' && /^[$A-Z_][0-9A-Z_$]*$/i.test(value.trim());
-}
-
-function resolveRuntimeValue(value, parameterMap = {}) {
-  const text = typeof value === 'string' ? value.trim() : value;
-  if (isParameterToken(String(text)) && Object.prototype.hasOwnProperty.call(parameterMap, String(text))) {
-    return Number(parameterMap[String(text)]) || 0;
-  }
-  if (typeof text === 'string' && isParameterToken(text)) {
-    return Number(text) || 0;
-  }
-  if (text === '') return 0;
-  const parsed = Number(text);
-  return Number.isFinite(parsed) ? parsed : 0;
-}
-
-function prepareCommand(command, parameterMap = {}) {
-  if (!command || typeof command !== 'object') return command;
-  const next = { ...command };
-  if (Object.prototype.hasOwnProperty.call(next, 'value')) {
-    next.value = resolveRuntimeValue(next.value, parameterMap);
-  }
-  if (Object.prototype.hasOwnProperty.call(next, 'count')) {
-    next.count = resolveRuntimeValue(next.count, parameterMap);
-  }
-  if (Array.isArray(next.children)) {
-    next.children = next.children.map((child) => prepareCommand(child, parameterMap));
-  }
-  return next;
-}
-
 function loadCustomCommands() {
-  return loadJson(STORAGE_KEY, []);
+  return loadVersionedJson(STORAGE_KEY, [], STORAGE_VERSION);
 }
 
 function persistCustomCommands() {
-  saveJson(STORAGE_KEY, customCommands);
+  saveVersionedJson(STORAGE_KEY, customCommands, STORAGE_VERSION);
 }
 
 function findCustomCommand(name) {
@@ -214,16 +198,6 @@ function getNodeAtPath(list, path) {
     if (current === undefined) return undefined;
   }
   return current;
-}
-
-function getParentAndIndex(list, path) {
-  const parts = getPathParts(path);
-  if (parts.length === 0) return { list, index: -1, parent: null };
-  const parentPath = parts.slice(0, -1);
-  const parent = getNodeAtPath(list, parentPath.join('.'));
-  const lastIndex = parts.at(-1);
-  if (!Array.isArray(parent)) return { list, index: -1, parent: null };
-  return { list: parent, index: lastIndex, parent: Array.isArray(parent) ? null : parent };
 }
 
 function createCommand(type, customName = '') {
@@ -480,7 +454,7 @@ async function runProgram() {
   isRunning = true;
   try {
     const initialState = { ...turtle };
-    for (const step of executeProgram(program, customCommands, initialState, { bounds: { minX: 20, maxX: 880, minY: 20, maxY: 580 } })) {
+    for (const step of executeProgram(program, customCommands, initialState, { bounds: TURTLE_BOUNDS })) {
       if (!isRunning || runId !== activeRunId) break;
       turtle = step.state;
       if (step.stroke) strokes.push(step.stroke);
@@ -508,13 +482,13 @@ function renderBoard() {
 
   context.strokeStyle = 'rgba(23, 33, 31, 0.12)';
   context.lineWidth = 1;
-  for (let x = 0; x <= canvas.width; x += 40) {
+  for (let x = 0; x <= canvas.width; x += CANVAS.gridSpacing) {
     context.beginPath();
     context.moveTo(x, 0);
     context.lineTo(x, canvas.height);
     context.stroke();
   }
-  for (let y = 0; y <= canvas.height; y += 40) {
+  for (let y = 0; y <= canvas.height; y += CANVAS.gridSpacing) {
     context.beginPath();
     context.moveTo(0, y);
     context.lineTo(canvas.width, y);
@@ -601,7 +575,7 @@ function renderToolbar() {
   </div><label class="animation-speed-control"><span>Animation delay <strong data-animation-delay-value>${animationDelay} ms</strong></span><input type="range" min="0" max="200" step="10" value="${animationDelay}" data-animation-delay aria-label="Animation delay in milliseconds" /><small>0 ms = fastest</small></label></div>`;
 }
 function renderCanvasPanel() {
-  return '<div class="turtle-canvas-panel"><canvas id="turtle-canvas" width="900" height="600" aria-label="Turtle drawing canvas"></canvas></div>';
+  return `<div class="turtle-canvas-panel"><canvas id="turtle-canvas" width="${CANVAS.width}" height="${CANVAS.height}" aria-label="Turtle drawing canvas"></canvas></div>`;
 }
 function renderToolbox() {
   return `<div class="palette"><p class="section-label">Command toolbox</p><div class="tool-grid">${BUILT_IN_COMMANDS.map((button) => `<button type="button" class="tool-button" data-add-command="${escapeHtml(button.type)}">${escapeHtml(button.label)}</button>`).join('')}</div></div>`;
@@ -609,7 +583,7 @@ function renderToolbox() {
 function renderProgramEditor() {
   return `<div class="program-panel"><p class="section-label">Program</p><div class="program-list">${renderCommandList(program)}</div>
     <div class="custom-editor"><div class="custom-panel-header"><p class="section-label">${editingCustomCommandName ? `Edit ${escapeHtml(editingCustomCommandName)}` : 'Save as custom command'}</p><button type="button" class="info-button" data-custom-help-toggle aria-label="Show binding help" aria-expanded="false">i</button></div>
-      <div class="custom-help-panel" data-custom-help-panel><p><strong>Parameters</strong> are placeholders. <strong>Bindings</strong> connect each parameter to one or more values inside the saved program body.</p><p>Use JSONPath-style bindings. Example: <strong>size: $[0], $[2]; turn: $[1].children[0]</strong>.</p><p>To forward a parameter into a nested custom command, target its argument: <strong>size: $[0].children[0].paramValues.size</strong>.</p><p>Legacy dotted paths such as <strong>0.children.0</strong> are still supported for existing commands.</p></div>
+      <div class="custom-help-panel" data-custom-help-panel><p><strong>Parameters</strong> are placeholders. <strong>Bindings</strong> connect each parameter to one or more values inside the saved program body.</p><p>Use JSONPath-style bindings. Example: <strong>size: $[0], $[2]; turn: $[1].children[0]</strong>.</p><p>To forward a parameter into a nested custom command, target its argument: <strong>size: $[0].children[0].paramValues.size</strong>.</p></div>
       <div class="custom-form"><label class="field-group"><span>Name</span><input id="custom-name-input" type="text" value="${escapeHtml(customDraft.name)}" placeholder="square" /></label><label class="field-group"><span>Parameters</span><input id="custom-params-input" type="text" value="${escapeHtml(customDraft.params)}" placeholder="size, turn" /></label><label class="field-group"><span>Bindings</span><input id="custom-bindings-input" type="text" value="${escapeHtml(customDraft.bindings)}" placeholder="size: 0, 2; innerSize: 0.children.0.paramValues.size" /></label></div>
       <div class="custom-editor-actions"><button type="button" class="secondary-button full" data-save-custom-command>${editingCustomCommandName ? 'Update custom command' : 'Save as custom command'}</button>${editingCustomCommandName ? '<button type="button" class="secondary-button full" data-cancel-custom-edit>Cancel edit</button>' : ''}</div>
     </div></div>`;

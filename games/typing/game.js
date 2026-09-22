@@ -1,21 +1,23 @@
-import { loadJson, saveJson } from '../../shared/storage.js';
+import { loadVersionedJson, saveVersionedJson } from '../../shared/storage.js';
 import { escapeHtml } from '../../dom.js';
 
 import { calculateTypingMetrics, summarizeRuns, aggregateRuns } from './engine.js';
 
 const historyKey = 'playroom-typing-history';
+const HISTORY_VERSION = 1;
+const DEFAULT_POLL_INTERVAL_SECONDS = 0.035;
 let paragraphs = [];
-let config = { POLL_INTERVAL_SECONDS: 0.035 };
+let config = { POLL_INTERVAL_SECONDS: DEFAULT_POLL_INTERVAL_SECONDS };
 let activeMode = 'type';
 let activeSession;
 let typingView;
 
 function getHistory() {
-  return loadJson(historyKey, []);
+  return loadVersionedJson(historyKey, [], HISTORY_VERSION);
 }
 
 function saveRun(run) {
-  saveJson(historyKey, [run, ...getHistory()].slice(0, 100));
+  saveVersionedJson(historyKey, [run, ...getHistory()].slice(0, 100), HISTORY_VERSION);
 }
 
 function formatNumber(value) { return Number.isFinite(value) ? value.toFixed(0) : '—'; }

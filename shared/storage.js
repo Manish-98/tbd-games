@@ -15,3 +15,15 @@ export function saveJson(key, value) {
     return false;
   }
 }
+
+export function loadVersionedJson(key, fallback, version = 1) {
+  const value = loadJson(key, null);
+  if (!value || typeof value !== 'object' || Array.isArray(value) || Number(value.version) !== version) {
+    return fallback;
+  }
+  return value.data;
+}
+
+export function saveVersionedJson(key, data, version = 1) {
+  return saveJson(key, { version, data });
+}
