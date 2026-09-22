@@ -38,8 +38,6 @@ export function parseBindingPath(path = '') {
     return parts.length ? parts : null;
   }
 
-  if (!/^\d+(?:\.children\.\d+)*(?:\.paramValues\.[A-Za-z_][A-Za-z0-9_]*)?$/.test(text)) return null;
-  return text.split('.').map((segment) => /^\d+$/.test(segment) ? Number(segment) : segment);
 }
 
 export function cloneProgram(commands) {
