@@ -95,7 +95,7 @@ jobs:
             body="${MARKER}
           ## PR preview
 
-          **[Open the latest preview deployment](${PREVIEW_URL})**
+          <a href="${PREVIEW_URL}" target="_blank" rel="noopener noreferrer">Open the latest preview deployment ↗</a>
 
           This preview updates automatically when new commits are pushed to the PR."
           fi
