@@ -87,17 +87,23 @@ jobs:
           comment_id="$(printf '%s' "${comments}" | jq -r --arg marker "${MARKER}" '.[] | select(.body | contains($marker)) | .id' | head -n 1)"
 
           if [ "${ACTION}" = "closed" ]; then
-            body="${MARKER}
-          ## PR preview
+            body="$(cat <<EOF
+${MARKER}
+## PR preview
 
-          The preview deployment for this PR has been removed because the PR is closed."
+The preview deployment for this PR has been removed because the PR is closed.
+EOF
+)"
           else
-            body="${MARKER}
-          ## PR preview
+            body="$(cat <<EOF
+${MARKER}
+## PR preview
 
-          <a href="${PREVIEW_URL}" target="_blank" rel="noopener noreferrer">Open the latest preview deployment ↗</a>
+[Open the latest preview deployment ↗](${PREVIEW_URL})
 
-          This preview updates automatically when new commits are pushed to the PR."
+This preview updates automatically when new commits are pushed to the PR.
+EOF
+)"
           fi
 
           if [ -n "${comment_id}" ]; then
