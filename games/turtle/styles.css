@@ -8,6 +8,11 @@
 .turtle-shell { width: 100%; }
 .turtle-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
 .turtle-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.animation-speed-control { display: grid; grid-template-columns: auto minmax(140px, 220px) auto; align-items: center; gap: 8px 12px; color: var(--muted); font-size: .72rem; }
+.animation-speed-control span { white-space: nowrap; }
+.animation-speed-control strong { color: var(--ink); }
+.animation-speed-control input { width: 100%; accent-color: var(--ink); cursor: pointer; }
+.animation-speed-control small { font-size: .64rem; white-space: nowrap; }
 .primary-button, .secondary-button, .tool-button, .mini-button, .text-button.small { border-radius: 999px; cursor: pointer; }
 .primary-button, .secondary-button, .tool-button, .mini-button { padding: 10px 14px; border: 1px solid var(--ink); background: var(--white); color: var(--ink); }
 .primary-button { background: var(--ink); color: var(--white); }

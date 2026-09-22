@@ -11,6 +11,9 @@ const TURN_MIN = 1;
 const TURN_MAX = 360;
 const DEFAULT_TURTLE = { x: 450, y: 300, angle: -90, penDown: true };
 const STORAGE_KEY = 'playroom-turtle-custom-commands';
+const DEFAULT_ANIMATION_DELAY = 90;
+const MIN_ANIMATION_DELAY = 0;
+const MAX_ANIMATION_DELAY = 200;
 const SAMPLE_PROGRAMS = {
   draw: [
     { type: 'repeat', count: 4, children: [
@@ -27,6 +30,7 @@ let program = cloneProgram(SAMPLE_PROGRAMS.draw);
 let strokes = [];
 let isRunning = false;
 let activeRunId = 0;
+let animationDelay = DEFAULT_ANIMATION_DELAY;
 let customCommands = loadCustomCommands();
 let editingCustomCommandName = '';
 let programBeforeCustomEdit = null;
@@ -419,7 +423,9 @@ async function runProgram() {
       turtle = step.state;
       if (step.stroke) strokes.push(step.stroke);
       renderBoard();
-      await new Promise((resolve) => window.setTimeout(resolve, 90));
+      if (animationDelay > 0) {
+        await new Promise((resolve) => window.setTimeout(resolve, animationDelay));
+      }
     }
   } finally {
     if (runId === activeRunId) {
@@ -553,6 +559,19 @@ function render() {
           <button class="secondary-button" type="button" data-turtle-action="clear">Clear</button>
           <button class="secondary-button" type="button" data-turtle-action="reset">Reset turtle</button>
         </div>
+        <label class="animation-speed-control">
+          <span>Animation delay <strong data-animation-delay-value>90 ms</strong></span>
+          <input
+            type="range"
+            min="0"
+            max="200"
+            step="10"
+            value="90"
+            data-animation-delay
+            aria-label="Animation delay in milliseconds"
+          />
+          <small>0 ms = fastest</small>
+        </label>
       </div>
 
       <div class="turtle-layout">
@@ -619,7 +638,21 @@ function render() {
   renderBoard();
 }
 
+function updateAnimationDelay(value) {
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) return;
+  animationDelay = clamp(numericValue, MIN_ANIMATION_DELAY, MAX_ANIMATION_DELAY);
+  const valueLabel = view?.querySelector('[data-animation-delay-value]');
+  if (valueLabel) valueLabel.textContent = `${animationDelay} ms`;
+}
+
 function handleAction(event) {
+  const animationDelayInput = event.target.closest('[data-animation-delay]');
+  if (animationDelayInput) {
+    updateAnimationDelay(animationDelayInput.value);
+    return;
+  }
+
   const runTrigger = event.target.closest('[data-turtle-action="run"]');
   if (runTrigger) { runProgram(); return; }
 
