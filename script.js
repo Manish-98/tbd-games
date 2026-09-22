@@ -1,5 +1,6 @@
 import { escapeHtml } from './dom.js';
-import { games, isPlayableGame, countGames } from './games/registry.js';
+import { games, isPlayableGame, countGames, validateGame } from './games/registry.js';
+import { renderAbout } from './games/about.js';
 
 const grid = document.querySelector('#game-grid');
 const filterButtons = document.querySelectorAll('.filter-button');
@@ -11,13 +12,13 @@ function prepareGame(game) {
   if (game.section) return;
   game.section = document.querySelector(`#${game.id}-game`);
   game.tabs = game.section ? game.section.querySelectorAll('[role="tab"]') : [];
+  game.aboutContainer = game.section ? game.section.querySelector('[data-game-about]') : null;
 }
 
 function initializeGame(game) {
   prepareGame(game);
-  if (!game.controller) {
-    game.controller = game.initialize(game.section);
-  }
+  if (!validateGame(game)) throw new Error(`Game "${game.id}" does not satisfy the game contract.`);
+  if (!game.controller) game.controller = game.initialize(game.section);
   return game.controller;
 }
 
@@ -59,9 +60,14 @@ function renderGames(filter = 'all') {
   const visibleGames = filter === 'all' ? games : games.filter((game) => game.category === filter);
   grid.innerHTML = visibleGames.map(renderGameCard).join('');
 }
+
+function renderGameAbout(game) {
+  if (game.aboutContainer) game.aboutContainer.innerHTML = renderAbout(game.about);
+}
+
 function openGame(id) {
   const game = games.find((entry) => entry.id === id);
-  if (!game) return;
+  if (!game || !validateGame(game)) return;
   if (activeGame && activeGame !== game) destroyGame(activeGame);
   games.filter(isPlayableGame).forEach((entry) => {
     prepareGame(entry);
@@ -71,6 +77,7 @@ function openGame(id) {
   activeGame = game;
   intro.hidden = true;
   gameLibrary.hidden = true;
+  renderGameAbout(game);
   game.section.scrollIntoView({ behavior: 'smooth' });
   controller.render(game.initialMode);
 }
@@ -79,6 +86,7 @@ function closeGame(game) {
   destroyGame(game);
   prepareGame(game);
   game.section.hidden = true;
+  game.aboutContainer.innerHTML = '';
   activeGame = null;
   intro.hidden = false;
   gameLibrary.hidden = false;
@@ -113,5 +121,6 @@ filterButtons.forEach((button) => {
   });
 });
 
+games.filter(isPlayableGame).forEach(prepareGame);
 renderFilterCounts();
 renderGames();
