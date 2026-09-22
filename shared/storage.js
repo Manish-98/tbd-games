@@ -16,12 +16,12 @@ export function saveJson(key, value) {
   }
 }
 
-export function loadVersionedJson(key, fallback, { version = 1, migrate = (value) => value } = {}) {
-  const value = loadJson(key, fallback);
-  if (value && typeof value === 'object' && !Array.isArray(value) && Number(value.version) === version) {
-    return value.data;
+export function loadVersionedJson(key, fallback, version = 1) {
+  const value = loadJson(key, null);
+  if (!value || typeof value !== 'object' || Array.isArray(value) || Number(value.version) !== version) {
+    return fallback;
   }
-  return migrate(value);
+  return value.data;
 }
 
 export function saveVersionedJson(key, data, version = 1) {
