@@ -6,6 +6,7 @@ const grid = document.querySelector('#game-grid');
 const filterButtons = document.querySelectorAll('.filter-button');
 const intro = document.querySelector('.intro');
 const gameLibrary = document.querySelector('.game-library');
+const brand = document.querySelector('.brand');
 const GAME_ROUTE_PREFIX = '#game/';
 let activeGame = null;
 
@@ -175,6 +176,12 @@ function syncRoute() {
   }
 }
 
+function navigateHome() {
+  const homePath = new URL('.', window.location.href).pathname;
+  window.history.pushState(null, '', homePath);
+  syncRoute();
+}
+
 function navigateToGame(id) {
   const game = games.find((entry) => entry.id === id && isPlayableGame(entry));
   if (!game) return;
@@ -188,6 +195,10 @@ function navigateToGame(id) {
 }
 
 document.addEventListener('click', (event) => {
+  if (brand?.contains(event.target)) {
+    event.preventDefault();
+    return navigateHome();
+  }
   const openButton = event.target.closest('[data-open-game]');
   if (openButton) return navigateToGame(openButton.dataset.openGame);
   const game = games.find((entry) => entry.section?.contains(event.target) && event.target.closest('[data-close-game]'));
