@@ -13,17 +13,11 @@
 .animation-speed-control strong { color: var(--ink); }
 .animation-speed-control input { width: 100%; accent-color: var(--ink); cursor: pointer; }
 .animation-speed-control small { font-size: .64rem; white-space: nowrap; }
-.primary-button, .secondary-button, .tool-button, .mini-button, .text-button.small { border-radius: 999px; cursor: pointer; }
-.primary-button, .secondary-button, .tool-button, .mini-button { padding: 10px 14px; border: 1px solid var(--ink); background: var(--white); color: var(--ink); }
-.primary-button { background: var(--ink); color: var(--white); }
-.secondary-button { background: var(--white); color: var(--ink); }
-.secondary-button.full { width: 100%; }
 .turtle-actions .secondary-button { background: var(--white); color: var(--ink); margin: 0; }
 .turtle-actions .secondary-button:hover { background: var(--paper); }
 .turtle-actions .primary-button { margin: 0; }
 .tool-button { width: 100%; }
-.mini-button { padding: 7px 10px; font-size: .72rem; }
-.text-button.small { padding: 0; border: 0; background: none; color: var(--coral-dark); font-size: .72rem; }
+.text-button.small { padding: 0; font-size: .72rem; }
 
 .turtle-layout { display: grid; grid-template-columns: minmax(0, 2.2fr) minmax(270px, .85fr); gap: 24px; }
 .turtle-canvas-panel { padding: 18px; border: 1px solid var(--ink); background: var(--white); overflow: hidden; }

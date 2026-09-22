@@ -1,3 +1,4 @@
+import { escapeHtml } from '../../dom.js';
 import { createLifecycle } from '../../shared/lifecycle.js';
 import { createCommand as createEngineCommand, cloneProgram as cloneEngineProgram, executeProgram, parseBindingPath } from './engine.js';
 import { loadJson, saveJson } from '../../shared/storage.js';
@@ -246,7 +247,7 @@ function renderCommandActions(parentPath = '') {
     `<button type="button" class="mini-button" data-add-command="${button.type}" data-command-parent="${parentPath}">+ ${button.label.toLowerCase()}</button>`
   ).join('');
   const custom = customCommands.map((command) =>
-    `<button type="button" class="mini-button" data-add-custom="${command.name}" data-command-parent="${parentPath}">+ ${command.name}</button>`
+    `<button type="button" class="mini-button" data-add-custom="${escapeHtml(command.name)}" data-command-parent="${parentPath}">+ ${escapeHtml(command.name)}</button>`
   ).join('');
   return builtIns + custom;
 }
@@ -564,13 +565,13 @@ function renderCommandList(commands, pathPrefix = '') {
       : '';
     const label = command.type === 'call' ? `${command.name}()` : command.type === 'penUp' ? 'Pen up' : command.type === 'penDown' ? 'Pen down' : command.type === 'repeat' ? 'Repeat' : command.type === 'forward' ? 'Forward' : command.type === 'back' ? 'Back' : command.type === 'left' ? 'Left' : command.type === 'right' ? 'Right' : command.type;
     const callArgs = command.type === 'call'
-      ? `<div class="call-arg-list">${(command.args || []).map((param) => `<label class="command-value"><span>${param}</span><input type="number" inputmode="numeric" min="${REPEAT_MIN}" max="${REPEAT_MAX}" step="1" value="${command.paramValues?.[param] ?? REPEAT_MIN}" data-call-path="${path}" data-call-param="${param}" /></label>`).join('')}</div>`
+      ? `<div class="call-arg-list">${(command.args || []).map((param) => `<label class="command-value"><span>${escapeHtml(param)}</span><input type="number" inputmode="numeric" min="${REPEAT_MIN}" max="${REPEAT_MAX}" step="1" value="${command.paramValues?.[param] ?? REPEAT_MIN}" data-call-path="${path}" data-call-param="${escapeHtml(param)}" /></label>`).join('')}</div>`
       : '';
 
     return `
       <div class="command-block" data-command-block="${path}">
         <div class="command-header">
-          <span class="command-name">${label}</span>
+          <span class="command-name">${escapeHtml(label)}</span>
           ${valueInput}
           <button type="button" class="text-button small" data-delete-command="${path}" aria-label="Delete command">Delete</button>
         </div>
@@ -583,113 +584,42 @@ function renderCommandList(commands, pathPrefix = '') {
 }
 
 function renderCustomCommands() {
-  if (!customCommands.length) {
-    return '<p class="custom-empty">No custom commands yet.</p>';
-  }
-
-  return customCommands.map((command) => `
-    <div class="custom-command-item">
-      <span class="custom-command-name">${command.name}${command.params.length ? `(${command.params.join(', ')})` : '()'}</span>
-      <div class="custom-command-actions">
-        <button type="button" class="mini-button" data-use-custom="${command.name}">Use</button>
-        <button type="button" class="mini-button" data-edit-custom="${command.name}">Edit</button>
-        <button type="button" class="mini-button" data-delete-custom="${command.name}">Delete</button>
-      </div>
-    </div>
-  `).join('');
+  if (!customCommands.length) return '<p class="custom-empty">No custom commands yet.</p>';
+  return customCommands.map((command) => {
+    const name = escapeHtml(command.name);
+    const params = (command.params || []).map(escapeHtml).join(', ');
+    return `<div class="custom-command-item">
+      <span class="custom-command-name">${name}${command.params.length ? `(${params})` : '()'}</span>
+      <div class="custom-command-actions"><button type="button" class="mini-button" data-use-custom="${name}">Use</button><button type="button" class="mini-button" data-edit-custom="${name}">Edit</button><button type="button" class="mini-button" data-delete-custom="${name}">Delete</button></div>
+    </div>`;
+  }).join('');
 }
 
+function renderToolbar() {
+  return `<div class="turtle-toolbar"><div class="turtle-actions">
+    <button class="primary-button" type="button" data-turtle-action="run">Run</button><button class="secondary-button" type="button" data-turtle-action="clear">Clear</button><button class="secondary-button" type="button" data-turtle-action="reset">Reset turtle</button>
+  </div><label class="animation-speed-control"><span>Animation delay <strong data-animation-delay-value>${animationDelay} ms</strong></span><input type="range" min="0" max="200" step="10" value="${animationDelay}" data-animation-delay aria-label="Animation delay in milliseconds" /><small>0 ms = fastest</small></label></div>`;
+}
+function renderCanvasPanel() {
+  return '<div class="turtle-canvas-panel"><canvas id="turtle-canvas" width="900" height="600" aria-label="Turtle drawing canvas"></canvas></div>';
+}
+function renderToolbox() {
+  return `<div class="palette"><p class="section-label">Command toolbox</p><div class="tool-grid">${BUILT_IN_COMMANDS.map((button) => `<button type="button" class="tool-button" data-add-command="${escapeHtml(button.type)}">${escapeHtml(button.label)}</button>`).join('')}</div></div>`;
+}
+function renderProgramEditor() {
+  return `<div class="program-panel"><p class="section-label">Program</p><div class="program-list">${renderCommandList(program)}</div>
+    <div class="custom-editor"><div class="custom-panel-header"><p class="section-label">${editingCustomCommandName ? `Edit ${escapeHtml(editingCustomCommandName)}` : 'Save as custom command'}</p><button type="button" class="info-button" data-custom-help-toggle aria-label="Show binding help" aria-expanded="false">i</button></div>
+      <div class="custom-help-panel" data-custom-help-panel><p><strong>Parameters</strong> are placeholders. <strong>Bindings</strong> connect each parameter to one or more values inside the saved program body.</p><p>Use JSONPath-style bindings. Example: <strong>size: $[0], $[2]; turn: $[1].children[0]</strong>.</p><p>To forward a parameter into a nested custom command, target its argument: <strong>size: $[0].children[0].paramValues.size</strong>.</p><p>Legacy dotted paths such as <strong>0.children.0</strong> are still supported for existing commands.</p></div>
+      <div class="custom-form"><label class="field-group"><span>Name</span><input id="custom-name-input" type="text" value="${escapeHtml(customDraft.name)}" placeholder="square" /></label><label class="field-group"><span>Parameters</span><input id="custom-params-input" type="text" value="${escapeHtml(customDraft.params)}" placeholder="size, turn" /></label><label class="field-group"><span>Bindings</span><input id="custom-bindings-input" type="text" value="${escapeHtml(customDraft.bindings)}" placeholder="size: 0, 2; innerSize: 0.children.0.paramValues.size" /></label></div>
+      <div class="custom-editor-actions"><button type="button" class="secondary-button full" data-save-custom-command>${editingCustomCommandName ? 'Update custom command' : 'Save as custom command'}</button>${editingCustomCommandName ? '<button type="button" class="secondary-button full" data-cancel-custom-edit>Cancel edit</button>' : ''}</div>
+    </div></div>`;
+}
+function renderMyCommands() {
+  return `<div class="custom-panel"><div class="custom-panel-header"><p class="section-label">My commands</p></div><div class="custom-command-list">${renderCustomCommands()}</div></div>`;
+}
 function render() {
   if (!view) return;
-
-  const buttons = BUILT_IN_COMMANDS;
-
-  view.innerHTML = `
-    <div class="turtle-shell">
-      <div class="turtle-toolbar">
-        <div class="turtle-actions">
-          <button class="primary-button" type="button" data-turtle-action="run">Run</button>
-          <button class="secondary-button" type="button" data-turtle-action="clear">Clear</button>
-          <button class="secondary-button" type="button" data-turtle-action="reset">Reset turtle</button>
-        </div>
-        <label class="animation-speed-control">
-          <span>Animation delay <strong data-animation-delay-value>90 ms</strong></span>
-          <input
-            type="range"
-            min="0"
-            max="200"
-            step="10"
-            value="90"
-            data-animation-delay
-            aria-label="Animation delay in milliseconds"
-          />
-          <small>0 ms = fastest</small>
-        </label>
-      </div>
-
-      <div class="turtle-layout">
-        <div class="turtle-canvas-panel">
-          <canvas id="turtle-canvas" width="900" height="600" aria-label="Turtle drawing canvas"></canvas>
-        </div>
-
-        <aside class="turtle-sidebar">
-          <div class="palette">
-            <p class="section-label">Command toolbox</p>
-            <div class="tool-grid">
-              ${buttons.map((button) => `<button type="button" class="tool-button" data-add-command="${button.type}">${button.label}</button>`).join('')}
-            </div>
-          </div>
-
-          <div class="program-panel">
-            <p class="section-label">Program</p>
-            <div class="program-list">
-              ${renderCommandList(program)}
-            </div>
-            <div class="custom-editor">
-              <div class="custom-panel-header">
-                <p class="section-label">${editingCustomCommandName ? `Edit ${editingCustomCommandName}` : 'Save as custom command'}</p>
-                <button type="button" class="info-button" data-custom-help-toggle aria-label="Show binding help" aria-expanded="false">i</button>
-              </div>
-              <div class="custom-help-panel" data-custom-help-panel>
-                <p><strong>Parameters</strong> are placeholders. <strong>Bindings</strong> connect each parameter to one or more values inside the saved program body.</p>
-                <p>Use JSONPath-style bindings. Example: <strong>size: $[0], $[2]; turn: $[1].children[0]</strong>.</p>
-                <p>To forward a parameter into a nested custom command, target its argument: <strong>size: $[0].children[0].paramValues.size</strong>.</p>
-                <p>Legacy dotted paths such as <strong>0.children.0</strong> are still supported for existing commands.</p>
-              </div>
-              <div class="custom-form">
-                <label class="field-group">
-                  <span>Name</span>
-                  <input id="custom-name-input" type="text" value="${customDraft.name}" placeholder="square" />
-                </label>
-                <label class="field-group">
-                  <span>Parameters</span>
-                  <input id="custom-params-input" type="text" value="${customDraft.params}" placeholder="size, turn" />
-                </label>
-                <label class="field-group">
-                  <span>Bindings</span>
-                  <input id="custom-bindings-input" type="text" value="${customDraft.bindings}" placeholder="size: 0, 2; innerSize: 0.children.0.paramValues.size" />
-                </label>
-              </div>
-              <div class="custom-editor-actions">
-                <button type="button" class="secondary-button full" data-save-custom-command>${editingCustomCommandName ? 'Update custom command' : 'Save as custom command'}</button>
-                ${editingCustomCommandName ? '<button type="button" class="secondary-button full" data-cancel-custom-edit>Cancel edit</button>' : ''}
-              </div>
-            </div>
-          </div>
-
-          <div class="custom-panel">
-            <div class="custom-panel-header">
-              <p class="section-label">My commands</p>
-            </div>
-            <div class="custom-command-list">
-              ${renderCustomCommands()}
-            </div>
-          </div>
-        </aside>
-      </div>
-    </div>
-  `;
-
+  view.innerHTML = `<div class="turtle-shell">${renderToolbar()}<div class="turtle-layout">${renderCanvasPanel()}<aside class="turtle-sidebar">${renderToolbox()}${renderProgramEditor()}${renderMyCommands()}</aside></div></div>`;
   renderBoard();
 }
 

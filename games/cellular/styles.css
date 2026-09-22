@@ -35,11 +35,6 @@
 .saved-world-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 10px; border: 1px solid var(--line); background: var(--white); }
 .saved-world-name { flex: 1; border: 0; background: transparent; color: var(--ink); cursor: pointer; font: 700 .8rem var(--body); text-align: left; }
 .cellular-empty { margin: 0; color: var(--muted); font-size: .8rem; }
-.primary-button, .secondary-button, .mini-button { border: 1px solid var(--ink); cursor: pointer; font: 700 .76rem var(--body); }
-.primary-button { padding: 11px 18px; background: var(--ink); color: var(--white); }
-.secondary-button { padding: 10px 14px; background: transparent; color: var(--ink); }
-.secondary-button.full { width: 100%; }
-.mini-button { padding: 6px 8px; background: var(--white); color: var(--ink); }
 .primary-button:hover, .secondary-button:hover, .rule-button:hover, .mini-button:hover { background: var(--yellow); }
 @media (max-width: 820px) {
   .cellular-game { padding: 58px 0 66px; }

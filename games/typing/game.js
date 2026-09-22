@@ -1,4 +1,5 @@
 import { loadJson, saveJson } from '../../shared/storage.js';
+import { escapeHtml } from '../../dom.js';
 
 import { calculateTypingMetrics, summarizeRuns, aggregateRuns } from './engine.js';
 
@@ -80,15 +81,24 @@ function textMarkup(text, position, ghostPosition = -1) {
   return [...text].map((character, index) => {
     const state = index < position ? 'typed' : index === position ? 'current' : '';
     const ghost = index === Math.floor(ghostPosition) ? ' ghost-cursor' : '';
-    return `<span class="char ${state}${ghost}">${character === ' ' ? ' ' : character}</span>`;
+    return `<span class="char ${state}${ghost}">${character === ' ' ? ' ' : escapeHtml(character)}</span>`;
   }).join('');
 }
 
+function renderTypingMeta(mode) {
+  return `<div class="typing-meta"><span>${mode === 'race' ? 'Your cursor / ghost cursor' : 'Type the passage exactly'}</span><span id="live-stats">Ready when you are</span></div>`;
+}
+function renderTypingFooter(mode, best) {
+  const reference = mode === 'race' && best
+    ? `Ghost reference: ${formatNumber(best.cpm)} CPM / ${formatNumber(best.accuracy)}% accuracy`
+    : 'The clock starts with your first keystroke.';
+  return `<div class="typing-footer"><span>${reference}</span><button class="text-button" id="restart-game" type="button">New passage</button></div>`;
+}
 function renderTyping(mode = 'type') {
   activeMode = mode;
   if (activeSession) activeSession.destroy();
   if (!paragraphs.length) {
-    typingView.innerHTML = '<div class="typing-meta"><span>Type the passage exactly</span><span id="live-stats">Loading a passage…</span></div>';
+    typingView.innerHTML = `<div class="typing-meta"><span>Type the passage exactly</span><span id="live-stats">Loading a passage…</span></div>`;
     return;
   }
   const text = paragraphs[Math.floor(Math.random() * paragraphs.length)];
@@ -98,20 +108,19 @@ function renderTyping(mode = 'type') {
     const idealPosition = Math.min(text.length, ((performance.now() - session.startedAt) / 60000) * best.cpm);
     return Math.max(0, idealPosition - Math.sin(performance.now() / 800) * (1 - best.accuracy / 100) * 2);
   } : null;
-  typingView.innerHTML = `<div class="typing-meta"><span>${mode === 'race' ? 'Your cursor / ghost cursor' : 'Type the passage exactly'}</span><span id="live-stats">Ready when you are</span></div><div class="passage" tabindex="0" aria-label="Typing passage">${textMarkup(text, 0)}</div><div class="typing-footer"><span>${mode === 'race' && best ? `Ghost reference: ${formatNumber(best.cpm)} CPM / ${formatNumber(best.accuracy)}% accuracy` : 'The clock starts with your first keystroke.'}</span><button class="text-button" id="restart-game" type="button">New passage</button></div>`;
+  typingView.innerHTML = `${renderTypingMeta(mode)}<div class="passage" tabindex="0" aria-label="Typing passage">${textMarkup(text, 0)}</div>${renderTypingFooter(mode, best)}`;
   const passage = typingView.querySelector('.passage');
   passage.focus();
   activeSession = new TypingSession(text, (session) => {
     passage.innerHTML = textMarkup(text, session.position, ghostProvider ? ghostProvider(session) : -1);
-    typingView.querySelector('#live-stats').textContent = session.startedAt ? `${formatNumber(session.position / Math.max(session.elapsedMs() / 60000, 1 / 60000))} CPM / ${formatNumber(session.correct / Math.max(session.correct + session.mistakes, 1) * 100)}% accuracy` : 'Ready when you are';
+    typingView.querySelector('#live-stats').textContent = session.startedAt
+      ? `${formatNumber(session.position / Math.max(session.elapsedMs() / 60000, 1 / 60000))} CPM / ${formatNumber(session.correct / Math.max(session.correct + session.mistakes, 1) * 100)}% accuracy`
+      : 'Ready when you are';
   }, (run) => { saveRun(run); renderResult(run); });
-  typingView.querySelector('#restart-game').addEventListener('click', () => renderTyping(activeMode));
 }
 
 function renderResult(run) {
   typingView.innerHTML = `<div class="result-panel"><p class="section-label">Run complete</p><h3>${formatNumber(run.wpm)} WPM</h3><p>${formatNumber(run.accuracy)}% accuracy / ${formatNumber(run.elapsedMs / 1000)} seconds</p><button class="primary-button" id="restart-game" type="button">Run it again</button><button class="text-button" id="result-stats" type="button">View stats</button></div>`;
-  typingView.querySelector('#restart-game').addEventListener('click', () => renderTyping(activeMode));
-  typingView.querySelector('#result-stats').addEventListener('click', renderStats);
 }
 
 function renderStats() {
@@ -127,6 +136,11 @@ function renderStats() {
   typingView.innerHTML = `<div class="stats-summary"><div><span>Latest run</span><strong>${recent[0] ? `${formatNumber(recent[0].wpm)} WPM` : '—'}</strong></div><div><span>Personal best</span><strong>${best ? `${formatNumber(best.wpm)} WPM` : '—'}</strong></div><div><span>Rolling average</span><strong>${recent.length ? `${formatNumber(average)} WPM` : '—'}</strong></div><div><span>Trend</span><strong class="${trend >= 0 ? 'positive' : 'negative'}">${recent.length > 1 ? `${trend >= 0 ? '+' : ''}${formatNumber(trend)} WPM` : '—'}</strong></div></div><div class="chart-grid"><div class="chart-block"><div class="chart-heading"><h3>WPM</h3><span>words per minute</span></div><div class="bar-chart wpm-chart">${wpmBars}</div></div><div class="chart-block"><div class="chart-heading"><h3>Accuracy</h3><span>percentage correct</span></div><div class="bar-chart accuracy-chart">${accuracyBars}</div></div></div><div class="runs-table"><div class="table-heading"><h3>Last 10 runs</h3><span>${history.length} total</span></div>${rows}</div>`;
 }
 
+function handleAction(event) {
+  if (event.target.closest('#restart-game')) return renderTyping(activeMode);
+  if (event.target.closest('#result-stats')) return renderStats();
+}
+
 function render(mode = 'type') {
   const renderers = { stats: renderStats, type: renderTyping, race: renderTyping };
   (renderers[mode] || renderTyping)(mode);
@@ -134,6 +148,7 @@ function render(mode = 'type') {
 
 export function initTypingGame(section) {
   typingView = section.querySelector('.typing-view');
+  typingView.addEventListener('click', handleAction);
   const abortController = new AbortController();
   let destroyed = false;
   const dataUrl = (file) => new URL(file, import.meta.url);
@@ -157,6 +172,7 @@ export function initTypingGame(section) {
       destroyed = true;
       abortController.abort();
       if (activeSession) activeSession.destroy();
+      typingView.removeEventListener('click', handleAction);
     }
   };
 }
