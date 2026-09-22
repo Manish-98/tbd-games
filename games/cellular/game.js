@@ -101,10 +101,7 @@ function stopLoop() {
 }
 
 function loadCustomWorlds() {
-  return loadVersionedJson(STORAGE_KEY, [], {
-    version: STORAGE_VERSION,
-    migrate: (value) => Array.isArray(value) ? value : []
-  });
+  return loadVersionedJson(STORAGE_KEY, [], STORAGE_VERSION);
 }
 
 function persistCustomWorlds() {
