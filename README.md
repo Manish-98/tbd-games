@@ -24,7 +24,7 @@ game engine
 renderer / persistence
 ```
 
-The lobby owns navigation and uses `games/registry.js` as the single source of truth for game metadata, categories, and playable state. Each playable game owns its controller, engine, renderer, assets, and persistence under `games/<game>/`.
+The lobby owns navigation and uses `games/registry.js` as the single source of truth for game metadata, categories, and playable state. Playable games are addressable with stable hash routes in the form `#game/<game-id>`, so direct links and browser back/forward navigation resolve through the same lobby route handling. Each playable game owns its controller, engine, renderer, assets, and persistence under `games/<game>/`.
 
 Shared platform utilities live in `shared/`:
 - `shared/lifecycle.js` manages event-listener and timer cleanup.
