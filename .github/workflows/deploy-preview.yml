@@ -17,7 +17,6 @@ permissions:
 
 jobs:
   preview:
-    if: github.event.action != 'closed' || github.event.pull_request.merged == true || github.event.pull_request.merged == false
     runs-on: ubuntu-latest
     steps:
       - name: Checkout pull request
