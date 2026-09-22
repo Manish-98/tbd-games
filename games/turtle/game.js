@@ -563,7 +563,7 @@ function renderCommandList(commands, pathPrefix = '') {
     const addButtons = command.type === 'repeat'
       ? `<div class="command-actions">${renderCommandActions(path)}</div>`
       : '';
-    const label = command.type === 'call' ? `${escapeHtml(command.name)}()` : command.type === 'penUp' ? 'Pen up' : command.type === 'penDown' ? 'Pen down' : command.type === 'repeat' ? 'Repeat' : command.type === 'forward' ? 'Forward' : command.type === 'back' ? 'Back' : command.type === 'left' ? 'Left' : command.type === 'right' ? 'Right' : command.type;
+    const label = command.type === 'call' ? `${command.name}()` : command.type === 'penUp' ? 'Pen up' : command.type === 'penDown' ? 'Pen down' : command.type === 'repeat' ? 'Repeat' : command.type === 'forward' ? 'Forward' : command.type === 'back' ? 'Back' : command.type === 'left' ? 'Left' : command.type === 'right' ? 'Right' : command.type;
     const callArgs = command.type === 'call'
       ? `<div class="call-arg-list">${(command.args || []).map((param) => `<label class="command-value"><span>${escapeHtml(param)}</span><input type="number" inputmode="numeric" min="${REPEAT_MIN}" max="${REPEAT_MAX}" step="1" value="${command.paramValues?.[param] ?? REPEAT_MIN}" data-call-path="${path}" data-call-param="${escapeHtml(param)}" /></label>`).join('')}</div>`
       : '';
