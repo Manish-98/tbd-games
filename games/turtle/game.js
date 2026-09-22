@@ -66,10 +66,7 @@ let customDraft = { name: '', params: '', bindings: '' };
 function cloneProgram(commands) { return cloneEngineProgram(commands); }
 
 function loadCustomCommands() {
-  return loadVersionedJson(STORAGE_KEY, [], {
-    version: STORAGE_VERSION,
-    migrate: (value) => Array.isArray(value) ? value : []
-  });
+  return loadVersionedJson(STORAGE_KEY, [], STORAGE_VERSION);
 }
 
 function persistCustomCommands() {
