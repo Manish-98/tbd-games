@@ -1,9 +1,6 @@
 [hidden] { display: none !important; }
-.game-link, .text-button, .primary-button { border: 0; background: none; cursor: pointer; }
 .typing-game { padding: 75px 0 90px; border-bottom: 1px solid var(--line); }
 .typing-topline { display: flex; align-items: end; justify-content: space-between; gap: 24px; }
-.text-button { padding: 8px 0; color: var(--coral-dark); font-size: .78rem; font-weight: 700; }
-.text-button:hover { color: var(--ink); }
 .mode-tabs { display: flex; gap: 24px; margin: 48px 0 34px; border-bottom: 1px solid var(--line); }
 .mode-tab { padding: 0 0 14px; border: 0; border-bottom: 2px solid transparent; background: none; color: var(--muted); cursor: pointer; font: 700 .78rem var(--body); }
 .mode-tab.active { border-color: var(--coral); color: var(--ink); }
@@ -21,7 +18,7 @@
 .result-panel { padding: 44px 0; }
 .result-panel h3 { margin: 12px 0 8px; font: 600 clamp(3.6rem, 9vw, 7rem)/.9 var(--display); letter-spacing: -.08em; }
 .result-panel p:not(.section-label) { color: var(--muted); }
-.primary-button { margin: 30px 24px 0 0; padding: 13px 18px; background: var(--ink); color: var(--white); font-size: .78rem; font-weight: 700; }
+.primary-button { margin: 30px 24px 0 0; }
 .stats-summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; margin-bottom: 48px; background: var(--line); border: 1px solid var(--line); }
 .stats-summary div { min-height: 120px; padding: 18px; background: var(--paper); }
 .stats-summary span { display: block; margin-bottom: 21px; color: var(--muted); font-size: .7rem; text-transform: uppercase; letter-spacing: .08em; }
