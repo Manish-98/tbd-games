@@ -26,6 +26,7 @@ let turtle = { ...DEFAULT_TURTLE };
 let program = cloneProgram(SAMPLE_PROGRAMS.draw);
 let strokes = [];
 let isRunning = false;
+let activeRunId = 0;
 let customCommands = loadCustomCommands();
 let editingCustomCommandName = '';
 let programBeforeCustomEdit = null;
@@ -178,6 +179,8 @@ function createCommand(type) {
 }
 
 function resetTurtle() {
+  activeRunId += 1;
+  isRunning = false;
   turtle = { ...DEFAULT_TURTLE };
   strokes = [];
   renderBoard();
@@ -406,19 +409,23 @@ function turnTurtle(delta) {
 
 async function runProgram() {
   if (isRunning) return;
+  const runId = activeRunId + 1;
+  activeRunId = runId;
   isRunning = true;
   try {
     const initialState = { ...turtle };
     for (const step of executeProgram(program, customCommands, initialState, { bounds: { minX: 20, maxX: 880, minY: 20, maxY: 580 } })) {
-      if (!isRunning) break;
+      if (!isRunning || runId !== activeRunId) break;
       turtle = step.state;
       if (step.stroke) strokes.push(step.stroke);
       renderBoard();
       await new Promise((resolve) => window.setTimeout(resolve, 90));
     }
   } finally {
-    isRunning = false;
-    render();
+    if (runId === activeRunId) {
+      isRunning = false;
+      render();
+    }
   }
 }
 
@@ -706,6 +713,7 @@ export function initTurtleGame(section) {
       setProgramFromMode(nextMode);
     },
     destroy() {
+      activeRunId += 1;
       isRunning = false;
       lifecycle.dispose();
       view.innerHTML = '';
