@@ -406,6 +406,7 @@ export function initCellularGame(section) {
   lifecycle.on(window, 'pointerup', handlePointerUp);
 
   randomizeGrid();
+  render();
 
   return {
     render(nextMode = 'play') {
