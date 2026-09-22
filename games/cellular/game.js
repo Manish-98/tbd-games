@@ -1,3 +1,6 @@
+import { createGrid, cloneGrid, maskFromList as createRuleMask, listFromMask, countLivingCells as countLiving, randomGrid, setCell as engineSetCell, getCell as engineGetCell, nextGeneration, ruleExpression as formatRule } from './engine.js';
+import { createLifecycle } from '../../shared/lifecycle.js';
+import { loadJson, saveJson } from '../../shared/storage.js';
 import { createLifecycle } from '../../shared/lifecycle.js';
 import { loadJson, saveJson } from '../../shared/storage.js';
 
@@ -18,8 +21,8 @@ let rows = DEFAULT_ROWS;
 let cellSize = DEFAULT_CELL_SIZE;
 let birthMask = maskFromList(DEFAULT_BIRTH);
 let surviveMask = maskFromList(DEFAULT_SURVIVE);
-let grid = createGrid();
-let initialGrid = cloneGrid(grid);
+let grid = createGridState();
+let initialGrid = cloneGridState(grid);
 let generation = 0;
 let livingCells = 0;
 let changedCells = 0;
@@ -32,51 +35,25 @@ let isPainting = false;
 let paintValue = true;
 let lastPaintCell = null;
 
-function createGrid() {
-  return new Uint8Array(cols * rows);
-}
+function createGridState() { return createGrid(cols, rows); }
+function cloneGridState(source) { return cloneGridState(source); }
+function maskFromList(values) { return createRuleMask(values); }
+function ruleExpression() { return formatRule(birthMask, surviveMask); }
 
-function cloneGrid(source) {
-  return new Uint8Array(source);
-}
-
-function maskFromList(values = []) {
-  const next = Array(9).fill(0);
-  values.forEach((value) => {
-    if (Number.isInteger(value) && value >= 0 && value <= 8) {
-      next[value] = 1;
-    }
-  });
-  return next;
-}
-
-function listFromMask(mask = []) {
-  return mask.map((enabled, value) => (enabled ? value : null)).filter((value) => value !== null);
-}
-
-function ruleExpression() {
-  return `B${listFromMask(birthMask).join('') || '0'}/S${listFromMask(surviveMask).join('') || '0'}`;
-}
-
-function countLivingCells() {
-  return grid.reduce((total, value) => total + value, 0);
-}
+function countLivingCells() { return countLiving(grid); }
 
 function randomizeGrid() {
-  grid = new Uint8Array(cols * rows);
-  for (let index = 0; index < grid.length; index += 1) {
-    grid[index] = Math.random() < 0.18 ? 1 : 0;
-  }
-  initialGrid = cloneGrid(grid);
+  grid = randomGrid(cols, rows);
+  initialGrid = cloneGridState(grid);
   generation = 0;
   changedCells = 0;
-  livingCells = countLivingCells();
+  livingCells = countLiving(grid);
   render();
 }
 
 function clearGrid() {
   grid.fill(0);
-  initialGrid = cloneGrid(grid);
+  initialGrid = cloneGridState(grid);
   generation = 0;
   changedCells = 0;
   livingCells = 0;
@@ -84,70 +61,29 @@ function clearGrid() {
 }
 
 function resetToInitial() {
-  grid = cloneGrid(initialGrid);
+  grid = cloneGridState(initialGrid);
   generation = 0;
   changedCells = 0;
   livingCells = countLivingCells();
   render();
 }
 
-function getCellIndex(x, y) {
-  const wrappedX = (x + cols) % cols;
-  const wrappedY = (y + rows) % rows;
-  return wrappedY * cols + wrappedX;
-}
-
-function getCell(x, y) {
-  return Boolean(grid[getCellIndex(x, y)]);
-}
-
-function setCell(x, y, nextValue) {
-  const index = getCellIndex(x, y);
-  grid[index] = nextValue ? 1 : 0;
-}
+function getCell(x, y) { return engineGetCell(grid, cols, rows, x, y); }
+function setCell(x, y, nextValue) { engineSetCell(grid, cols, rows, x, y, nextValue); }
 
 function updateSeedState() {
-  initialGrid = cloneGrid(grid);
+  initialGrid = cloneGridState(grid);
   livingCells = countLivingCells();
   renderCanvas();
 }
 
 function stepSimulation() {
   if (!grid.length) return;
-  const next = new Uint8Array(grid.length);
-  let nextLiving = 0;
-  let changed = 0;
-
-  for (let y = 0; y < rows; y += 1) {
-    for (let x = 0; x < cols; x += 1) {
-      let neighbours = 0;
-      for (let deltaY = -1; deltaY <= 1; deltaY += 1) {
-        for (let deltaX = -1; deltaX <= 1; deltaX += 1) {
-          if (deltaX === 0 && deltaY === 0) continue;
-          const sampleX = x + deltaX;
-          const sampleY = y + deltaY;
-          if (getCell(sampleX, sampleY)) {
-            neighbours += 1;
-          }
-        }
-      }
-
-      const alive = getCell(x, y);
-      const survives = alive && surviveMask[neighbours] === 1;
-      const born = !alive && birthMask[neighbours] === 1;
-      const nextState = survives || born ? 1 : 0;
-      next[y * cols + x] = nextState;
-      nextLiving += nextState;
-      if (alive !== Boolean(nextState)) {
-        changed += 1;
-      }
-    }
-  }
-
-  grid = next;
+  const result = nextGeneration(grid, cols, rows, birthMask, surviveMask);
+  grid = result.grid;
   generation += 1;
-  livingCells = nextLiving;
-  changedCells = changed;
+  livingCells = result.livingCells;
+  changedCells = result.changedCells;
   renderCanvas();
   renderMetrics();
 }
@@ -189,7 +125,7 @@ function applyWorldSnapshot(world) {
       grid[index] = value ? 1 : 0;
     }
   });
-  initialGrid = cloneGrid(grid);
+  initialGrid = cloneGridState(grid);
   generation = 0;
   changedCells = 0;
   livingCells = countLivingCells();
