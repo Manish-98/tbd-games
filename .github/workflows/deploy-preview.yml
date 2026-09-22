@@ -1,0 +1,75 @@
+name: Deploy PR Preview
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - closed
+
+concurrency:
+  group: github-pages-publish
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  preview:
+    if: github.event.action != 'closed' || github.event.pull_request.merged == true || github.event.pull_request.merged == false
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout pull request
+        if: github.event.action != 'closed'
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Publish or remove preview
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          ACTION: ${{ github.event.action }}
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          if git ls-remote --exit-code --heads origin gh-pages >/dev/null 2>&1; then
+            git fetch origin gh-pages
+            git worktree add ../pages-deploy origin/gh-pages
+          else
+            mkdir ../pages-deploy
+            cd ../pages-deploy
+            git init
+            git checkout --orphan gh-pages
+            git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          fi
+
+          PREVIEW_DIR="../pages-deploy/pr-preview/pr-${PR_NUMBER}"
+
+          if [ "${ACTION}" = "closed" ]; then
+            rm -rf "${PREVIEW_DIR}"
+          else
+            rm -rf "${PREVIEW_DIR}"
+            mkdir -p "${PREVIEW_DIR}"
+            rsync -a --exclude ".git/" --exclude "pr-preview/" "${GITHUB_WORKSPACE}/" "${PREVIEW_DIR}/"
+            touch "${PREVIEW_DIR}/.nojekyll"
+          fi
+
+          cd ../pages-deploy
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Preview state is already up to date."
+            exit 0
+          fi
+
+          if [ "${ACTION}" = "closed" ]; then
+            git commit -m "deploy: remove PR preview #${PR_NUMBER}"
+          else
+            git commit -m "deploy: update PR preview #${PR_NUMBER}"
+          fi
+
+          git push origin HEAD:gh-pages
