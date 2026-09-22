@@ -1,5 +1,7 @@
 import { loadJson, saveJson } from '../../shared/storage.js';
 
+import { calculateTypingMetrics, summarizeRuns, aggregateRuns } from './engine.js';
+
 const historyKey = 'playroom-typing-history';
 let paragraphs = [];
 let config = { POLL_INTERVAL_SECONDS: 0.035 };
@@ -63,9 +65,9 @@ class TypingSession {
     this.finished = true;
     window.clearInterval(this.timer);
     window.removeEventListener('keydown', this.handleKey);
-    const elapsedMinutes = this.elapsedMs() / 60000;
-    const accuracy = this.correct / Math.max(this.correct + this.mistakes, 1);
-    this.onFinish({ mode: activeMode, correctChars: this.correct, mistakes: this.mistakes, elapsedMs: this.elapsedMs(), cpm: this.correct / Math.max(elapsedMinutes, 1 / 60000), wpm: this.correct / 5 / Math.max(elapsedMinutes, 1 / 60000), accuracy: accuracy * 100, completedAt: Date.now() });
+    const elapsedMs = this.elapsedMs();
+    const metrics = calculateTypingMetrics(this.correct, this.mistakes, elapsedMs);
+    this.onFinish({ mode: activeMode, correctChars: this.correct, mistakes: this.mistakes, elapsedMs, ...metrics, completedAt: Date.now() });
   }
 
   destroy() {
@@ -111,16 +113,8 @@ function renderResult(run) {
 function renderStats() {
   if (activeSession) activeSession.destroy();
   const history = getHistory();
-  const recent = history.slice(0, 10);
-  const best = history.slice().sort((a, b) => b.wpm - a.wpm)[0];
-  const average = recent.length ? recent.reduce((sum, run) => sum + run.wpm, 0) / recent.length : 0;
-  const windowRuns = history.slice(1, 6);
-  const windowAverage = windowRuns.length ? windowRuns.reduce((sum, run) => sum + run.wpm, 0) / windowRuns.length : average;
-  const trend = average - windowAverage;
-  const graphRuns = history.length > 10 ? Array.from({ length: 10 }, (_, index) => {
-    const bucket = history.slice(Math.floor(index * history.length / 10), Math.floor((index + 1) * history.length / 10));
-    return { wpm: bucket.reduce((sum, run) => sum + run.wpm, 0) / bucket.length, accuracy: bucket.reduce((sum, run) => sum + run.accuracy, 0) / bucket.length };
-  }) : recent;
+  const { recent, best, average, trend } = summarizeRuns(history, 10);
+  const graphRuns = aggregateRuns(history, 10);
   const maxWpm = Math.max(...graphRuns.map((run) => run.wpm), 1);
   const graphBars = (metric, maximum, unit) => graphRuns.length ? graphRuns.slice().reverse().map((run) => `<div class="bar" style="height:${Math.max(8, run[metric] / maximum * 100)}%" title="${formatNumber(run[metric])}${unit}"></div>`).join('') : '<p class="empty-state">Complete a run to grow your graph.</p>';
   const wpmBars = graphBars('wpm', maxWpm, ' WPM');
