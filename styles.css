@@ -28,6 +28,7 @@ body {
 a { color: inherit; text-decoration: none; }
 button { color: inherit; font: inherit; }
 .game-link, .text-button, .primary-button, .secondary-button, .mini-button, .tool-button { cursor: pointer; }
+.game-link { border: 0; background: none; padding: 0; color: var(--coral-dark); font: inherit; font-size: .78rem; font-weight: 700; text-align: left; }
 .text-button { padding: 8px 0; border: 0; background: none; color: var(--coral-dark); font-size: .78rem; font-weight: 700; }
 .text-button:hover { color: var(--ink); }
 .primary-button, .secondary-button, .mini-button, .tool-button { border: 1px solid var(--ink); border-radius: 999px; }
