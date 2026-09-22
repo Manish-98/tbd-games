@@ -178,7 +178,7 @@ function syncRoute() {
 
 function navigateHome() {
   const homePath = new URL('.', window.location.href).pathname;
-  window.history.pushState(null, '', homePath);
+  window.history.replaceState(null, '', homePath);
   syncRoute();
 }
 
