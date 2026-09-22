@@ -20,7 +20,7 @@ export const games = [
       rules: ['Characters must be entered in the exact order shown.', 'Incorrect keystrokes count as mistakes and do not advance the passage.', 'A run is complete only after the entire passage has been typed.'],
       components: ['Typing passage with a highlighted current character', 'Live speed and accuracy readout', 'Type mode and Ghost race', 'Persistent run history and performance statistics'],
       controls: ['Keyboard: type the displayed passage', 'New passage: start another run', 'Ghost race: compare your pace against your stored reference run', 'Stats: review recent performance'],
-      scoring: 'Performance is summarized with WPM, CPM, accuracy, elapsed time, mistakes, personal best, rolling average, and trend.'
+      scoring: 'Performance is summarized with WPM, CPM, accuracy, elapsed time, mistakes, personal best, rolling average, and trend.',
       visual: { title: 'How a run works', steps: ["Read the passage","Type the highlighted character","Keep accuracy high","Finish the passage"] },
     }
   },
@@ -40,7 +40,7 @@ export const games = [
       rules: ['Connections run from output ports to input ports.', 'Each gate input accepts one connection.', 'A connection that would create a circuit loop is rejected.', 'Logic Detective is solved only when every truth-table row matches the target outputs.'],
       components: ['Input switches', 'Logic gates', 'Output bulbs', 'Wires', 'Input/output count controls', 'Truth-table challenge in Logic Detective'],
       controls: ['Click an input switch to toggle it.', 'Click a gate in the legend to add it.', 'Click an output port, then an input port to connect them.', 'Click a connected input port to disconnect it.', 'Use the input/output steppers to change circuit size.'],
-      scoring: 'Circuit Detective tracks how many truth-table rows currently match. A challenge is solved when all rows match.'
+      scoring: 'Circuit Detective tracks how many truth-table rows currently match. A challenge is solved when all rows match.',
       visual: { title: 'Build a signal path', steps: ["Set inputs","Place a gate","Connect the signal","Match the output"] },
     }
   },
@@ -60,7 +60,7 @@ export const games = [
       rules: ['Commands execute from top to bottom.', 'Movement and turn values are constrained to safe ranges by the editor.', 'Repeat runs its child commands the requested number of times.', 'Reusable custom commands can contain predefined commands or other custom commands.', 'Custom command parameters are resolved through their bindings when the command is executed.'],
       components: ['Turtle canvas', 'Command palette', 'Program command blocks', 'Repeat blocks', 'Reusable custom commands', 'Parameter inputs and bindings', 'Animation controls'],
       controls: ['Add commands from the command palette.', 'Edit numeric command inputs within their allowed ranges.', 'Nest commands inside Repeat blocks.', 'Create and edit reusable commands.', 'Run the program to animate the turtle.', 'Adjust animation speed while working.'],
-      scoring: 'There is no competitive score. The outcome is the drawing produced by the executed program.'
+      scoring: 'There is no competitive score. The outcome is the drawing produced by the executed program.',
       visual: { title: 'Program the turtle', steps: ["Add commands","Set parameters","Repeat or reuse","Run the turtle"] },
     }
   },
@@ -80,7 +80,7 @@ export const games = [
       rules: ['Each cell is either living or empty.', 'The next generation is computed from each cell and its surrounding neighbors.', 'Birth and survival counts are controlled independently.', 'The grid wraps at its edges, so cells on one edge consider cells on the opposite edge as neighbors.'],
       components: ['Editable cellular grid', 'Generation, living-cell, and changed-cell metrics', 'Birth and survival rule controls', 'Simulation speed control', 'Run, step, reset, randomize, and clear actions', 'Saved custom worlds'],
       controls: ['Click or drag across the grid to paint cells.', 'Run or pause continuous simulation.', 'Step one generation at a time.', 'Reset to the initial seed.', 'Randomize or clear the current world.', 'Toggle rule counts and save/load custom worlds.'],
-      scoring: 'There is no score. The main feedback is the evolving pattern plus generation, population, change, and rule readouts.'
+      scoring: 'There is no score. The main feedback is the evolving pattern plus generation, population, change, and rule readouts.',
       visual: { title: 'Evolve a world', steps: ["Paint a seed","Set birth / survive rules","Step or run","Observe the pattern"] },
     }
   },
