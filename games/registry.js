@@ -16,3 +16,12 @@ export const games = [
   { title: 'Pocket Racer', type: 'Arcade', category: 'arcade', description: 'Small track. Serious speed.', symbol: '››' },
   { title: 'Unfold', type: 'Puzzle', category: 'puzzle', description: 'Make the impossible shape fit.', symbol: '◇' }
 ];
+
+
+export function isPlayableGame(game) {
+  return Boolean(game?.id && game?.initialize);
+}
+
+export function countGames(category = 'all') {
+  return category === 'all' ? games.length : games.filter((game) => game.category === category).length;
+}
