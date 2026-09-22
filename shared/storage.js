@@ -15,3 +15,15 @@ export function saveJson(key, value) {
     return false;
   }
 }
+
+export function loadVersionedJson(key, fallback, { version = 1, migrate = (value) => value } = {}) {
+  const value = loadJson(key, fallback);
+  if (value && typeof value === 'object' && !Array.isArray(value) && Number(value.version) === version) {
+    return value.data;
+  }
+  return migrate(value);
+}
+
+export function saveVersionedJson(key, data, version = 1) {
+  return saveJson(key, { version, data });
+}
