@@ -46,7 +46,7 @@ Game initializers resolve their own internal view elements.
 
 Games are no longer initialized at page load.
 
-A controller is created when its game is opened and destroyed when the user leaves it. This prevents unused games from registering listeners or loading game-specific resources.
+A controller is created when its game is opened and destroyed when the user leaves it. This prevents unused games from registering listeners and creating game runtime state. Game modules are still imported by the registry at page load; this PR does not introduce code-splitting or dynamic module loading.
 
 ### 4. Shared lifecycle management
 
@@ -84,7 +84,7 @@ The lobby now derives game/category counts from the registry instead of hardcodi
 
 - [x] Lobby registry contains metadata and initializer only.
 - [x] Games own their internal DOM queries.
-- [x] Games are initialized lazily.
+- [x] Game controllers are initialized lazily when their game is opened.
 - [x] Every implemented game exposes `render()` and `destroy()`.
 - [x] Event listeners owned by Logic, Turtle, and Cellular have deterministic cleanup.
 - [x] Shared localStorage access is centralized.
