@@ -11,8 +11,20 @@ let activeGame = null;
 function prepareGame(game) {
   if (game.section) return;
   game.section = document.querySelector(`#${game.id}-game`);
+  game.tabList = game.section?.querySelector('[role="tablist"]');
+  game.aboutView = game.section?.querySelector('[data-game-about]');
+  game.gameView = game.section?.querySelector('[data-game-view]');
+  if (game.tabList && !game.tabList.querySelector('[data-game-mode="about"]')) {
+    const aboutTab = document.createElement('button');
+    aboutTab.className = 'game-about-tab';
+    aboutTab.type = 'button';
+    aboutTab.role = 'tab';
+    aboutTab.setAttribute('aria-selected', 'false');
+    aboutTab.dataset.gameMode = 'about';
+    aboutTab.textContent = 'About';
+    game.tabList.prepend(aboutTab);
+  }
   game.tabs = game.section ? game.section.querySelectorAll('[role="tab"]') : [];
-  game.aboutContainer = game.section ? game.section.querySelector('[data-game-about]') : null;
 }
 
 function initializeGame(game) {
@@ -61,15 +73,35 @@ function renderGames(filter = 'all') {
   grid.innerHTML = visibleGames.map(renderGameCard).join('');
 }
 
-function renderGameAbout(game) {
-  if (game.aboutContainer) game.aboutContainer.innerHTML = renderAbout(game.about);
+function setTabState(game, activeButton) {
+  game.tabs.forEach((tab) => {
+    const isActive = tab === activeButton;
+    tab.classList.toggle('active', isActive);
+    tab.setAttribute('aria-selected', String(isActive));
+  });
+}
+
+function renderAboutMode(game) {
+  if (!game.aboutView) return;
+  if (game.controller) destroyGame(game);
+  game.aboutView.innerHTML = renderAbout(game.about);
+  game.aboutView.hidden = false;
+  if (game.gameView) game.gameView.hidden = true;
+}
+
+function renderGameMode(game, button) {
+  const controller = initializeGame(game);
+  if (game.aboutView) {
+    game.aboutView.hidden = true;
+    game.aboutView.innerHTML = '';
+  }
+  if (game.gameView) game.gameView.hidden = false;
+  controller.render(button.dataset.gameMode);
 }
 
 function openGame(id) {
   const game = games.find((entry) => entry.id === id);
   if (!game) return;
-
-  const controller = initializeGame(game);
 
   if (activeGame && activeGame !== game) destroyGame(activeGame);
   games.filter(isPlayableGame).forEach((entry) => {
@@ -80,16 +112,18 @@ function openGame(id) {
   activeGame = game;
   intro.hidden = true;
   gameLibrary.hidden = true;
-  renderGameAbout(game);
+  const initialTab = Array.from(game.tabs).find((tab) => tab.dataset.gameMode === game.initialMode);
+  selectTab(game, initialTab || game.tabs[0]);
   game.section.scrollIntoView({ behavior: 'smooth' });
-  controller.render(game.initialMode);
 }
 
 function closeGame(game) {
   destroyGame(game);
   prepareGame(game);
   game.section.hidden = true;
-  game.aboutContainer.innerHTML = '';
+  game.aboutView.innerHTML = '';
+  game.aboutView.hidden = true;
+  game.gameView.hidden = false;
   activeGame = null;
   intro.hidden = false;
   gameLibrary.hidden = false;
@@ -97,14 +131,14 @@ function closeGame(game) {
 }
 
 function selectTab(game, button) {
-  const controller = initializeGame(game);
-  game.tabs.forEach((tab) => {
-    tab.classList.remove('active');
-    tab.setAttribute('aria-selected', 'false');
-  });
-  button.classList.add('active');
-  button.setAttribute('aria-selected', 'true');
-  controller.render(button.dataset.gameMode);
+  if (!button) return;
+  prepareGame(game);
+  setTabState(game, button);
+  if (button.dataset.gameMode === 'about') {
+    renderAboutMode(game);
+    return;
+  }
+  renderGameMode(game, button);
 }
 
 document.addEventListener('click', (event) => {
