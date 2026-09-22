@@ -67,7 +67,7 @@ function renderGameAbout(game) {
 
 function openGame(id) {
   const game = games.find((entry) => entry.id === id);
-  if (!game || !validateGame(game)) return;
+  if (!game) return;
 
   const controller = initializeGame(game);
 
