@@ -55,7 +55,7 @@ async function fetchMainCategories(title) {
   return new Set((page?.categories || []).map((category) => category.title));
 }
 
-async function fetchLinkedArticles(title) {
+async function fetchLinkedArticles(title, onBatch) {
   const params = new URLSearchParams({
     action: 'query',
     generator: 'links',
@@ -100,6 +100,7 @@ async function fetchLinkedArticles(title) {
       });
     });
 
+    onBatch?.(Array.from(results.values()));
     continuation = payload.continue || null;
   } while (continuation);
 
@@ -160,13 +161,20 @@ async function loadArticle(title) {
   resetZoom();
   render();
 
+  mainArticle = cleaned;
   try {
-    mainArticle = cleaned;
     mainCategories = await fetchMainCategories(cleaned);
-    articles = await fetchLinkedArticles(cleaned);
+    render();
+    articles = await fetchLinkedArticles(cleaned, (nextArticles) => {
+      articles = nextArticles;
+      updateLegend();
+      drawGalaxy();
+    });
     if (!articles.length) throw new Error('This article has no linked articles in the main namespace.');
     loading = false;
-    render();
+    updateLegend();
+    drawGalaxy();
+    if (ranking === 'pageviews' && !pageviewsLoaded) loadPageviews();
   } catch (error) {
     loading = false;
     articles = [];
@@ -197,9 +205,9 @@ function renderControls() {
 
 function getLegendStatus() {
   const option = RANKING_OPTIONS.find((entry) => entry.id === ranking);
-  return ranking === 'pageviews' && pageviewsLoading
-    ? 'Loading pageviews…'
-    : `${option?.label || ''} · ${descending ? option?.directionLabels[1] : option?.directionLabels[0]}`;
+  if (loading) return 'Mapping…';
+  if (ranking === 'pageviews' && pageviewsLoading) return 'Loading pageviews…';
+  return `${option?.label || ''} · ${descending ? option?.directionLabels[1] : option?.directionLabels[0]}`;
 }
 
 function renderLegend() {
@@ -218,11 +226,10 @@ function updateLegend() {
 }
 
 function renderGalaxy() {
-  if (loading) return '<div class="wiki-state">Mapping the galaxy…</div>';
   if (errorMessage) return `<div class="wiki-state wiki-error">${escapeHtml(errorMessage)}</div>`;
-  if (!articles.length) return '<div class="wiki-state">Enter a Wikipedia article to begin.</div>';
+  if (!loading && !articles.length) return '<div class="wiki-state">Enter a Wikipedia article to begin.</div>';
 
-  if (ranking === 'pageviews' && !pageviewsLoaded) {
+  if (!loading && ranking === 'pageviews' && !pageviewsLoaded) {
     loadPageviews();
   }
 
@@ -253,7 +260,7 @@ function render() {
 
 function drawGalaxy() {
   const canvas = view.querySelector('[data-wiki-canvas]');
-  if (!canvas || !articles.length) return;
+  if (!canvas) return;
   const context = canvas.getContext('2d');
   const width = canvas.width;
   const height = canvas.height;
@@ -271,8 +278,8 @@ function drawGalaxy() {
 
   const ranked = sortArticles(articles, ranking, descending);
   const values = ranked.map((article) => rankValue(article, ranking));
-  const min = Math.min(...values);
-  const max = Math.max(...values);
+  const min = values.length ? Math.min(...values) : 0;
+  const max = values.length ? Math.max(...values) : 0;
   const positions = createGalaxyPositions(ranked.length, width, height);
 
   context.save();
