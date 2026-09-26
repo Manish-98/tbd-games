@@ -457,7 +457,7 @@ function showDetails(target) {
   if (!details || !empty || !content || !target) return;
 
   if (!selectedArticles.some((article) => article.title === target.article.title)) {
-    selectedArticles.push(target.article);
+    selectedArticles.unshift(target.article);
   }
 
   empty.hidden = selectedArticles.length > 0;
