@@ -300,7 +300,7 @@ function renderGalaxy() {
         </div>
       </div>
       <aside class="wiki-details" data-wiki-details aria-live="polite">
-        <p class="wiki-details-label">Selected article</p>
+        <p class="wiki-details-label">Selection history</p>
         <div class="wiki-details-empty" data-wiki-details-empty>Select a linked article to see its details.</div>
         <div class="wiki-details-content" data-wiki-details-content hidden></div>
       </aside>
