@@ -19,7 +19,6 @@ let loading = false;
 let errorMessage = '';
 let pageviewsLoaded = false;
 let pageviewsLoading = false;
-let selectedTitle = null;
 
 function getPageUrl(title) {
   return `https://en.wikipedia.org/wiki/${encodeURIComponent(title.replaceAll(' ', '_'))}`;
@@ -145,7 +144,6 @@ async function loadArticle(title) {
 
   loading = true;
   errorMessage = '';
-  selectedTitle = null;
   pageviewsLoaded = false;
   pageviewsLoading = false;
   articles = [];
@@ -208,11 +206,6 @@ function renderGalaxy() {
   if (ranking === 'pageviews' && !pageviewsLoaded) {
     loadPageviews();
   }
-
-  const ranked = sortArticles(articles, ranking, descending);
-  const values = ranked.map((article) => rankValue(article, ranking));
-  ranked.forEach((article) => { article._rankedValues = values; });
-  const positions = createGalaxyPositions(ranked.length, 900, 600);
 
   return `
     <div class="wiki-galaxy-wrap">
@@ -351,7 +344,6 @@ function handleClick(event) {
 
   const target = articleAtPoint(event);
   if (target) {
-    selectedTitle = target.article.title;
     showHover(target);
   }
 }
@@ -385,7 +377,6 @@ export function initWikiGalaxyGame(section) {
       mainCategories = new Set();
       pageviewsLoaded = false;
       pageviewsLoading = false;
-      selectedTitle = null;
       loading = false;
       errorMessage = '';
     }
