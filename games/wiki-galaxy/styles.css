@@ -40,6 +40,7 @@
 }
 
 .wiki-zoom-controls { position: absolute; z-index: 3; right: 12px; bottom: 12px; display: flex; gap: 6px; }
-.wiki-zoom-controls .secondary-button { min-width: 34px; padding: 7px 10px; }
+.wiki-zoom-controls .secondary-button { min-width: 34px; padding: 7px 10px; border-color: #f4d37d; background: #f4d37d; color: #101715; box-shadow: 2px 2px 0 rgba(16, 23, 21, .55); }
+.wiki-zoom-controls .secondary-button:hover { background: #fffef9; color: #101715; }
 .wiki-explore-link { margin-top: 9px; padding: 0; border: 0; background: none; color: var(--coral-dark); cursor: pointer; font: 700 .72rem var(--body); text-align: left; }
 .wiki-canvas { touch-action: none; }
