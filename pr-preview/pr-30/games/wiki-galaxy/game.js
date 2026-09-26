@@ -150,6 +150,7 @@ async function loadArticle(title) {
   pageviewsLoaded = false;
   pageviewsLoading = false;
   articles = [];
+  resetZoom();
   render();
 
   try {
@@ -324,7 +325,8 @@ function showHover(target) {
   hover.innerHTML = `
     <strong>${escapeHtml(target.article.title)}</strong>
     <span>${escapeHtml(formatRankValue(target.article, ranking))}</span>
-    <a href="${getPageUrl(target.article.title)}" target="_blank" rel="noopener noreferrer">Open article →</a>
+    <a href="${getPageUrl(target.article.title)}" target="_blank" rel="noopener noreferrer">Open Wikipedia →</a>
+    <button class="wiki-explore-link" type="button" data-wiki-explore="${escapeHtml(target.article.title)}">Explore in Wiki Galaxy →</button>
   `;
   hover.hidden = false;
   hover.style.left = `${target.x / 900 * 100}%`;
@@ -344,6 +346,32 @@ function handleClick(event) {
     render();
     return;
   }
+
+  const zoomIn = event.target.closest('[data-wiki-zoom-in]');
+  if (zoomIn) {
+    setZoom(zoom * 1.25);
+    return;
+  }
+
+  const zoomOut = event.target.closest('[data-wiki-zoom-out]');
+  if (zoomOut) {
+    setZoom(zoom / 1.25);
+    return;
+  }
+
+  const zoomReset = event.target.closest('[data-wiki-zoom-reset]');
+  if (zoomReset) {
+    resetZoom();
+    return;
+  }
+
+  const explore = event.target.closest('[data-wiki-explore]');
+  if (explore) {
+    loadArticle(explore.dataset.wikiExplore);
+    return;
+  }
+
+  if (pointerState?.moved) return;
 
   const target = articleAtPoint(event);
   if (target) {
