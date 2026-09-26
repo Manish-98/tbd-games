@@ -14,6 +14,7 @@ let view = null;
 let lifecycle = null;
 let mainArticle = '';
 let articles = [];
+let selectedArticles = [];
 let mainCategories = new Set();
 let ranking = 'sharedCategories';
 let descending = true;
@@ -206,6 +207,7 @@ async function loadArticle(title) {
   pageviewsLoaded = false;
   pageviewsLoading = false;
   articles = [];
+  selectedArticles = [];
   resetZoom();
   render();
 
@@ -357,14 +359,25 @@ function drawGalaxy() {
     const position = positions[index];
     const normalized = max <= min ? .5 : (rankValue(article, ranking) - min) / (max - min);
     const visual = descending ? normalized : 1 - normalized;
-    const radius = 4 + visual * 10;
-    const alpha = .25 + visual * .75;
+    const radius = 2.5 + visual * 4.5;
+    const selected = selectedArticles.some((selectedArticle) => selectedArticle.title === article.title);
+    const alpha = .55 + visual * .45;
+    const outerRadius = radius * 1.9;
+    const innerRadius = radius * .42;
 
     context.beginPath();
-    context.fillStyle = `rgba(244, 211, 125, ${alpha})`;
-    context.shadowColor = `rgba(244, 211, 125, ${Math.min(1, alpha)})`;
-    context.shadowBlur = 4 + visual * 18;
-    context.arc(position.x, position.y, radius, 0, Math.PI * 2);
+    for (let point = 0; point < 10; point += 1) {
+      const angle = -Math.PI / 2 + point * Math.PI / 5;
+      const pointRadius = point % 2 === 0 ? outerRadius : innerRadius;
+      const x = position.x + Math.cos(angle) * pointRadius;
+      const y = position.y + Math.sin(angle) * pointRadius;
+      if (point === 0) context.moveTo(x, y);
+      else context.lineTo(x, y);
+    }
+    context.closePath();
+    context.fillStyle = selected ? `rgba(171, 217, 203, ${alpha})` : `rgba(244, 211, 125, ${alpha})`;
+    context.shadowColor = selected ? '#abd9cb' : '#f4d37d';
+    context.shadowBlur = selected ? 5 : 2 + visual * 4;
     context.fill();
     context.shadowBlur = 0;
   });
@@ -377,11 +390,6 @@ function drawGalaxy() {
   context.fill();
   context.shadowBlur = 0;
 
-  context.fillStyle = '#fffef9';
-  context.font = '700 13px DM Sans, sans-serif';
-  context.textAlign = 'center';
-  context.textBaseline = 'top';
-  context.fillText(mainArticle, width / 2, height / 2 + 27);
   context.restore();
 }
 
@@ -419,16 +427,22 @@ function showDetails(target) {
   const content = view.querySelector('[data-wiki-details-content]');
   if (!details || !empty || !content || !target) return;
 
-  empty.hidden = true;
-  content.hidden = false;
-  content.innerHTML = `
-    <h3>${escapeHtml(target.article.title)}</h3>
-    <p>${escapeHtml(formatRankValue(target.article, ranking))}</p>
-    <a href="${getPageUrl(target.article.title)}" target="_blank" rel="noopener noreferrer">Open Wikipedia →</a>
-    <button class="wiki-explore-link" type="button" data-wiki-explore="${escapeHtml(target.article.title)}">Explore in Wiki Galaxy →</button>
-  `;
-}
+  if (!selectedArticles.some((article) => article.title === target.article.title)) {
+    selectedArticles.push(target.article);
+  }
 
+  empty.hidden = selectedArticles.length > 0;
+  content.hidden = selectedArticles.length === 0;
+  content.innerHTML = selectedArticles.map((article) => [
+    '<article class="wiki-selection">',
+    `<h3>${escapeHtml(article.title)}</h3>`,
+    `<p>${escapeHtml(formatRankValue(article, ranking))}</p>`,
+    `<a href="${getPageUrl(article.title)}" target="_blank" rel="noopener noreferrer">Open Wikipedia →</a>`,
+    `<button class="wiki-explore-link" type="button" data-wiki-explore="${escapeHtml(article.title)}">Explore in Wiki Galaxy →</button>`,
+    '</article>'
+  ].join('')).join('');
+  drawGalaxy();
+}
 function handleSubmit(event) {
   event.preventDefault();
   const input = view.querySelector('[data-wiki-input]');
@@ -599,6 +613,7 @@ export function initWikiGalaxyGame(section) {
       view = null;
       mainArticle = '';
       articles = [];
+      selectedArticles = [];
       mainCategories = new Set();
       pageviewsLoaded = false;
       pageviewsLoading = false;
