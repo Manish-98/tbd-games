@@ -76,16 +76,22 @@ async function fetchLinkedArticles(title) {
 
     const payload = await fetchJson(`${API_URL}?${request}`);
     (payload.query?.pages || []).forEach((page) => {
-      const categories = (page.categories || []).map((category) => category.title);
+      const existing = results.get(page.pageid);
+      const categories = [...new Set([
+        ...(existing?.categories || []),
+        ...(page.categories || []).map((category) => category.title)
+      ])];
+      const revision = page.revisions?.[0];
+
       results.set(page.pageid, {
         pageid: page.pageid,
         title: normalizeTitle(page.title),
         categories,
         categoryCount: categories.length,
         sharedCategoryCount: categories.filter((category) => mainCategories.has(category)).length,
-        articleSize: Number(page.revisions?.[0]?.size) || 0,
-        lastUpdated: page.revisions?.[0]?.timestamp || null,
-        pageviews: null
+        articleSize: Number(revision?.size) || existing?.articleSize || 0,
+        lastUpdated: revision?.timestamp || existing?.lastUpdated || null,
+        pageviews: existing?.pageviews ?? null
       });
     });
 
