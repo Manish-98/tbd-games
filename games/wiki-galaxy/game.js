@@ -4,7 +4,6 @@ import { createGalaxyPositions, formatRankValue, rankValue, RANKING_OPTIONS, sor
 
 const API_URL = 'https://en.wikipedia.org/w/api.php';
 const PAGEVIEWS_URL = 'https://wikimedia.org/api/rest_v1/metrics/pageviews/per-article';
-const MAX_LINKS = 500;
 const PAGEVIEW_DAYS = 30;
 const PAGEVIEW_CONCURRENCY = 8;
 
@@ -57,7 +56,7 @@ async function fetchLinkedArticles(title) {
     generator: 'links',
     titles: title,
     gplnamespace: '0',
-    gpllimit: String(MAX_LINKS),
+    gpllimit: '500',
     prop: 'categories|revisions',
     cllimit: '500',
     rvprop: 'size|timestamp',
@@ -92,7 +91,7 @@ async function fetchLinkedArticles(title) {
     });
 
     continuation = payload.continue || null;
-  } while (continuation && results.size < MAX_LINKS);
+  } while (continuation);
 
   return Array.from(results.values());
 }
