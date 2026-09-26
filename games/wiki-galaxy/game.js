@@ -57,8 +57,9 @@ async function fetchLinkedArticles(title) {
     titles: title,
     gplnamespace: '0',
     gpllimit: '500',
-    prop: 'categories|info',
+    prop: 'categories|revisions',
     cllimit: '500',
+    rvprop: 'size|timestamp',
     format: 'json',
     formatversion: '2',
     origin: '*'
@@ -82,8 +83,8 @@ async function fetchLinkedArticles(title) {
         categories,
         categoryCount: categories.length,
         sharedCategoryCount: categories.filter((category) => mainCategories.has(category)).length,
-        articleSize: Number(page.length) || 0,
-        lastUpdated: null,
+        articleSize: Number(page.revisions?.[0]?.size) || 0,
+        lastUpdated: page.revisions?.[0]?.timestamp || null,
         pageviews: null
       });
     });
@@ -91,33 +92,8 @@ async function fetchLinkedArticles(title) {
     continuation = payload.continue || null;
   } while (continuation);
 
-  const resultArticles = Array.from(results.values());
-  await populateLastUpdated(resultArticles);
-  return resultArticles;
+  return Array.from(results.values());
 }
-
-async function populateLastUpdated(resultArticles) {
-  const batchSize = 50;
-  for (let index = 0; index < resultArticles.length; index += batchSize) {
-    const batch = resultArticles.slice(index, index + batchSize);
-    const params = new URLSearchParams({
-      action: 'query',
-      pageids: batch.map((article) => article.pageid).join('|'),
-      prop: 'revisions',
-      rvprop: 'timestamp',
-      rvlimit: '1',
-      format: 'json',
-      formatversion: '2',
-      origin: '*'
-    });
-    const payload = await fetchJson(API_URL + '?' + params);
-    (payload.query?.pages || []).forEach((page) => {
-      const article = resultArticles.find((candidate) => candidate.pageid === page.pageid);
-      if (article) article.lastUpdated = page.revisions?.[0]?.timestamp || null;
-    });
-  }
-}
-
 function dateString(date) {
   return date.toISOString().slice(0, 10).replaceAll('-', '');
 }
