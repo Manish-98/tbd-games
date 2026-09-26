@@ -318,6 +318,13 @@ function render() {
     </div>
   `;
   drawGalaxy();
+  const empty = view.querySelector('[data-wiki-details-empty]');
+  const content = view.querySelector('[data-wiki-details-content]');
+  if (empty && content && selectedArticles.length) {
+    empty.hidden = true;
+    content.hidden = false;
+    content.innerHTML = renderSelectionHistory();
+  }
 }
 
 function drawGalaxy() {
