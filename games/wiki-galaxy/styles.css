@@ -38,3 +38,8 @@
   .wiki-ranking > * { flex: 1; }
   .wiki-ranking select { min-width: 0; width: 100%; }
 }
+
+.wiki-zoom-controls { position: absolute; z-index: 3; right: 12px; bottom: 12px; display: flex; gap: 6px; }
+.wiki-zoom-controls .secondary-button { min-width: 34px; padding: 7px 10px; }
+.wiki-explore-link { margin-top: 9px; padding: 0; border: 0; background: none; color: var(--coral-dark); cursor: pointer; font: 700 .72rem var(--body); text-align: left; }
+.wiki-canvas { touch-action: none; }
