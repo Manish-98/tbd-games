@@ -44,3 +44,12 @@
 .wiki-zoom-controls .secondary-button:hover { background: #fffef9; color: #101715; }
 .wiki-explore-link { margin-top: 9px; padding: 0; border: 0; background: none; color: var(--coral-dark); cursor: pointer; font: 700 .72rem var(--body); text-align: left; }
 .wiki-canvas { touch-action: none; }
+
+.wiki-search-input { position: relative; flex: 1; min-width: 0; }
+.wiki-search-input input { width: 100%; box-sizing: border-box; }
+.wiki-suggestions { position: absolute; z-index: 5; top: calc(100% + 4px); left: 0; right: 0; overflow: hidden; border: 1px solid var(--ink); background: var(--white); box-shadow: 4px 4px 0 rgba(23, 33, 31, .18); }
+.wiki-suggestion { display: grid; width: 100%; gap: 3px; padding: 10px 12px; border: 0; border-bottom: 1px solid var(--line); background: var(--white); color: var(--ink); cursor: pointer; text-align: left; }
+.wiki-suggestion:last-child { border-bottom: 0; }
+.wiki-suggestion:hover, .wiki-suggestion:focus-visible { background: #fffef9; outline: 0; }
+.wiki-suggestion strong { font: 700 .78rem var(--body); }
+.wiki-suggestion span { overflow: hidden; color: var(--muted); font-size: .68rem; text-overflow: ellipsis; white-space: nowrap; }

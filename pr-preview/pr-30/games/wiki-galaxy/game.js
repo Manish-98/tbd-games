@@ -3,9 +3,12 @@ import { createLifecycle } from '../../shared/lifecycle.js';
 import { createGalaxyPositions, formatRankValue, rankValue, RANKING_OPTIONS, sortArticles } from './engine.js';
 
 const API_URL = 'https://en.wikipedia.org/w/api.php';
+const AUTOCOMPLETE_URL = 'https://en.wikipedia.org/w/rest.php/v1/search/title';
 const PAGEVIEWS_URL = 'https://wikimedia.org/api/rest_v1/metrics/pageviews/per-article';
 const PAGEVIEW_DAYS = 30;
 const PAGEVIEW_CONCURRENCY = 8;
+const AUTOCOMPLETE_LIMIT = 6;
+const AUTOCOMPLETE_DEBOUNCE = 180;
 
 let view = null;
 let lifecycle = null;
@@ -23,6 +26,8 @@ let panX = 0;
 let panY = 0;
 let pointerState = null;
 let suppressClick = false;
+let autocompleteTimer = null;
+let autocompleteRequest = 0;
 
 function getPageUrl(title) {
   return `https://en.wikipedia.org/wiki/${encodeURIComponent(title.replaceAll(' ', '_'))}`;
@@ -38,6 +43,46 @@ async function fetchJson(url) {
   const payload = await response.json();
   if (payload.error) throw new Error(payload.error.info || 'Wikipedia API request failed.');
   return payload;
+}
+
+async function fetchAutocomplete(query) {
+  const params = new URLSearchParams({ q: query, limit: String(AUTOCOMPLETE_LIMIT) });
+  const payload = await fetchJson(`${AUTOCOMPLETE_URL}?${params}`);
+  return (payload.pages || []).map((page) => ({ title: normalizeTitle(page.title), description: page.description || '' }));
+}
+
+function hideAutocomplete() {
+  const suggestions = view?.querySelector('[data-wiki-suggestions]');
+  if (!suggestions) return;
+  suggestions.hidden = true;
+  suggestions.innerHTML = '';
+}
+
+function renderAutocompleteSuggestions(suggestions) {
+  const container = view?.querySelector('[data-wiki-suggestions]');
+  if (!container) return;
+  if (!suggestions.length) { hideAutocomplete(); return; }
+  container.innerHTML = suggestions.map((suggestion) => `
+    <button class="wiki-suggestion" type="button" data-wiki-suggestion="${escapeHtml(suggestion.title)}">
+      <strong>${escapeHtml(suggestion.title)}</strong>
+      ${suggestion.description ? `<span>${escapeHtml(suggestion.description)}</span>` : ''}
+    </button>
+  `).join('');
+  container.hidden = false;
+}
+
+function scheduleAutocomplete(query) {
+  const requestId = ++autocompleteRequest;
+  clearTimeout(autocompleteTimer);
+  if (query.length < 2) { hideAutocomplete(); return; }
+  autocompleteTimer = setTimeout(async () => {
+    try {
+      const suggestions = await fetchAutocomplete(query);
+      if (requestId === autocompleteRequest) renderAutocompleteSuggestions(suggestions);
+    } catch {
+      if (requestId === autocompleteRequest) hideAutocomplete();
+    }
+  }, AUTOCOMPLETE_DEBOUNCE);
 }
 
 async function fetchMainCategories(title) {
@@ -192,7 +237,10 @@ function renderControls() {
   return `
     <div class="wiki-toolbar">
       <form class="wiki-search" data-wiki-search>
-        <input type="search" value="${escapeHtml(mainArticle)}" placeholder="Enter a Wikipedia article" aria-label="Wikipedia article" data-wiki-input />
+        <div class="wiki-search-input">
+          <input type="search" value="${escapeHtml(mainArticle)}" placeholder="Enter a Wikipedia article" aria-label="Wikipedia article" autocomplete="off" data-wiki-input />
+          <div class="wiki-suggestions" data-wiki-suggestions hidden></div>
+        </div>
         <button class="primary-button" type="submit">Explore</button>
       </form>
       <div class="wiki-ranking">
@@ -372,10 +420,27 @@ function showHover(target) {
 function handleSubmit(event) {
   event.preventDefault();
   const input = view.querySelector('[data-wiki-input]');
+  hideAutocomplete();
   loadArticle(input?.value || '');
 }
 
+function handleInput(event) {
+  const input = event.target.closest('[data-wiki-input]');
+  if (input) scheduleAutocomplete(normalizeTitle(input.value));
+}
+
 function handleClick(event) {
+  const suggestion = event.target.closest('[data-wiki-suggestion]');
+  if (suggestion) {
+    const input = view.querySelector('[data-wiki-input]');
+    const title = suggestion.dataset.wikiSuggestion || '';
+    if (input) input.value = title;
+    hideAutocomplete();
+    loadArticle(title);
+    return;
+  }
+  if (!event.target.closest('[data-wiki-search]')) hideAutocomplete();
+
   const direction = event.target.closest('[data-wiki-direction]');
   if (direction) {
     descending = !descending;
@@ -506,6 +571,7 @@ export function initWikiGalaxyGame(section) {
   view = section.querySelector('.wiki-view');
   lifecycle = createLifecycle();
   lifecycle.on(view, 'submit', handleSubmit);
+  lifecycle.on(view, 'input', handleInput);
   lifecycle.on(view, 'click', handleClick);
   lifecycle.on(view, 'change', handleChange);
   lifecycle.on(view, 'wheel', handleWheel, { passive: false });
@@ -533,6 +599,9 @@ export function initWikiGalaxyGame(section) {
       panY = 0;
       pointerState = null;
       suppressClick = false;
+      clearTimeout(autocompleteTimer);
+      autocompleteTimer = null;
+      autocompleteRequest += 1;
       loading = false;
       errorMessage = '';
     }
