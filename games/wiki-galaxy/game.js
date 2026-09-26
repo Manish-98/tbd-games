@@ -421,6 +421,17 @@ function articleAtPoint(event) {
   return null;
 }
 
+function renderSelectionHistory() {
+  if (!selectedArticles.length) return '';
+  return selectedArticles.map((article) => [
+    '<article class="wiki-selection">',
+    `<h3>${escapeHtml(article.title)}</h3>`,
+    `<p>${escapeHtml(formatRankValue(article, ranking))}</p>`,
+    `<a href="${getPageUrl(article.title)}" target="_blank" rel="noopener noreferrer">Open Wikipedia →</a>`,
+    `<button class="wiki-explore-link" type="button" data-wiki-explore="${escapeHtml(article.title)}">Explore in Wiki Galaxy →</button>`,
+    '</article>'
+  ].join('')).join('');
+}
 function showDetails(target) {
   const details = view.querySelector('[data-wiki-details]');
   const empty = view.querySelector('[data-wiki-details-empty]');
@@ -433,14 +444,7 @@ function showDetails(target) {
 
   empty.hidden = selectedArticles.length > 0;
   content.hidden = selectedArticles.length === 0;
-  content.innerHTML = selectedArticles.map((article) => [
-    '<article class="wiki-selection">',
-    `<h3>${escapeHtml(article.title)}</h3>`,
-    `<p>${escapeHtml(formatRankValue(article, ranking))}</p>`,
-    `<a href="${getPageUrl(article.title)}" target="_blank" rel="noopener noreferrer">Open Wikipedia →</a>`,
-    `<button class="wiki-explore-link" type="button" data-wiki-explore="${escapeHtml(article.title)}">Explore in Wiki Galaxy →</button>`,
-    '</article>'
-  ].join('')).join('');
+  content.innerHTML = renderSelectionHistory();
   drawGalaxy();
 }
 function handleSubmit(event) {
