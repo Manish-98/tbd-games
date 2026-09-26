@@ -370,7 +370,7 @@ function drawGalaxy() {
     const selected = selectedArticles.some((selectedArticle) => selectedArticle.title === article.title);
     const alpha = .58 + visual * .42;
     const coreRadius = Math.max(1.2, radius * .52);
-    const spikeLength = radius * (1.8 + visual * 1.4);
+    const spikeLength = radius * (0.75 + visual * 0.65);
     const color = selected ? '#abd9cb' : '#f4d37d';
 
     context.save();
