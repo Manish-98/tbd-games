@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="games/logic/styles.css" />
     <link rel="stylesheet" href="games/turtle/styles.css" />
     <link rel="stylesheet" href="games/cellular/styles.css" />
+    <link rel="stylesheet" href="games/wiki-galaxy/styles.css" />
     <script src="script.js" type="module"></script>
   </head>
   <body>
@@ -117,6 +118,22 @@
           </div>
           <div class="game-about-view" data-game-about hidden></div>
           <div class="cellular-view" id="cellular-view" data-game-view></div>
+        </section>
+
+        <section class="wiki-galaxy-game" id="wiki-galaxy-game" aria-labelledby="wiki-galaxy-heading" hidden>
+          <div class="wiki-topline">
+            <div>
+              <p class="section-label">Fifth game / 05</p>
+              <h2 id="wiki-galaxy-heading">Wiki Galaxy</h2>
+            </div>
+            <button class="text-button" data-close-game type="button">Back to lobby</button>
+          </div>
+          <div class="wiki-tabs" role="tablist" aria-label="Wiki Galaxy game modes">
+            <button class="game-about-tab active" type="button" role="tab" aria-selected="true" data-game-mode="about">About</button>
+            <button class="wiki-tab" type="button" role="tab" aria-selected="false" data-game-mode="explore">Explore</button>
+          </div>
+          <div class="game-about-view" data-game-about hidden></div>
+          <div class="wiki-view" id="wiki-view" data-game-view></div>
         </section>
       </main>
 
