@@ -288,14 +288,20 @@ function renderGalaxy() {
   }
 
   return `
-    <div class="wiki-galaxy-wrap">
-      <canvas class="wiki-canvas" width="700" height="700" data-wiki-canvas aria-label="Wikipedia galaxy"></canvas>
-      <div class="wiki-hover" data-wiki-hover hidden></div>
-      <div class="wiki-zoom-controls" aria-label="Galaxy zoom controls">
-        <button class="secondary-button" type="button" data-wiki-zoom-out aria-label="Zoom out">−</button>
-        <button class="secondary-button" type="button" data-wiki-zoom-reset>Reset</button>
-        <button class="secondary-button" type="button" data-wiki-zoom-in aria-label="Zoom in">+</button>
+    <div class="wiki-galaxy-layout">
+      <div class="wiki-galaxy-wrap">
+        <canvas class="wiki-canvas" width="700" height="700" data-wiki-canvas aria-label="Wikipedia galaxy"></canvas>
+        <div class="wiki-zoom-controls" aria-label="Galaxy zoom controls">
+          <button class="secondary-button" type="button" data-wiki-zoom-out aria-label="Zoom out">−</button>
+          <button class="secondary-button" type="button" data-wiki-zoom-reset>Reset</button>
+          <button class="secondary-button" type="button" data-wiki-zoom-in aria-label="Zoom in">+</button>
+        </div>
       </div>
+      <aside class="wiki-details" data-wiki-details aria-live="polite">
+        <p class="wiki-details-label">Selected article</p>
+        <div class="wiki-details-empty" data-wiki-details-empty>Select a linked article to see its details.</div>
+        <div class="wiki-details-content" data-wiki-details-content hidden></div>
+      </aside>
     </div>
   `;
 }
@@ -407,20 +413,20 @@ function articleAtPoint(event) {
   return null;
 }
 
-function showHover(target) {
-  const hover = view.querySelector('[data-wiki-hover]');
-  if (!hover || !target) return;
-  hover.innerHTML = `
-    <strong>${escapeHtml(target.article.title)}</strong>
-    <span>${escapeHtml(formatRankValue(target.article, ranking))}</span>
+function showDetails(target) {
+  const details = view.querySelector('[data-wiki-details]');
+  const empty = view.querySelector('[data-wiki-details-empty]');
+  const content = view.querySelector('[data-wiki-details-content]');
+  if (!details || !empty || !content || !target) return;
+
+  empty.hidden = true;
+  content.hidden = false;
+  content.innerHTML = `
+    <h3>${escapeHtml(target.article.title)}</h3>
+    <p>${escapeHtml(formatRankValue(target.article, ranking))}</p>
     <a href="${getPageUrl(target.article.title)}" target="_blank" rel="noopener noreferrer">Open Wikipedia →</a>
     <button class="wiki-explore-link" type="button" data-wiki-explore="${escapeHtml(target.article.title)}">Explore in Wiki Galaxy →</button>
   `;
-  hover.hidden = false;
-  const screenX = panX + target.x * zoom;
-  const screenY = panY + target.y * zoom;
-  hover.style.left = `${screenX / 900 * 100}%`;
-  hover.style.top = `${screenY / 600 * 100}%`;
 }
 
 function handleSubmit(event) {
@@ -485,7 +491,7 @@ function handleClick(event) {
 
   const target = articleAtPoint(event);
   if (target) {
-    showHover(target);
+    showDetails(target);
   }
 }
 
@@ -493,8 +499,6 @@ function resetZoom() {
   zoom = 1;
   panX = 0;
   panY = 0;
-  const hover = view?.querySelector('[data-wiki-hover]');
-  if (hover) hover.hidden = true;
   drawGalaxy();
 }
 
@@ -508,8 +512,6 @@ function setZoom(nextZoom, screenX = 450, screenY = 300) {
   panX = screenX - worldX * zoom;
   panY = screenY - worldY * zoom;
 
-  const hover = view?.querySelector('[data-wiki-hover]');
-  if (hover) hover.hidden = true;
   drawGalaxy();
 }
 
