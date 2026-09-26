@@ -132,18 +132,20 @@ async function fetchPageviews(title) {
 async function loadPageviews() {
   if (pageviewsLoaded || pageviewsLoading || !articles.length) return;
   pageviewsLoading = true;
-  render();
+  updateLegend();
 
   for (let index = 0; index < articles.length; index += PAGEVIEW_CONCURRENCY) {
     const batch = articles.slice(index, index + PAGEVIEW_CONCURRENCY);
     const values = await Promise.all(batch.map((article) => fetchPageviews(article.title)));
     batch.forEach((article, offset) => { article.pageviews = values[offset]; });
-    render();
+    updateLegend();
+    drawGalaxy();
   }
 
   pageviewsLoaded = true;
   pageviewsLoading = false;
-  render();
+  updateLegend();
+  drawGalaxy();
 }
 
 async function loadArticle(title) {
@@ -193,18 +195,26 @@ function renderControls() {
   `;
 }
 
-function renderLegend() {
+function getLegendStatus() {
   const option = RANKING_OPTIONS.find((entry) => entry.id === ranking);
-  const pageviewStatus = ranking === 'pageviews' && pageviewsLoading
+  return ranking === 'pageviews' && pageviewsLoading
     ? 'Loading pageviews…'
     : `${option?.label || ''} · ${descending ? option?.directionLabels[1] : option?.directionLabels[0]}`;
+}
+
+function renderLegend() {
   return `
     <div class="wiki-legend">
       <span><i class="wiki-dot wiki-dot-main"></i>${escapeHtml(mainArticle || 'Main article')}</span>
-      <span>${escapeHtml(pageviewStatus)}</span>
+      <span data-wiki-status>${escapeHtml(getLegendStatus())}</span>
       <span>${articles.length} linked articles</span>
     </div>
   `;
+}
+
+function updateLegend() {
+  const status = view?.querySelector('[data-wiki-status]');
+  if (status) status.textContent = getLegendStatus();
 }
 
 function renderGalaxy() {
@@ -346,8 +356,10 @@ function showHover(target) {
     <button class="wiki-explore-link" type="button" data-wiki-explore="${escapeHtml(target.article.title)}">Explore in Wiki Galaxy →</button>
   `;
   hover.hidden = false;
-  hover.style.left = `${target.x / 900 * 100}%`;
-  hover.style.top = `${target.y / 600 * 100}%`;
+  const screenX = panX + target.x * zoom;
+  const screenY = panY + target.y * zoom;
+  hover.style.left = `${screenX / 900 * 100}%`;
+  hover.style.top = `${screenY / 600 * 100}%`;
 }
 
 function handleSubmit(event) {
@@ -478,8 +490,9 @@ function handleChange(event) {
   const rankingControl = event.target.closest('[data-wiki-ranking]');
   if (!rankingControl) return;
   ranking = rankingControl.value;
+  updateLegend();
+  drawGalaxy();
   if (ranking === 'pageviews' && !pageviewsLoaded) loadPageviews();
-  render();
 }
 
 export function initWikiGalaxyGame(section) {
