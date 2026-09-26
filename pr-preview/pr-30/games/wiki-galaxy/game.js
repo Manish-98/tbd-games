@@ -266,7 +266,7 @@ function renderLegend() {
     <div class="wiki-legend">
       <span><i class="wiki-dot wiki-dot-main"></i>${escapeHtml(mainArticle || 'Main article')}</span>
       <span data-wiki-status>${escapeHtml(getLegendStatus())}</span>
-      <span>${articles.length} linked articles</span>
+      <span data-wiki-count>${articles.length} linked articles</span>
     </div>
   `;
 }
@@ -274,6 +274,9 @@ function renderLegend() {
 function updateLegend() {
   const status = view?.querySelector('[data-wiki-status]');
   if (status) status.textContent = getLegendStatus();
+
+  const count = view?.querySelector('[data-wiki-count]');
+  if (count) count.textContent = `${articles.length} linked articles`;
 }
 
 function renderGalaxy() {
