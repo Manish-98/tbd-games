@@ -7,11 +7,11 @@
 .wiki-shell { display: grid; gap: 18px; }
 .wiki-toolbar { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px; align-items: end; }
 .wiki-search { display: flex; gap: 10px; }
-.wiki-search input { flex: 1; min-width: 0; padding: 12px 14px; border: 1px solid var(--ink); background: var(--white); font: 500 .86rem var(--body); }
+.wiki-search input { flex: 1; min-width: 0; height: 40px; padding: 0 14px; border: 1px solid var(--ink); background: var(--white); font: 500 .86rem var(--body); }
 .wiki-ranking { display: flex; gap: 10px; align-items: end; }
 .wiki-ranking label { display: grid; gap: 6px; }
 .wiki-ranking label span { color: var(--muted); font-size: .62rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
-.wiki-ranking select { min-width: 170px; padding: 10px 12px; border: 1px solid var(--ink); background: var(--white); color: var(--ink); font: 700 .78rem var(--body); }
+.wiki-ranking select { min-width: 170px; height: 40px; padding: 0 12px; border: 1px solid var(--ink); background: var(--white); color: var(--ink); font: 700 .78rem var(--body); }
 .wiki-legend { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; color: var(--muted); font-size: .72rem; }
 .wiki-legend > span { display: inline-flex; align-items: center; gap: 7px; }
 .wiki-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
