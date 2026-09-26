@@ -371,7 +371,10 @@ function handleClick(event) {
     return;
   }
 
-  if (pointerState?.moved) return;
+  if (suppressClick) {
+    suppressClick = false;
+    return;
+  }
 
   const target = articleAtPoint(event);
   if (target) {
