@@ -368,25 +368,36 @@ function drawGalaxy() {
     const visual = descending ? normalized : 1 - normalized;
     const radius = 2.5 + visual * 4.5;
     const selected = selectedArticles.some((selectedArticle) => selectedArticle.title === article.title);
-    const alpha = .55 + visual * .45;
-    const outerRadius = radius * 1.9;
-    const innerRadius = radius * .42;
+    const alpha = .58 + visual * .42;
+    const coreRadius = Math.max(1.2, radius * .52);
+    const spikeLength = radius * (1.8 + visual * 1.4);
+    const color = selected ? '#abd9cb' : '#f4d37d';
 
+    context.save();
+    context.globalAlpha = alpha;
+    context.strokeStyle = color;
+    context.fillStyle = color;
+    context.lineCap = 'round';
+
+    // Subtle diffraction spikes, like a photographed bright star.
+    context.globalAlpha = alpha * .45;
+    context.lineWidth = Math.max(.7, radius * .16);
     context.beginPath();
-    for (let point = 0; point < 10; point += 1) {
-      const angle = -Math.PI / 2 + point * Math.PI / 5;
-      const pointRadius = point % 2 === 0 ? outerRadius : innerRadius;
-      const x = position.x + Math.cos(angle) * pointRadius;
-      const y = position.y + Math.sin(angle) * pointRadius;
-      if (point === 0) context.moveTo(x, y);
-      else context.lineTo(x, y);
-    }
-    context.closePath();
-    context.fillStyle = selected ? `rgba(171, 217, 203, ${alpha})` : `rgba(244, 211, 125, ${alpha})`;
-    context.shadowColor = selected ? '#abd9cb' : '#f4d37d';
-    context.shadowBlur = selected ? 5 : 2 + visual * 4;
+    context.moveTo(position.x - spikeLength, position.y);
+    context.lineTo(position.x + spikeLength, position.y);
+    context.moveTo(position.x, position.y - spikeLength);
+    context.lineTo(position.x, position.y + spikeLength);
+    context.stroke();
+
+    // Compact luminous core.
+    context.globalAlpha = alpha;
+    context.shadowColor = color;
+    context.shadowBlur = Math.max(2, radius * .9);
+    context.beginPath();
+    context.arc(position.x, position.y, coreRadius, 0, Math.PI * 2);
     context.fill();
     context.shadowBlur = 0;
+    context.restore();
   });
 
   context.beginPath();
