@@ -52,6 +52,9 @@ async function fetchAutocomplete(query) {
 }
 
 function hideAutocomplete() {
+  autocompleteRequest += 1;
+  clearTimeout(autocompleteTimer);
+  autocompleteTimer = null;
   const suggestions = view?.querySelector('[data-wiki-suggestions]');
   if (!suggestions) return;
   suggestions.hidden = true;
