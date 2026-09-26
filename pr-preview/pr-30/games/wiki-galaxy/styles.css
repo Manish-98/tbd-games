@@ -8,6 +8,8 @@
 .wiki-toolbar { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px; align-items: end; }
 .wiki-search { display: flex; gap: 10px; }
 .wiki-search input { flex: 1; min-width: 0; height: 40px; padding: 0 14px; border: 1px solid var(--ink); background: var(--white); font: 500 .86rem var(--body); }
+.wiki-search .primary-button,
+.wiki-ranking .secondary-button { height: 40px; padding-top: 0; padding-bottom: 0; }
 .wiki-ranking { display: flex; gap: 10px; align-items: end; }
 .wiki-ranking label { display: grid; gap: 6px; }
 .wiki-ranking label span { color: var(--muted); font-size: .62rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
