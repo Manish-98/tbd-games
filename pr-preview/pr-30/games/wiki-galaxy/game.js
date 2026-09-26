@@ -290,7 +290,7 @@ function renderGalaxy() {
   return `
     <div class="wiki-galaxy-layout">
       <div class="wiki-galaxy-wrap">
-        <canvas class="wiki-canvas" width="700" height="700" data-wiki-canvas aria-label="Wikipedia galaxy"></canvas>
+        <canvas class="wiki-canvas" width="900" height="600" data-wiki-canvas aria-label="Wikipedia galaxy"></canvas>
         <div class="wiki-zoom-controls" aria-label="Galaxy zoom controls">
           <button class="secondary-button" type="button" data-wiki-zoom-out aria-label="Zoom out">−</button>
           <button class="secondary-button" type="button" data-wiki-zoom-reset>Reset</button>
