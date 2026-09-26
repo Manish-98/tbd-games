@@ -18,6 +18,11 @@ let loading = false;
 let errorMessage = '';
 let pageviewsLoaded = false;
 let pageviewsLoading = false;
+let zoom = 1;
+let panX = 0;
+let panY = 0;
+let pointerState = null;
+let suppressClick = false;
 
 function getPageUrl(title) {
   return `https://en.wikipedia.org/wiki/${encodeURIComponent(title.replaceAll(' ', '_'))}`;
@@ -215,6 +220,11 @@ function renderGalaxy() {
     <div class="wiki-galaxy-wrap">
       <canvas class="wiki-canvas" width="900" height="600" data-wiki-canvas aria-label="Wikipedia galaxy"></canvas>
       <div class="wiki-hover" data-wiki-hover hidden></div>
+      <div class="wiki-zoom-controls" aria-label="Galaxy zoom controls">
+        <button class="secondary-button" type="button" data-wiki-zoom-out aria-label="Zoom out">−</button>
+        <button class="secondary-button" type="button" data-wiki-zoom-reset>Reset</button>
+        <button class="secondary-button" type="button" data-wiki-zoom-in aria-label="Zoom in">+</button>
+      </div>
     </div>
   `;
 }
@@ -244,6 +254,10 @@ function drawGalaxy() {
   background.addColorStop(1, '#101715');
   context.fillStyle = background;
   context.fillRect(0, 0, width, height);
+
+  context.save();
+  context.translate(panX, panY);
+  context.scale(zoom, zoom);
 
   const ranked = sortArticles(articles, ranking, descending);
   const values = ranked.map((article) => rankValue(article, ranking));
@@ -291,6 +305,7 @@ function drawGalaxy() {
   context.textAlign = 'center';
   context.textBaseline = 'top';
   context.fillText(mainArticle, width / 2, height / 2 + 27);
+  context.restore();
 }
 
 function articleAtPoint(event) {
@@ -299,8 +314,10 @@ function articleAtPoint(event) {
   const bounds = canvas.getBoundingClientRect();
   const scaleX = canvas.width / bounds.width;
   const scaleY = canvas.height / bounds.height;
-  const x = (event.clientX - bounds.left) * scaleX;
-  const y = (event.clientY - bounds.top) * scaleY;
+  const screenX = (event.clientX - bounds.left) * scaleX;
+  const screenY = (event.clientY - bounds.top) * scaleY;
+  const x = (screenX - panX) / zoom;
+  const y = (screenY - panY) / zoom;
   const ranked = sortArticles(articles, ranking, descending);
   const values = ranked.map((article) => rankValue(article, ranking));
   const min = Math.min(...values);
@@ -382,6 +399,81 @@ function handleClick(event) {
   }
 }
 
+function resetZoom() {
+  zoom = 1;
+  panX = 0;
+  panY = 0;
+  const hover = view?.querySelector('[data-wiki-hover]');
+  if (hover) hover.hidden = true;
+  drawGalaxy();
+}
+
+function setZoom(nextZoom, screenX = 450, screenY = 300) {
+  const next = Math.min(4, Math.max(1, nextZoom));
+  if (next === zoom) return;
+
+  const worldX = (screenX - panX) / zoom;
+  const worldY = (screenY - panY) / zoom;
+  zoom = next;
+  panX = screenX - worldX * zoom;
+  panY = screenY - worldY * zoom;
+
+  const hover = view?.querySelector('[data-wiki-hover]');
+  if (hover) hover.hidden = true;
+  drawGalaxy();
+}
+
+function handleWheel(event) {
+  const canvas = event.target.closest('[data-wiki-canvas]');
+  if (!canvas) return;
+  event.preventDefault();
+
+  const bounds = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / bounds.width;
+  const scaleY = canvas.height / bounds.height;
+  const x = (event.clientX - bounds.left) * scaleX;
+  const y = (event.clientY - bounds.top) * scaleY;
+  setZoom(zoom * (event.deltaY < 0 ? 1.15 : 1 / 1.15), x, y);
+}
+
+function handlePointerDown(event) {
+  const canvas = event.target.closest('[data-wiki-canvas]');
+  if (!canvas || event.button !== 0 || zoom <= 1) return;
+
+  pointerState = {
+    pointerId: event.pointerId,
+    startX: event.clientX,
+    startY: event.clientY,
+    panX,
+    panY,
+    moved: false
+  };
+  canvas.setPointerCapture(event.pointerId);
+}
+
+function handlePointerMove(event) {
+  if (!pointerState || event.pointerId !== pointerState.pointerId) return;
+
+  const canvas = event.target.closest('[data-wiki-canvas]');
+  if (!canvas) return;
+
+  const bounds = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / bounds.width;
+  const scaleY = canvas.height / bounds.height;
+  const dx = (event.clientX - pointerState.startX) * scaleX;
+  const dy = (event.clientY - pointerState.startY) * scaleY;
+  if (Math.abs(dx) + Math.abs(dy) > 4) pointerState.moved = true;
+  panX = pointerState.panX + dx;
+  panY = pointerState.panY + dy;
+  drawGalaxy();
+}
+
+function handlePointerUp(event) {
+  if (!pointerState || event.pointerId !== pointerState.pointerId) return;
+  suppressClick = pointerState.moved;
+  pointerState = null;
+}
+
 function handleChange(event) {
   const rankingControl = event.target.closest('[data-wiki-ranking]');
   if (!rankingControl) return;
@@ -396,6 +488,11 @@ export function initWikiGalaxyGame(section) {
   lifecycle.on(view, 'submit', handleSubmit);
   lifecycle.on(view, 'click', handleClick);
   lifecycle.on(view, 'change', handleChange);
+  lifecycle.on(view, 'wheel', handleWheel, { passive: false });
+  lifecycle.on(view, 'pointerdown', handlePointerDown);
+  lifecycle.on(view, 'pointermove', handlePointerMove);
+  lifecycle.on(view, 'pointerup', handlePointerUp);
+  lifecycle.on(view, 'pointercancel', handlePointerUp);
 
   render();
 
@@ -411,6 +508,11 @@ export function initWikiGalaxyGame(section) {
       mainCategories = new Set();
       pageviewsLoaded = false;
       pageviewsLoading = false;
+      zoom = 1;
+      panX = 0;
+      panY = 0;
+      pointerState = null;
+      suppressClick = false;
       loading = false;
       errorMessage = '';
     }
