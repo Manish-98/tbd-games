@@ -492,7 +492,7 @@ function handleChange(event) {
   ranking = rankingControl.value;
   updateLegend();
   drawGalaxy();
-  if (ranking === 'pageviews' && !pageviewsLoaded) loadPageviews();
+  if (!loading && ranking === 'pageviews' && !pageviewsLoaded) loadPageviews();
 }
 
 export function initWikiGalaxyGame(section) {
