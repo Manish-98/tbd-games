@@ -28,20 +28,6 @@ export function normalizeScore(value, min, max) {
   return (value - min) / (max - min);
 }
 
-export function getNodeMetrics(article, ranking, descending, minRadius = 4, maxRadius = 13) {
-  const value = rankValue(article, ranking);
-  const siblings = article._rankedValues || [value];
-  const min = Math.min(...siblings);
-  const max = Math.max(...siblings);
-  const normalized = normalizeScore(value, min, max);
-  const visualScore = descending ? normalized : 1 - normalized;
-  return {
-    value,
-    radius: minRadius + visualScore * (maxRadius - minRadius),
-    opacity: 0.3 + visualScore * 0.7
-  };
-}
-
 export function createGalaxyPositions(count, width, height) {
   if (!count) return [];
   const cx = width / 2;
