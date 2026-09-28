@@ -20,6 +20,8 @@ The engine is split by responsibility:
 - `operations/stash.js` — stash lifecycle
 - `operations/common.js` — shared operation primitives
 - `engine.js` — repository lifecycle, command orchestration, and public API
+- `command-palette.js` — immutable command definitions, parameter builders, UI validation, and command history
+- `command-palette.test.js` — command palette behavioral tests
 - `engine.test.js` — framework-free behavioral smoke tests
 
 This keeps Git algorithms out of command parsing and keeps UI/scenario concerns out of the state layer.
@@ -54,6 +56,23 @@ Commands are structured data, for example:
 `validateCommand(state, command)` normalizes and validates command parameters before execution. `executeCommand(repository, command)` then dispatches the validated command to a read or write operation and distinguishes validation failures from Git-level failures.
 
 No arbitrary shell command or free-form Git string is executed.
+
+## Command palette
+
+The command palette is UI-independent so the playroom layer can render it without owning Git behavior.
+
+`command-palette.js` provides:
+
+- a data-driven definition for every engine command
+- searchable command metadata and explanations
+- context-derived parameter options for branches, commits, files, and remotes
+- select, text, toggle, and numeric parameter types
+- builder validation before execution
+- delegation to engine validation and execution without converting Git failures into hints
+- readable structured command history, including read-only commands
+- scenario reset support that clears both the builder and palette history
+
+Scenario `availableCommands` values restrict which definitions can be presented to the player. The palette never accepts a raw Git command string.
 
 ## Supported command families
 
