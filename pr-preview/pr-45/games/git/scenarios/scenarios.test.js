@@ -244,7 +244,7 @@ assertThrows(
 );
 
 const random = createRandom('validation');
-assert(random.boolean(0), 'zero probability must always be false');
+assert(!random.boolean(0), 'zero probability must always be false');
 assert(random.boolean(1), 'one probability must always be true');
 assertThrows(
   () => random.boolean(NaN),
