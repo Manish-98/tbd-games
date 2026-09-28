@@ -40,6 +40,10 @@ Keep commits focused and descriptive. Prefer conventional prefixes such as:
 - `refactor:`
 - `docs:`
 
+Before writing or modifying HTML, CSS, or JavaScript, follow the repository's [Clean Code Standards](docs/clean-code.md). The guide is part of the project's coding instructions and applies to new code, refactors, and bug fixes.
+
+When the existing code conflicts with the standard, improve the relevant code when it is necessary for the issue being implemented; otherwise create a separate refactoring issue rather than expanding scope.
+
 ### 4. Open a Pull Request
 
 Every PR implementing or fixing an issue must reference its Issue number.
