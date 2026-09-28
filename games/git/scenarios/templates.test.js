@@ -99,6 +99,11 @@ assert(
 
 const teammate = generateRegisteredScenario('teammate-got-there-first', { seed: 'remote' });
 const teammateRepo = createGitEngine(teammate.repository);
+const remoteTip = teammate.repository.remoteTracking['refs/remotes/origin/main'];
+assert(
+  teammate.repository.remotes.origin.commits[remoteTip],
+  'teammate-got-there-first must include the advertised remote tip in the remote object store'
+);
 const pullResult = teammateRepo.execute({
   type: 'pull',
   params: { remote: 'origin' }

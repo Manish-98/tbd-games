@@ -312,6 +312,7 @@ function createTeammateTemplate() {
 
       const remoteTip = repository.commitIds[1];
       const localTip = repository.commitIds[2];
+      const remoteCommits = getReachableCommits(repository.input.commits, remoteTip);
 
       return {
         story:
@@ -326,7 +327,7 @@ function createTeammateTemplate() {
             origin: {
               url: 'https://example.test/team/repository.git',
               branches: { main: remoteTip },
-              commits: {}
+              commits: remoteCommits
             }
           },
           remoteTracking: {
@@ -409,6 +410,25 @@ function resolveParents(value, context) {
   if (Number.isInteger(value)) return [context.commitIds[value]];
   if (Array.isArray(value)) return value;
   return [value];
+}
+
+function getReachableCommits(commits, tip) {
+  const byId = Object.fromEntries(commits.map(commit => [commit.id, commit]));
+  const reachable = {};
+  const queue = [tip];
+  const seen = new Set();
+
+  while (queue.length) {
+    const id = queue.shift();
+
+    if (!id || seen.has(id) || !byId[id]) continue;
+
+    seen.add(id);
+    reachable[id] = byId[id];
+    queue.push(...byId[id].parents);
+  }
+
+  return reachable;
 }
 
 function hasAncestor(commits, ancestor, descendant) {
