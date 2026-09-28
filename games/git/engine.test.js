@@ -56,6 +56,17 @@ export function runGitEngineTests() {
     initial.reflog[0].ref === 'refs/heads/recovered',
     'repository fixtures should preserve seeded reflog entries'
   );
+  assertValid(
+    engine.execute({
+      type: 'branch',
+      params: { name: 'recovered' }
+    }),
+    'branch creation should succeed after seeded reflog entries'
+  );
+  assert(
+    engine.inspect().reflog.at(-1).id === 8,
+    'new reflog entries must continue after seeded entry ids'
+  );
   assert(
     initial.workingTree['app.js'] === 'new',
     'working tree should preserve the supplied fixture'
