@@ -70,8 +70,9 @@ export function mergeForPull(repo, branch) {
   return merge(repo, branch);
 }
 
-function merge(repo, branch) {
+function merge(repo, params) {
   const state = stateOf(repo);
+  const branch = params.branch;
   const ours = state.head.commit;
   const theirs = state.branches[branch];
 
@@ -147,8 +148,9 @@ function merge(repo, branch) {
   });
 }
 
-function rebase(repo, branch) {
+function rebase(repo, params) {
   const state = stateOf(repo);
+  const branch = params.branch;
   const current = state.head.commit;
   const target = state.branches[branch];
 
