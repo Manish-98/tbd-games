@@ -34,6 +34,16 @@ export class GitRepository {
   #initialClockSequence;
 
   constructor(input = {}) {
+    console.debug('[Git Debug] repository input', {
+      seed: input.seed,
+      headBranch: input.headBranch,
+      branches: input.branches,
+      commitDefinitions: input.commits?.map(commit => ({
+        message: commit.message,
+        parents: commit.parents,
+        id: commit.id
+      }))
+    });
     this.#seed = input.seed || DEFAULTS.seed;
     this.#commitSequence = 1;
     this.#reflogSequence = 1;
@@ -172,6 +182,11 @@ export function executeCommand(repository, command) {
       phase: 'git'
     };
   } catch (error) {
+    console.error('[Git Debug] execution exception', {
+      command,
+      error,
+      state: repository.snapshot()
+    });
     return executionError(
       ERROR_CODES.EXECUTION_ERROR,
       error instanceof Error ? error.message : String(error)
@@ -184,6 +199,17 @@ function createInitialState(input, repo) {
   const branches = createBranches(input, commits.headCommit);
   const headBranch = input.headBranch || DEFAULTS.branch;
   const headCommit = branches[headBranch] || commits.headCommit;
+  const commitState = getRepositoryState(repo).commits;
+
+  console.debug('[Git Debug] initial refs', {
+    defaultCommit: commits.headCommit,
+    branches,
+    headBranch,
+    headCommit,
+    commitIds: Object.keys(commitState),
+    headCommitState: commitState[headCommit],
+    headCommitExists: Boolean(commitState[headCommit])
+  });
 
   return {
     commits: getRepositoryState(repo).commits,
@@ -194,7 +220,15 @@ function createInitialState(input, repo) {
       commit: headCommit
     },
     workingTree: clone(
-      input.workingTree || getRepositoryState(repo).commits[headCommit].tree
+      input.workingTree || commitState[headCommit]?.tree || (() => {
+        console.error('[Git Debug] missing initial HEAD commit tree', {
+          headCommit,
+          headBranch,
+          branches,
+          commitIds: Object.keys(commitState)
+        });
+        return {};
+      })()
     ),
     staging: clone(input.staging || {}),
     remotes: normalizeRemotes(input.remotes || {}),
@@ -216,6 +250,14 @@ function createInitialCommits(input, repo) {
       tree = definition.tree
         ? clone(definition.tree)
         : applyChanges(tree, definition.changes);
+
+      console.debug('[Git Debug] create initial commit', {
+        sequence: repo.nextCommitSequence(),
+        definitionId: definition.id,
+        message: definition.message,
+        parents: definition.parents,
+        tree
+      });
 
       const commit = repo.createCommit({
         message: definition.message || `${DEFAULTS.commitPrefix}${repo.nextCommitSequence()}`,
