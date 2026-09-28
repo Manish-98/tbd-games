@@ -55,6 +55,11 @@ function createMissingFeatureTemplate() {
           author: random.pick(AUTHORS)
         },
         {
+          message: 'Refresh release notes',
+          changes: { 'release-notes.md': 'Release preparation' },
+          author: random.pick(AUTHORS)
+        },
+        {
           message: 'Refine request flow',
           changes: { [file]: 'request flow' },
           author
@@ -65,19 +70,14 @@ function createMissingFeatureTemplate() {
           author: random.pick(AUTHORS)
         },
         {
-          message: 'Refresh release notes',
-          changes: { 'release-notes.md': 'Release preparation' },
+          message: 'Prepare release artifacts',
+          changes: { 'release-checklist.md': 'Release checklist' },
           author: random.pick(AUTHORS)
         },
         {
           message: 'Tune error handling',
           changes: { [file]: 'error handling' },
           author
-        },
-        {
-          message: 'Prepare release artifacts',
-          changes: { 'release-checklist.md': 'Release checklist' },
-          author: random.pick(AUTHORS)
         },
         {
           message: 'Polish request flow',
@@ -90,7 +90,7 @@ function createMissingFeatureTemplate() {
           author: random.pick(AUTHORS)
         }
       ];
-      const targetIndex = random.pick([3, 5, 7]);
+      const targetIndex = random.pick([3, 6, 7]);
       const repository = createGraph(random, definitions);
       const target = repository.commitIds[targetIndex];
       const main = repository.commitIds[repository.commitIds.length - 1];
