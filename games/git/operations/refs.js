@@ -39,6 +39,15 @@ function switchBranch(repo, params) {
   const previousCommit = state.head.commit;
   const nextCommit = state.branches[params.branch];
 
+  console.debug('[Git Debug] switch operation', {
+    branch: params.branch,
+    previousCommit,
+    nextCommit,
+    previousExists: Boolean(state.commits[previousCommit]),
+    nextExists: Boolean(state.commits[nextCommit]),
+    commitIds: Object.keys(state.commits)
+  });
+
   state.head = {
     type: 'branch',
     branch: params.branch,
@@ -65,6 +74,17 @@ function merge(repo, branch) {
   const state = stateOf(repo);
   const ours = state.head.commit;
   const theirs = state.branches[branch];
+
+  console.debug('[Git Debug] merge operation', {
+    branch,
+    ours,
+    theirs,
+    oursExists: Boolean(state.commits[ours]),
+    theirsExists: Boolean(state.commits[theirs]),
+    commitIds: Object.keys(state.commits),
+    oursTree: state.commits[ours]?.tree,
+    theirsTree: state.commits[theirs]?.tree
+  });
 
   if (isAncestor(state.commits, ours, theirs)) {
     moveHead(repo, theirs);
