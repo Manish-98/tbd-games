@@ -57,12 +57,15 @@ function testRemoteStateAndDeletedRefs() {
   assert(remoteHtml.includes('Remote commits'), 'Remote branch inspection should expose remote commit state.');
   assert(remoteHtml.includes('push · 2 visual changes'), 'Remote changes should contribute to transition emphasis.');
 
-  delete after.branches.feature;
-  const deletedHtml = renderGitVisualization(after, before, {
+  const deletedBefore = repository.snapshot();
+  const deletedAfter = repository.snapshot();
+  deletedBefore.branches.feature = deletedAfter.head.commit;
+  delete deletedAfter.branches.feature;
+  const deletedHtml = renderGitVisualization(deletedAfter, deletedBefore, {
     type: 'branch-delete',
     command: { type: 'branch-delete' }
   });
-  assert(deletedHtml.includes('branch-delete · 2 visual changes'), 'Deleted refs should remain part of transition accounting.');
+  assert(deletedHtml.includes('branch-delete · 1 visual changes'), 'Deleted refs should remain part of transition accounting.');
 }
 
 function testWorkingStagingAndConflictTransitions() {
