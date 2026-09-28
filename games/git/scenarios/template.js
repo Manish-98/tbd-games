@@ -53,6 +53,7 @@ export function generateScenario(template, options = {}) {
 
   validateScenario(scenario);
 
+  scenario.enabledModifiers = modifiersFromScenario(scenario);
   return freezeScenario(scenario);
 }
 
@@ -80,6 +81,7 @@ function normalizeGeneratedScenario(template, generated, seed) {
       generated.completionExplanation ?? template.completionExplanation ?? '',
     concept: generated.concept ?? template.concept ?? null,
     modifiers: generated.modifiers || [],
+    enabledModifiers: [],
     metadata: generated.metadata || {}
   };
 }
@@ -156,6 +158,10 @@ function validateModifier(modifier) {
   }
 }
 
+function modifiersFromScenario(scenario) {
+  return scenario.enabledModifiers || [];
+}
+
 function freezeScenario(scenario) {
   return Object.freeze({
     ...scenario,
@@ -164,6 +170,7 @@ function freezeScenario(scenario) {
     availableCommands: Object.freeze([...scenario.availableCommands]),
     objectives: Object.freeze([...scenario.objectives]),
     modifiers: Object.freeze([...scenario.modifiers]),
-    metadata: Object.freeze(scenario.metadata)
+    metadata: Object.freeze(scenario.metadata),
+    enabledModifiers: Object.freeze([...scenario.enabledModifiers])
   });
 }
