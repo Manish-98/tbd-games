@@ -24,7 +24,6 @@ const template = defineScenarioTemplate({
       parameters: { branch, depth },
       repository: {
         seed: 'scenario-test',
-        branches: { [branch]: null },
         history: Array.from({ length: depth }, (_, index) => ({
           ['file-' + index + '.txt']: 'change-' + index
         }))
