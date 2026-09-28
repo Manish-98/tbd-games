@@ -141,6 +141,14 @@ function createFridayMergeTemplate() {
       const main = repository.commitIds[1];
       const feature = repository.commitIds[2];
 
+      console.debug('[Git Debug] generated friday-afternoon-merge scenario', {
+        seed: repository.input.seed,
+        commitIds: repository.commitIds,
+        commits: repository.input.commits,
+        branches: { main, feature },
+        headBranch: 'feature'
+      });
+
       return {
         story:
           'It is Friday afternoon. Two developers changed related parts of the release. ' +

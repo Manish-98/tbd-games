@@ -105,6 +105,14 @@ function validateBranchCommand(state, params) {
 function validateSwitchCommand(state, params) {
   const targetCommit = state.branches[params.branch];
 
+  console.debug('[Git Debug] switch validation', {
+    branch: params.branch,
+    targetCommit,
+    targetExists: Boolean(state.commits[targetCommit]),
+    head: state.head,
+    commitIds: Object.keys(state.commits)
+  });
+
   if (!targetCommit) {
     return invalid(ERROR_CODES.UNKNOWN_BRANCH, `Unknown branch: ${params.branch}`);
   }
@@ -189,6 +197,16 @@ function validateStashCommand(state, params) {
 
 function validateBranchOperation(state, params, type) {
   const targetCommit = state.branches[params.branch];
+
+  console.debug('[Git Debug] branch operation validation', {
+    type,
+    branch: params.branch,
+    targetCommit,
+    targetExists: Boolean(state.commits[targetCommit]),
+    head: state.head,
+    headExists: Boolean(state.commits[state.head?.commit]),
+    commitIds: Object.keys(state.commits)
+  });
 
   if (!targetCommit) {
     return invalid(ERROR_CODES.UNKNOWN_BRANCH, `Unknown branch: ${params.branch}`);
