@@ -75,7 +75,7 @@ assert(evaluation.complete, 'generated repository should satisfy its objectives'
 
 const failed = evaluateScenario(first, {
   ...repository.inspect(),
-  branches: {}
+  commits: {}
 });
 
 assert(!failed.complete, 'failed objectives must report an incomplete scenario');
