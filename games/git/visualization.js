@@ -23,8 +23,7 @@ export function createGitVisualization(container, options = {}) {
   let previousState = null;
   let currentState = null;
 
-  lifecycle.on(container, 'click', event => {
-    const target = event.target.closest('[data-inspect-kind][data-inspect-id]');
+  const inspect = target => {
     if (!target || !container.contains(target)) return;
 
     const kind = target.dataset.inspectKind;
@@ -42,6 +41,20 @@ export function createGitVisualization(container, options = {}) {
     }
 
     if (item && onInspect) onInspect({ kind, item });
+  };
+
+  lifecycle.on(container, 'click', event => {
+    const target = event.target.closest('[data-inspect-kind][data-inspect-id]');
+    if (!target) return;
+    inspect(target);
+  });
+
+  lifecycle.on(container, 'keydown', event => {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    const target = event.target.closest('.git-graph-commit[data-inspect-kind], .git-graph-ref[data-inspect-kind]');
+    if (!target) return;
+    event.preventDefault();
+    inspect(target);
   });
 
   function render(state, transition = INITIAL_TRANSITION) {
@@ -84,6 +97,7 @@ export function renderGitVisualization(state, previousState = null, transition =
     '</div></div>',
     '<div class="git-visualization-lower"><aside class="git-ref-panel">',
     renderRefs(state, changed),
+    renderRemotes(state, changed),
     '</aside><aside class="git-state-panel">',
     renderWorkingState(state),
     '<div class="git-inspection-panel" data-inspection-panel hidden></div>',
@@ -96,6 +110,7 @@ function renderSummary(state) {
     ['Commits', Object.keys(state.commits).length],
     ['Branches', Object.keys(state.branches).length],
     ['Remote refs', Object.keys(state.remoteTracking).length],
+    ['Remotes', Object.keys(state.remotes).length],
     ['HEAD', state.head.type === 'detached' ? 'detached' : state.head.branch]
   ].map(([label, value]) =>
     '<div class="git-summary-item"><span>' + escapeHtml(String(label)) +
@@ -210,11 +225,42 @@ function renderWorkingState(state) {
     '</div>';
 }
 
-function renderFileList(label, files) {
+function renderFileList(label, files, changedFiles = new Set()) {
   return files.length
     ? '<div class="git-file-group"><span>' + escapeHtml(label) + '</span>' +
-      files.map(file => '<code>' + escapeHtml(file) + '</code>').join('') + '</div>'
+      files.map(file => '<code class="' +
+        (changedFiles.has(file) ? 'git-visualization-changed' : '') + '">' +
+        escapeHtml(file) + '</code>').join('') + '</div>'
     : '';
+}
+
+function renderRemotes(state, changed) {
+  const remotes = Object.entries(state.remotes);
+  if (!remotes.length) return '';
+
+  const rows = remotes.map(([name, remote]) => {
+    const branches = Object.entries(remote.branches || {});
+    const branchRows = branches.length
+      ? branches.map(([branch, commit]) => {
+        const id = 'remote-branch:' + name + '/' + branch;
+        return '<button class="git-ref-row' +
+          (changed.remoteRefs.has(id) ? ' git-visualization-changed' : '') +
+          '" type="button" data-inspect-kind="remote-branch" data-inspect-id="' +
+          escapeHtml(name + '/' + branch) + '"><span class="git-ref-kind remote-branch">remote</span>' +
+          '<strong>' + escapeHtml(branch) + '</strong><code>' + escapeHtml(shortId(commit)) +
+          '</code></button>';
+      }).join('')
+      : '<p class="git-empty">No remote branches.</p>';
+
+    const commitCount = Object.keys(remote.commits || {}).length;
+    return '<div class="git-remote-group' +
+      (changed.remotes.has(name) ? ' git-visualization-changed' : '') + '"><div class="git-panel-heading"><span class="section-label">' +
+      'Remote · ' + escapeHtml(name) + '</span><strong>' + commitCount + ' commits</strong></div>' +
+      '<div class="git-ref-list">' + branchRows + '</div></div>';
+  }).join('');
+
+  return '<div class="git-remote-panel"><div class="git-panel-heading"><span class="section-label">' +
+    'Remote state</span><strong>' + remotes.length + '</strong></div>' + rows + '</div>';
 }
 
 function renderInspection(kind, item) {
@@ -234,6 +280,13 @@ function renderInspection(kind, item) {
       '<dt>Name</dt><dd>' + escapeHtml(item.name) + '</dd><dt>Target</dt><dd><code>' +
       escapeHtml(item.commit) + '</code></dd><dt>Tracking</dt><dd>' +
       escapeHtml(item.tracking || 'No tracking branch') + '</dd></dl>';
+  }
+
+  if (kind === 'remote-branch') {
+    return '<div class="git-inspection-heading"><span class="section-label">Remote branch</span></div><dl>' +
+      '<dt>Remote</dt><dd>' + escapeHtml(item.remote) + '</dd><dt>Branch</dt><dd>' +
+      escapeHtml(item.branch) + '</dd><dt>Target</dt><dd><code>' + escapeHtml(item.commit) +
+      '</code></dd><dt>Remote commits</dt><dd>' + escapeHtml(String(item.commits)) + '</dd></dl>';
   }
 
   if (kind === 'remote' || kind === 'tag') {
@@ -297,7 +350,16 @@ function collectRefs(state) {
 }
 
 function getChangedItems(state, previousState) {
-  const changed = { commits: new Set(), refs: new Set(), head: false };
+  const changed = {
+    commits: new Set(),
+    refs: new Set(),
+    remoteRefs: new Set(),
+    working: new Set(),
+    staging: new Set(),
+    conflicts: new Set(),
+    remotes: new Set(),
+    head: false
+  };
   if (!previousState) return changed;
 
   Object.keys(state.commits).forEach(id => {
@@ -306,6 +368,10 @@ function getChangedItems(state, previousState) {
   compareRefs(state.branches, previousState.branches, 'branch', changed.refs);
   compareRefs(state.remoteTracking, previousState.remoteTracking, 'remote', changed.refs);
   compareRefs(state.tags, previousState.tags, 'tag', changed.refs);
+  compareRemoteState(state.remotes, previousState.remotes, changed);
+  compareFileSets(getWorkingFiles(previousState), getWorkingFiles(state), changed.working);
+  compareFileSets(Object.keys(previousState.staging || {}), Object.keys(state.staging || {}), changed.staging);
+  compareFileSets(previousState.conflicts || [], state.conflicts || [], changed.conflicts);
 
   changed.head = previousState.head.type !== state.head.type ||
     previousState.head.branch !== state.head.branch ||
@@ -315,9 +381,40 @@ function getChangedItems(state, previousState) {
 }
 
 function compareRefs(current, previous, prefix, changed) {
-  Object.entries(current).forEach(([name, commit]) => {
-    if (previous[name] !== commit) changed.add(prefix + ':' + name);
+  const names = new Set([...Object.keys(current), ...Object.keys(previous)]);
+  names.forEach(name => {
+    if (current[name] !== previous[name]) changed.add(prefix + ':' + name);
   });
+}
+
+function compareRemoteState(current, previous, changed) {
+  const remoteNames = new Set([...Object.keys(current), ...Object.keys(previous)]);
+  remoteNames.forEach(remoteName => {
+    const currentRemote = current[remoteName];
+    const previousRemote = previous[remoteName];
+    if (JSON.stringify(currentRemote) === JSON.stringify(previousRemote)) return;
+    changed.remotes.add(remoteName);
+    const currentBranches = currentRemote?.branches || {};
+    const previousBranches = previousRemote?.branches || {};
+    const branchNames = new Set([...Object.keys(currentBranches), ...Object.keys(previousBranches)]);
+    branchNames.forEach(branch => {
+      if (currentBranches[branch] !== previousBranches[branch]) {
+        changed.remoteRefs.add('remote-branch:' + remoteName + '/' + branch);
+      }
+    });
+  });
+}
+
+function compareFileSets(previousFiles, currentFiles, changed) {
+  const files = new Set([...previousFiles, ...currentFiles]);
+  files.forEach(file => {
+    if (previousFiles.includes(file) !== currentFiles.includes(file)) changed.add(file);
+  });
+}
+
+function getWorkingFiles(state) {
+  const headTree = state.commits[state.head.commit]?.tree || {};
+  return diffTrees(headTree, state.workingTree || {}).map(change => change.file);
 }
 
 function getInspectableItem(state, kind, id) {
@@ -329,6 +426,20 @@ function getInspectableItem(state, kind, id) {
   }
   if (kind === 'remote') {
     return state.remoteTracking[id] ? { name: id, commit: state.remoteTracking[id] } : null;
+  }
+  if (kind === 'remote-branch') {
+    const separator = id.indexOf('/');
+    const remoteName = id.slice(0, separator);
+    const branchName = id.slice(separator + 1);
+    const remote = state.remotes[remoteName];
+    const commit = remote?.branches?.[branchName];
+    return commit ? {
+      name: id,
+      remote: remoteName,
+      branch: branchName,
+      commit,
+      commits: Object.keys(remote.commits || {}).length
+    } : null;
   }
   if (kind === 'tag') {
     return state.tags[id] ? { name: id, commit: state.tags[id] } : null;
@@ -346,7 +457,14 @@ function formatTransition(transition, changed) {
 }
 
 function countChanged(changed) {
-  return changed.commits.size + changed.refs.size + Number(changed.head);
+  return changed.commits.size +
+    changed.refs.size +
+    changed.remoteRefs.size +
+    changed.working.size +
+    changed.staging.size +
+    changed.conflicts.size +
+    changed.remotes.size +
+    Number(changed.head);
 }
 
 function formatAuthor(author) {
