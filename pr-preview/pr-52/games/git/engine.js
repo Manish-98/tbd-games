@@ -105,7 +105,7 @@ export class GitRepository {
       tree
     );
 
-    state.commits[id] = commit;
+    state.commits[commitId] = commit;
     return commit;
   }
 
