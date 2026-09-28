@@ -5,7 +5,8 @@ import { HISTORY_OPERATIONS } from './operations/history.js';
 import { REMOTE_OPERATIONS } from './operations/remotes.js';
 import { STASH_OPERATIONS } from './operations/stash.js';
 
-export const READ_OPERATIONS_REGISTRY = READ_OPERATIONS;
+export { READ_OPERATIONS };
+
 export const WRITE_OPERATIONS = Object.freeze({
   ...WORKING_TREE_OPERATIONS,
   ...REF_OPERATIONS,
@@ -15,5 +16,5 @@ export const WRITE_OPERATIONS = Object.freeze({
 });
 
 export function getOperation(type) {
-  return READ_OPERATIONS_REGISTRY[type] || WRITE_OPERATIONS[type];
+  return READ_OPERATIONS[type] || WRITE_OPERATIONS[type];
 }
