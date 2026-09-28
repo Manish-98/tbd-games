@@ -6,10 +6,19 @@ The Git game engine is intentionally independent of the DOM, scenario templates,
 
 The engine is split by responsibility:
 
-- `constants.js` — command names and domain defaults
+- `constants.js` — command names, domain defaults, and domain tokens
+- `clock.js` — deterministic repository time
+- `repository-state.js` — private repository-state boundary
 - `utils.js` — immutable tree helpers, graph traversal, ref validation, and deterministic IDs
 - `validation.js` — command parameter validation and normalized command input
-- `operations.js` — Git state transitions and read models
+- `operations.js` — operation registry only
+- `operations/inspection.js` — read models
+- `operations/working-tree.js` — staging, commits, restore, and reset
+- `operations/refs.js` — branches, switching, merge, and rebase
+- `operations/history.js` — revert and cherry-pick
+- `operations/remotes.js` — fetch, pull, and push
+- `operations/stash.js` — stash lifecycle
+- `operations/common.js` — shared operation primitives
 - `engine.js` — repository lifecycle, command orchestration, and public API
 - `engine.test.js` — framework-free behavioral smoke tests
 
@@ -29,7 +38,7 @@ The state model represents:
 - stash entries
 - structured command history
 
-Commit IDs are deterministic for a given seed and generated input, which makes scenario generation reproducible.
+Commit IDs and repository timestamps are deterministic for a given seed and generated input, which makes scenario generation and replay reproducible.
 
 ## Command execution
 
@@ -60,4 +69,4 @@ New command behavior should be added by extending validation and operation modul
 
 ## Reset and state inspection
 
-`reset()` restores the generated repository snapshot **and its deterministic ID sequences**. `snapshot()` / `inspect()` return cloned state suitable for visualization or objective evaluation without exposing mutable engine state through the returned object.
+`reset()` restores the generated repository snapshot, deterministic ID sequences, and repository clock. Repository state is privately owned by `GitRepository`; `snapshot()` / `inspect()` return clones for visualization or objective evaluation. 
