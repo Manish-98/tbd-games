@@ -1,14 +1,12 @@
 import {
   COMMANDS,
   DEFAULTS,
+  ERROR_CODES,
   HEAD_TYPES,
   READ_ONLY_COMMANDS
 } from './constants.js';
 import { validateCommand } from './validation.js';
-import {
-  READ_OPERATIONS,
-  WRITE_OPERATIONS
-} from './operations.js';
+import { getOperation } from './operations.js';
 import {
   applyChanges,
   clone,
@@ -17,31 +15,42 @@ import {
   makeCommitId,
   normalizeRemotes
 } from './utils.js';
+import { createClock } from './clock.js';
+import {
+  getRepositoryState,
+  setRepositoryState
+} from './repository-state.js';
 
 export { COMMANDS, validateCommand };
 
 export class GitRepository {
+  #clock;
+
   constructor(input = {}) {
     this.seed = input.seed || DEFAULTS.seed;
     this.commitSequence = 1;
     this.reflogSequence = 1;
-    this.state = { commits: {} };
+    this.#clock = createClock(input.startTime || DEFAULTS.startTime);
+
+    setRepositoryState(this, { commits: {} });
 
     this.initialState = createInitialState(input, this);
     this.initialCommitSequence = this.commitSequence;
     this.initialReflogSequence = this.reflogSequence;
-    this.state = clone(this.initialState);
+    this.initialClockSequence = this.#clock.snapshot();
+    setRepositoryState(this, clone(this.initialState));
   }
 
   reset() {
     this.commitSequence = this.initialCommitSequence;
     this.reflogSequence = this.initialReflogSequence;
-    this.state = clone(this.initialState);
+    this.#clock.restore(this.initialClockSequence);
+    setRepositoryState(this, clone(this.initialState));
     return this.snapshot();
   }
 
   snapshot() {
-    return clone(this.state);
+    return clone(getRepositoryState(this));
   }
 
   inspect() {
@@ -53,6 +62,7 @@ export class GitRepository {
   }
 
   createCommit({ message, parents, tree, author = DEFAULTS.author }) {
+    const state = getRepositoryState(this);
     const sequence = this.commitSequence++;
     const id = makeCommitId(
       this.seed,
@@ -67,31 +77,35 @@ export class GitRepository {
       parents: parents.filter(Boolean),
       tree: clone(tree),
       author: clone(author),
-      date: new Date(Date.now() + sequence).toISOString()
+      date: this.now()
     };
 
     commit.changes = diffTrees(
       commit.parents[0]
-        ? this.state.commits[commit.parents[0]]?.tree || {}
+        ? state.commits[commit.parents[0]]?.tree || {}
         : {},
       tree
     );
 
-    this.state.commits[id] = commit;
+    state.commits[id] = commit;
     return commit;
   }
 
   refChange(ref, oldValue, newValue, reason) {
     if (oldValue === newValue) return;
 
-    this.state.reflog.push({
+    getRepositoryState(this).reflog.push({
       id: this.reflogSequence++,
       ref,
       oldValue: oldValue || null,
       newValue: newValue || null,
       reason,
-      timestamp: new Date().toISOString()
+      timestamp: this.now()
     });
+  }
+
+  now() {
+    return this.#clock.now();
   }
 }
 
@@ -106,12 +120,12 @@ export function createRepository(input = {}) {
 export function executeCommand(repository, command) {
   if (!(repository instanceof GitRepository)) {
     return executionError(
-      'INVALID_REPOSITORY',
+      ERROR_CODES.INVALID_REPOSITORY,
       'Commands must execute through a GitRepository instance.'
     );
   }
 
-  const validation = validateCommand(repository.state, command);
+  const validation = validateCommand(repository.snapshot(), command);
 
   if (!validation.valid) {
     return {
@@ -125,16 +139,17 @@ export function executeCommand(repository, command) {
 
   if (!operation) {
     return executionError(
-      'UNIMPLEMENTED_COMMAND',
+      ERROR_CODES.UNIMPLEMENTED_COMMAND,
       `No execution handler exists for Git command: ${type}`
     );
   }
 
   try {
     const result = operation(repository, params);
+    const state = getRepositoryState(repository);
 
-    if (result.ok && !READ_ONLY_COMMANDS.has(type)) {
-      repository.state.commandHistory.push({
+    if (result.ok && !READ_ONLY_COMMANDS.includes(type)) {
+      state.commandHistory.push({
         type,
         params: clone(params)
       });
@@ -146,14 +161,10 @@ export function executeCommand(repository, command) {
     };
   } catch (error) {
     return executionError(
-      'EXECUTION_ERROR',
+      ERROR_CODES.EXECUTION_ERROR,
       error instanceof Error ? error.message : String(error)
     );
   }
-}
-
-function getOperation(type) {
-  return READ_OPERATIONS[type] || WRITE_OPERATIONS[type];
 }
 
 function createInitialState(input, repo) {
@@ -163,7 +174,7 @@ function createInitialState(input, repo) {
   const headCommit = branches[headBranch] || commits.headCommit;
 
   return {
-    commits: repo.state.commits,
+    commits: getRepositoryState(repo).commits,
     branches,
     head: {
       type: input.detachedHead ? HEAD_TYPES.DETACHED : HEAD_TYPES.BRANCH,
@@ -171,7 +182,7 @@ function createInitialState(input, repo) {
       commit: headCommit
     },
     workingTree: clone(
-      input.workingTree || repo.state.commits[headCommit].tree
+      input.workingTree || getRepositoryState(repo).commits[headCommit].tree
     ),
     staging: clone(input.staging || {}),
     remotes: normalizeRemotes(input.remotes || {}),
