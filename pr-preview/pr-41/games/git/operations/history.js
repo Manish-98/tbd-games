@@ -1,3 +1,4 @@
+import { COMMIT_MESSAGES } from '../constants.js';
 import { clone, diffTrees, applyPatch } from '../utils.js';
 import { stateOf } from './common.js';
 import { applyDerivedCommit } from './working-tree.js';
@@ -17,7 +18,7 @@ function revert(repo, commitId) {
   return applyDerivedCommit(
     repo,
     tree,
-    `Revert "${commit.message}"`,
+    `${COMMIT_MESSAGES.REVERT_PREFIX}${commit.message}${COMMIT_MESSAGES.REVERT_SUFFIX}`,
     'revert',
     commitId
   );
