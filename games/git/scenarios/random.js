@@ -37,7 +37,7 @@ export function createRandom(seed) {
   }
 
   function boolean(probability = 0.5) {
-    if (probability < 0 || probability > 1) {
+    if (!Number.isFinite(probability) || probability < 0 || probability > 1) {
       throw new RangeError('Boolean probability must be between 0 and 1.');
     }
 
