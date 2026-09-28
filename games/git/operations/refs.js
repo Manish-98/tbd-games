@@ -98,10 +98,26 @@ function merge(repo, branch) {
   }
 
   const base = findMergeBase(state.commits, ours, theirs);
+  const oursCommit = state.commits[ours];
+  const theirsCommit = state.commits[theirs];
+
+  console.debug('[Git Debug] merge tree inputs', {
+    ours,
+    theirs,
+    base,
+    commitKeys: Object.keys(state.commits),
+    oursKeyExists: Object.prototype.hasOwnProperty.call(state.commits, ours),
+    theirsKeyExists: Object.prototype.hasOwnProperty.call(state.commits, theirs),
+    baseKeyExists: base ? Object.prototype.hasOwnProperty.call(state.commits, base) : false,
+    oursCommit,
+    theirsCommit,
+    baseCommit: base ? state.commits[base] : null
+  });
+
   const result = mergeTrees(
     state.commits[base]?.tree || {},
-    state.commits[ours].tree,
-    state.commits[theirs].tree
+    oursCommit.tree,
+    theirsCommit.tree
   );
 
   state.workingTree = clone(result.tree);
