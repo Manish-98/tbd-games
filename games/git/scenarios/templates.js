@@ -43,26 +43,57 @@ function createMissingFeatureTemplate() {
       const branch = random.pick(BRANCH_NAMES);
       const file = random.pick(FILES);
       const author = random.pick(AUTHORS);
-      const repository = createGraph(random, [
+      const definitions = [
         {
           message: 'Initial repository setup',
           changes: { 'README.md': '# Release' },
           author
         },
         {
-          message: 'Build ' + branch.split('/')[1],
-          changes: { [file]: 'feature work' },
+          message: 'Update dependency configuration',
+          changes: { 'package.json': 'release baseline' },
+          author: random.pick(AUTHORS)
+        },
+        {
+          message: 'Refine request flow',
+          changes: { [file]: 'request flow' },
           author
         },
         {
-          message: 'Prepare unrelated release work',
+          message: 'Adjust validation rules',
+          changes: { [file]: 'validation rules' },
+          author: random.pick(AUTHORS)
+        },
+        {
+          message: 'Tune error handling',
+          changes: { [file]: 'error handling' },
+          author
+        },
+        {
+          message: 'Refresh release notes',
           changes: { 'release-notes.md': 'Release preparation' },
           author: random.pick(AUTHORS)
+        },
+        {
+          message: 'Polish request flow',
+          changes: { [file]: 'request flow polish' },
+          author
+        },
+        {
+          message: 'Prepare release artifacts',
+          changes: { 'release-checklist.md': 'Release checklist' },
+          author: random.pick(AUTHORS)
+        },
+        {
+          message: 'Finalize release notes',
+          changes: { 'release-notes.md': 'Release ready' },
+          author: random.pick(AUTHORS)
         }
-      ]);
-
-      const target = repository.commitIds[1];
-      const main = repository.commitIds[2];
+      ];
+      const targetIndex = random.int(3, 6);
+      const repository = createGraph(random, definitions);
+      const target = repository.commitIds[targetIndex];
+      const main = repository.commitIds[repository.commitIds.length - 1];
 
       return {
         story:
@@ -71,7 +102,7 @@ function createMissingFeatureTemplate() {
         parameters: { branch, file },
         repository: {
           ...repository.input,
-          branches: { main, },
+          branches: { main },
           headBranch: 'main',
           reflog: [{
             id: 1,
