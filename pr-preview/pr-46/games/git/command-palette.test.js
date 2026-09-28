@@ -1,3 +1,4 @@
+import { COMMANDS } from './constants.js';
 import { createGitEngine } from './engine.js';
 import {
   createCommandBuilder,
@@ -19,10 +20,10 @@ function testDefinitions() {
   const definitions = getCommandDefinitions();
   const types = definitions.map(definition => definition.type);
 
-  assert(definitions.length === 19, 'Every engine command must have a palette definition.');
+  assert(definitions.length === COMMANDS.length, 'Every engine command must have a palette definition.');
   assert(new Set(types).size === types.length, 'Command definitions must be unique.');
   assert(
-    types.every(type => COMMAND_TYPES.includes(type)),
+    COMMANDS.every(type => types.includes(type)),
     'Every engine command must have a palette definition.'
   );
   assert(
@@ -97,6 +98,95 @@ function testBuilderValidation() {
   );
 }
 
+function testResetModes() {
+  const repository = createGitEngine();
+  const state = repository.snapshot();
+
+  const defaultMode = validateCommandBuilder(
+    updateCommandParameter(
+      createCommandBuilder('reset', state),
+      'commit',
+      state.head.commit
+    ),
+    state
+  );
+  assert(defaultMode.valid, 'Reset should allow the engine default mode when omitted.');
+  assert(defaultMode.command.params.mode === undefined, 'Omitted reset mode should remain omitted.');
+
+  for (const mode of ['soft', 'mixed', 'hard']) {
+    const builder = updateCommandParameter(
+      updateCommandParameter(createCommandBuilder('reset', state), 'mode', mode),
+      'commit',
+      state.head.commit
+    );
+    const validation = validateCommandBuilder(builder, state);
+    assert(validation.valid, 'Reset should accept the ' + mode + ' mode.');
+    assert(validation.command.params.mode === mode, 'Reset should preserve the selected mode.');
+  }
+
+  const invalidMode = updateCommandParameter(
+    updateCommandParameter(createCommandBuilder('reset', state), 'mode', 'invalid'),
+    'commit',
+    state.head.commit
+  );
+  const validation = validateCommandBuilder(invalidMode, state);
+  assert(!validation.valid, 'Reset should reject unsupported modes.');
+  assert(
+    validation.errors[0].code === 'INVALID_OPTION',
+    'Reset mode validation should identify invalid selections.'
+  );
+}
+
+function testToggleAndConditionalParameters() {
+  const repository = createGitEngine({
+    branches: { feature: 'not-used-yet' }
+  });
+  const state = repository.snapshot();
+
+  const createBranch = updateCommandParameter(
+    updateCommandParameter(createCommandBuilder('branch', state), 'name', 'new-feature'),
+    'delete',
+    false
+  );
+  const validCreate = validateCommandBuilder(createBranch, state);
+  assert(validCreate.valid, 'Branch creation should validate with the delete toggle disabled.');
+
+  const deleteBranch = updateCommandParameter(
+    updateCommandParameter(createCommandBuilder('branch', state), 'name', 'feature'),
+    'delete',
+    true
+  );
+  const validDelete = validateCommandBuilder(deleteBranch, state);
+  assert(validDelete.valid, 'Branch deletion should validate with the delete toggle enabled.');
+
+  const invalidDelete = updateCommandParameter(
+    updateCommandParameter(deleteBranch, 'startPoint', 'missing'),
+    'delete',
+    true
+  );
+  const validation = validateCommandBuilder(invalidDelete, state);
+  assert(
+    validation.valid,
+    'Hidden start points should be ignored when deleting a branch.'
+  );
+  assert(
+    validation.command.params.startPoint === undefined,
+    'Hidden start points should not be passed to the Git command.'
+  );
+
+  const invalidToggle = updateCommandParameter(
+    updateCommandParameter(createCommandBuilder('branch', state), 'name', 'new-feature'),
+    'delete',
+    'true'
+  );
+  const toggleValidation = validateCommandBuilder(invalidToggle, state);
+  assert(!toggleValidation.valid, 'Toggle parameters should reject non-boolean values.');
+  assert(
+    toggleValidation.errors[0].code === 'INVALID_BOOLEAN',
+    'Toggle validation should identify invalid values.'
+  );
+}
+
 function testExecutionHistoryAndReset() {
   const repository = createGitEngine();
   const controller = createCommandController(repository);
@@ -146,17 +236,13 @@ function testFormatting() {
   );
 }
 
-const COMMAND_TYPES = [
-  'status', 'log', 'show', 'diff', 'add', 'commit', 'branch', 'switch',
-  'merge', 'rebase', 'reset', 'restore', 'revert', 'cherry-pick',
-  'fetch', 'pull', 'push', 'stash', 'reflog'
-];
-
 [
   testDefinitions,
   testSearchAndBuilder,
   testContextOptionsAndValidation,
   testBuilderValidation,
+  testResetModes,
+  testToggleAndConditionalParameters,
   testExecutionHistoryAndReset,
   testEngineFailuresArePreserved,
   testFormatting
