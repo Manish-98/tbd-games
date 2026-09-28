@@ -53,7 +53,7 @@ export function generateScenario(template, options = {}) {
 
   validateScenario(scenario);
 
-  scenario.enabledModifiers = modifiersFromScenario(scenario);
+  scenario.enabledModifiers = enabledModifiers.map(modifier => modifier.id);
   return freezeScenario(scenario);
 }
 
@@ -158,19 +158,24 @@ function validateModifier(modifier) {
   }
 }
 
-function modifiersFromScenario(scenario) {
-  return scenario.enabledModifiers || [];
-}
-
 function freezeScenario(scenario) {
   return Object.freeze({
     ...scenario,
-    parameters: Object.freeze(scenario.parameters),
-    repository: Object.freeze(scenario.repository),
+    parameters: deepFreeze(scenario.parameters),
+    repository: deepFreeze(scenario.repository),
     availableCommands: Object.freeze([...scenario.availableCommands]),
     objectives: Object.freeze([...scenario.objectives]),
     modifiers: Object.freeze([...scenario.modifiers]),
-    metadata: Object.freeze(scenario.metadata),
+    metadata: deepFreeze(scenario.metadata),
     enabledModifiers: Object.freeze([...scenario.enabledModifiers])
   });
+}
+
+function deepFreeze(value) {
+  if (!value || typeof value !== 'object' || Object.isFrozen(value)) return value;
+
+  Object.freeze(value);
+  for (const child of Object.values(value)) deepFreeze(child);
+
+  return value;
 }
