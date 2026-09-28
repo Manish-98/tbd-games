@@ -66,6 +66,31 @@ const reflogResult = recoveryRepo.execute({
 assert(reflogResult.ok, 'missing-feature recovery must expose the reflog through git reflog');
 const recoveryTarget = reflogResult.data[0]?.oldValue;
 assert(recoveryTarget, 'missing-feature reflog must expose the deleted branch commit');
+assert(
+  recovery.repository.commits.length === 9,
+  'missing-feature must provide enough history to make the recovery target non-obvious'
+);
+const recoveryIndex = recovery.repository.commitIds.indexOf(recoveryTarget);
+assert(
+  [3, 5, 7].includes(recoveryIndex),
+  'missing-feature recovery target must be selected from plausible feature commits'
+);
+assert(
+  !recovery.repository.commits[recoveryIndex].message.includes(recovery.parameters.branch.split('/')[1]),
+  'missing-feature recovery target must not be named after the missing branch'
+);
+const featureCommitCount = recovery.repository.commits.filter(commit => commit.tree[recovery.parameters.file]).length;
+assert(
+  featureCommitCount >= 4,
+  'missing-feature must contain multiple commits touching the feature area'
+);
+const releaseBeforeTarget = recovery.repository.commits
+  .slice(0, recoveryIndex)
+  .some(commit => commit.tree['release-notes.md'] || commit.tree['release-checklist.md']);
+const releaseAfterTarget = recovery.repository.commits
+  .slice(recoveryIndex + 1)
+  .some(commit => commit.tree['release-notes.md'] || commit.tree['release-checklist.md']);
+assert(releaseBeforeTarget && releaseAfterTarget, 'missing-feature target must be surrounded by unrelated release history');
 const recoveryResult = recoveryRepo.execute({
   type: 'branch',
   params: {
