@@ -199,9 +199,9 @@ function createInitialState(input, repo) {
     remotes: normalizeRemotes(input.remotes || {}),
     remoteTracking: clone(input.remoteTracking || {}),
     tags: clone(input.tags || {}),
-    conflicts: [],
-    reflog: [],
-    stash: [],
+    conflicts: clone(input.conflicts || []),
+    reflog: clone(input.reflog || []),
+    stash: clone(input.stash || []),
     commandHistory: []
   };
 }
