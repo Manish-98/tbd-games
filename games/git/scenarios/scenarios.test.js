@@ -80,8 +80,58 @@ const failed = evaluateScenario(first, {
 
 assert(!failed.complete, 'failed objectives must report an incomplete scenario');
 assert(
-  failed.results[0].unmet[0].expected === depth + 1,
+  failed.results[0].unmet[0].expected === first.parameters.depth + 1,
   'failed objectives must expose structured unmet conditions'
 );
 
 console.log('Git scenario framework tests passed.');
+
+
+const modifiedTemplate = defineScenarioTemplate({
+  id: 'modifier-check',
+  story: 'Test modifier support.',
+  availableCommands: ['status'],
+  modifiers: [{
+    id: 'extra-file',
+    apply(scenario) {
+      return {
+        ...scenario,
+        repository: {
+          ...scenario.repository,
+          files: {
+            ...scenario.repository.files,
+            'noise.txt': 'noise'
+          }
+        }
+      };
+    }
+  }],
+  generate() {
+    return {
+      repository: {
+        files: { 'README.md': '# Scenario' }
+      },
+      objectives: [createObjective({
+        id: 'repository-ready',
+        description: 'The repository contains the generated file.',
+        evaluate(state) {
+          return Boolean(state.workingTree['README.md']);
+        }
+      })]
+    };
+  }
+});
+
+const modified = generateScenario(modifiedTemplate, { seed: 'modifier' });
+
+assert(
+  modified.enabledModifiers[0] === 'extra-file',
+  'enabled modifiers must be recorded'
+);
+assert(
+  Object.isFrozen(modified.repository) &&
+  Object.isFrozen(modified.repository.files),
+  'generated repository data must be immutable'
+);
+
+console.log('Git scenario modifier tests passed.');
