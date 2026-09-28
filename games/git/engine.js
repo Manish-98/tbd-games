@@ -147,7 +147,17 @@ export function executeCommand(repository, command) {
     );
   }
 
-  const validation = validateCommand(repository.snapshot(), command);
+  const beforeValidation = repository.snapshot();
+  console.debug('[Git Debug] execute command', {
+    command,
+    head: beforeValidation.head,
+    branches: beforeValidation.branches,
+    commitIds: Object.keys(beforeValidation.commits),
+    headCommitExists: Boolean(beforeValidation.commits[beforeValidation.head?.commit])
+  });
+
+  const validation = validateCommand(beforeValidation, command);
+  console.debug('[Git Debug] validation result', validation);
 
   if (!validation.valid) {
     return {
@@ -220,15 +230,7 @@ function createInitialState(input, repo) {
       commit: headCommit
     },
     workingTree: clone(
-      input.workingTree || commitState[headCommit]?.tree || (() => {
-        console.error('[Git Debug] missing initial HEAD commit tree', {
-          headCommit,
-          headBranch,
-          branches,
-          commitIds: Object.keys(commitState)
-        });
-        return {};
-      })()
+      input.workingTree || commitState[headCommit].tree
     ),
     staging: clone(input.staging || {}),
     remotes: normalizeRemotes(input.remotes || {}),
