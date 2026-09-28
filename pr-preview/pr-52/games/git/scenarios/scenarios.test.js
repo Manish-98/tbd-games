@@ -290,4 +290,10 @@ assert(
   'Friday merge must create a two-parent merge commit.'
 );
 
+const fridayEvaluation = evaluateScenario(friday, fridayRepository.inspect());
+assert(
+  fridayEvaluation.complete,
+  'Friday merge scenario must complete after switching to main and merging feature.'
+);
+
 console.log('Git scenario framework tests passed.');

@@ -168,7 +168,7 @@ function createFridayMergeTemplate() {
           evaluate(state) {
             const head = state.commits[state.head.commit];
             const satisfied =
-              state.head.branch === 'feature' &&
+              state.head.branch === 'main' &&
               state.conflicts.length === 0 &&
               head?.parents?.includes(main) &&
               head?.parents?.includes(feature) &&
@@ -181,7 +181,7 @@ function createFridayMergeTemplate() {
                 id: 'both-sides-integrated',
                 description: 'The current branch must preserve both lines of development.',
                 expected: {
-                  parents: [feature, main],
+                  parents: [main, feature],
                   conflicts: 0,
                   files: [fileA, fileB]
                 },
