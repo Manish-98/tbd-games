@@ -1,4 +1,5 @@
 import { createRandom } from './random.js';
+import { COMMANDS } from '../constants.js';
 import { createObjective, evaluateObjectives } from './objectives.js';
 
 const REQUIRED_TEMPLATE_FIELDS = Object.freeze([
@@ -24,9 +25,9 @@ export function defineScenarioTemplate(definition) {
 
   const template = {
     ...definition,
-    objectives: [...(definition.objectives || [])],
-    modifiers: [...(definition.modifiers || [])],
-    availableCommands: [...(definition.availableCommands || [])]
+    objectives: Object.freeze([...(definition.objectives || [])]),
+    modifiers: Object.freeze([...(definition.modifiers || [])]),
+    availableCommands: Object.freeze([...(definition.availableCommands || [])])
   };
 
   return Object.freeze(template);
@@ -141,6 +142,12 @@ function validateScenario(scenario) {
 
   if (!Array.isArray(scenario.availableCommands)) {
     throw new TypeError('Scenario availableCommands must be an array.');
+  }
+
+  for (const command of scenario.availableCommands) {
+    if (!COMMANDS.includes(command)) {
+      throw new RangeError('Unsupported scenario command: ' + command);
+    }
   }
 
   if (!Array.isArray(scenario.objectives) || !scenario.objectives.length) {
