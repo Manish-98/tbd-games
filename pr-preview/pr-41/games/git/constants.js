@@ -62,6 +62,12 @@ export const CONFLICT_MARKERS = Object.freeze({
   END: '>>>>>>> incoming'
 });
 
+export const COMMIT_MESSAGES = Object.freeze({
+  MERGE_PREFIX: 'Merge branch ',
+  REVERT_PREFIX: 'Revert "',
+  REVERT_SUFFIX: '"'
+});
+
 export const OPERATION_TYPES = Object.freeze({
   STAGE: 'stage',
   COMMIT: 'commit',
