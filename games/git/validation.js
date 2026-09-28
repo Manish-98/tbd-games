@@ -103,8 +103,25 @@ function validateBranchCommand(state, params) {
 }
 
 function validateSwitchCommand(state, params) {
-  if (!state.branches[params.branch]) {
+  const targetCommit = state.branches[params.branch];
+
+  console.debug('[Git Debug] switch validation', {
+    branch: params.branch,
+    targetCommit,
+    targetExists: Boolean(state.commits[targetCommit]),
+    head: state.head,
+    commitIds: Object.keys(state.commits)
+  });
+
+  if (!targetCommit) {
     return invalid(ERROR_CODES.UNKNOWN_BRANCH, `Unknown branch: ${params.branch}`);
+  }
+
+  if (!state.commits[targetCommit]) {
+    return invalid(
+      ERROR_CODES.UNKNOWN_COMMIT,
+      `Branch ${params.branch} points to an unknown commit.`
+    );
   }
 
   if (hasChanges(state)) {
@@ -179,14 +196,40 @@ function validateStashCommand(state, params) {
 }
 
 function validateBranchOperation(state, params, type) {
-  if (!state.branches[params.branch]) {
+  const targetCommit = state.branches[params.branch];
+
+  console.debug('[Git Debug] branch operation validation', {
+    type,
+    branch: params.branch,
+    targetCommit,
+    targetExists: Boolean(state.commits[targetCommit]),
+    head: state.head,
+    headExists: Boolean(state.commits[state.head?.commit]),
+    commitIds: Object.keys(state.commits)
+  });
+
+  if (!targetCommit) {
     return invalid(ERROR_CODES.UNKNOWN_BRANCH, `Unknown branch: ${params.branch}`);
+  }
+
+  if (!state.commits[targetCommit]) {
+    return invalid(
+      ERROR_CODES.UNKNOWN_COMMIT,
+      `Branch ${params.branch} points to an unknown commit.`
+    );
   }
 
   if (state.head.type !== 'branch') {
     return invalid(
       ERROR_CODES.DETACHED_HEAD,
       `${type} requires HEAD to be attached to a branch.`
+    );
+  }
+
+  if (!state.commits[state.head.commit]) {
+    return invalid(
+      ERROR_CODES.UNKNOWN_COMMIT,
+      'HEAD points to an unknown commit.'
     );
   }
 

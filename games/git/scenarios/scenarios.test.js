@@ -4,6 +4,7 @@ import {
   createObjective,
   defineScenarioTemplate,
   evaluateScenario,
+  generateRegisteredScenario,
   generateScenario
 } from './index.js';
 
@@ -265,6 +266,34 @@ assertThrows(
   () => random.boolean(1.1),
   RangeError,
   'probability above one must be rejected'
+);
+
+
+const friday = generateRegisteredScenario('friday-afternoon-merge', {
+  seed: 'friday-merge-regression'
+});
+const fridayRepository = createGitEngine(friday.repository);
+
+const switchResult = fridayRepository.execute({
+  type: 'switch',
+  params: { branch: 'main' }
+});
+assert(switchResult.ok, 'Friday merge scenario must allow switching to main.');
+
+const mergeResult = fridayRepository.execute({
+  type: 'merge',
+  params: { branch: 'feature' }
+});
+assert(mergeResult.ok, 'Friday merge scenario must allow merging feature into main.');
+assert(
+  mergeResult.data?.commit?.parents?.length === 2,
+  'Friday merge must create a two-parent merge commit.'
+);
+
+const fridayEvaluation = evaluateScenario(friday, fridayRepository.inspect());
+assert(
+  fridayEvaluation.complete,
+  'Friday merge scenario must complete after switching to main and merging feature.'
 );
 
 console.log('Git scenario framework tests passed.');

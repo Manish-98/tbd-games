@@ -39,6 +39,15 @@ function switchBranch(repo, params) {
   const previousCommit = state.head.commit;
   const nextCommit = state.branches[params.branch];
 
+  console.error('[Git Debug] switch operation', {
+    branch: params.branch,
+    previousCommit,
+    nextCommit,
+    previousExists: Boolean(state.commits[previousCommit]),
+    nextExists: Boolean(state.commits[nextCommit]),
+    commitIds: Object.keys(state.commits)
+  });
+
   state.head = {
     type: 'branch',
     branch: params.branch,
@@ -58,13 +67,25 @@ function switchBranch(repo, params) {
 }
 
 export function mergeForPull(repo, branch) {
-  return merge(repo, branch);
+  return merge(repo, { branch });
 }
 
-function merge(repo, branch) {
+function merge(repo, params) {
   const state = stateOf(repo);
+  const branch = params.branch;
   const ours = state.head.commit;
   const theirs = state.branches[branch];
+
+  console.error('[Git Debug] merge operation', {
+    branch,
+    ours,
+    theirs,
+    oursExists: Boolean(state.commits[ours]),
+    theirsExists: Boolean(state.commits[theirs]),
+    commitIds: Object.keys(state.commits),
+    oursTree: state.commits[ours]?.tree,
+    theirsTree: state.commits[theirs]?.tree
+  });
 
   if (isAncestor(state.commits, ours, theirs)) {
     moveHead(repo, theirs);
@@ -78,10 +99,26 @@ function merge(repo, branch) {
   }
 
   const base = findMergeBase(state.commits, ours, theirs);
+  const oursCommit = state.commits[ours];
+  const theirsCommit = state.commits[theirs];
+
+  console.error('[Git Debug] merge tree inputs', {
+    ours,
+    theirs,
+    base,
+    commitKeys: Object.keys(state.commits),
+    oursKeyExists: Object.prototype.hasOwnProperty.call(state.commits, ours),
+    theirsKeyExists: Object.prototype.hasOwnProperty.call(state.commits, theirs),
+    baseKeyExists: base ? Object.prototype.hasOwnProperty.call(state.commits, base) : false,
+    oursCommit,
+    theirsCommit,
+    baseCommit: base ? state.commits[base] : null
+  });
+
   const result = mergeTrees(
     state.commits[base]?.tree || {},
-    state.commits[ours].tree,
-    state.commits[theirs].tree
+    oursCommit.tree,
+    theirsCommit.tree
   );
 
   state.workingTree = clone(result.tree);
@@ -111,8 +148,9 @@ function merge(repo, branch) {
   });
 }
 
-function rebase(repo, branch) {
+function rebase(repo, params) {
   const state = stateOf(repo);
+  const branch = params.branch;
   const current = state.head.commit;
   const target = state.branches[branch];
 

@@ -59,7 +59,38 @@ for (const template of templates) {
 
 const recovery = generateRegisteredScenario('missing-feature', { seed: 'recovery' });
 const recoveryRepo = createGitEngine(recovery.repository);
-const recoveryTarget = recoveryRepo.inspect().reflog[0].oldValue;
+const reflogResult = recoveryRepo.execute({
+  type: 'reflog',
+  params: {}
+});
+assert(reflogResult.ok, 'missing-feature recovery must expose the reflog through git reflog');
+const recoveryTarget = reflogResult.data[0]?.oldValue;
+assert(recoveryTarget, 'missing-feature reflog must expose the deleted branch commit');
+assert(
+  recovery.repository.commits.length === 9,
+  'missing-feature must provide enough history to make the recovery target non-obvious'
+);
+const recoveryIndex = recovery.repository.commitIds.indexOf(recoveryTarget);
+assert(
+  [3, 6, 7].includes(recoveryIndex),
+  'missing-feature recovery target must be selected from plausible feature commits'
+);
+assert(
+  !recovery.repository.commits[recoveryIndex].message.includes(recovery.parameters.branch.split('/')[1]),
+  'missing-feature recovery target must not be named after the missing branch'
+);
+const featureCommitCount = recovery.repository.commits.filter(commit => commit.tree[recovery.parameters.file]).length;
+assert(
+  featureCommitCount >= 4,
+  'missing-feature must contain multiple commits touching the feature area'
+);
+const releaseBeforeTarget = recovery.repository.commits
+  .slice(0, recoveryIndex)
+  .some(commit => commit.tree['release-notes.md'] || commit.tree['release-checklist.md']);
+const releaseAfterTarget = recovery.repository.commits
+  .slice(recoveryIndex + 1)
+  .some(commit => commit.tree['release-notes.md'] || commit.tree['release-checklist.md']);
+assert(releaseBeforeTarget && releaseAfterTarget, 'missing-feature target must be surrounded by unrelated release history');
 const recoveryResult = recoveryRepo.execute({
   type: 'branch',
   params: {
@@ -68,8 +99,13 @@ const recoveryResult = recoveryRepo.execute({
   }
 });
 assert(recoveryResult.ok, 'missing-feature must be completable with branch recovery');
+const recoveredState = recoveryRepo.inspect();
 assert(
-  evaluateScenario(recovery, recoveryRepo.inspect()).complete,
+  recoveredState.branches[recovery.parameters.branch] === recoveryTarget,
+  'missing-feature recovery branch must point to the reflog commit'
+);
+assert(
+  evaluateScenario(recovery, recoveredState).complete,
   'missing-feature objective must pass after recovery'
 );
 
@@ -109,8 +145,19 @@ const pullResult = teammateRepo.execute({
   params: { remote: 'origin' }
 });
 assert(pullResult.ok, 'teammate-got-there-first must allow remote reconciliation');
+const reconciled = teammateRepo.inspect();
+const reconciledHead = reconciled.commits[reconciled.head.commit];
 assert(
-  evaluateScenario(teammate, teammateRepo.inspect()).complete,
+  reconciled.head.branch === 'main',
+  'teammate-got-there-first pull must keep HEAD on main'
+);
+assert(
+  reconciledHead?.parents?.includes(remoteTip) &&
+    reconciledHead.parents.includes(teammate.repository.branches.main),
+  'teammate-got-there-first pull must create a merge commit containing both tips'
+);
+assert(
+  evaluateScenario(teammate, reconciled).complete,
   'teammate-got-there-first objective must pass after reconciliation'
 );
 

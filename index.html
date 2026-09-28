@@ -14,6 +14,7 @@
     <link rel="stylesheet" href="games/turtle/styles.css" />
     <link rel="stylesheet" href="games/cellular/styles.css" />
     <link rel="stylesheet" href="games/wiki-galaxy/styles.css" />
+    <link rel="stylesheet" href="games/git/styles.css" />
     <script src="script.js" type="module"></script>
   </head>
   <body>
@@ -118,6 +119,12 @@
           </div>
           <div class="game-about-view" data-game-about hidden></div>
           <div class="cellular-view" id="cellular-view" data-game-view></div>
+        </section>
+
+        <section class="git-game" id="git-game" aria-labelledby="git-heading" hidden>
+          <div class="git-topline"><div><p class="section-label">Git game / 06</p><h2 id="git-heading">Git Troubleshooter</h2></div><button class="text-button" data-close-game type="button">Back to lobby</button></div>
+          <div class="git-tabs" role="tablist" aria-label="Git game modes"><button class="game-about-tab active" type="button" role="tab" aria-selected="true" data-game-mode="about">About</button><button class="git-tab" type="button" role="tab" aria-selected="false" data-game-mode="play">Troubleshoot</button></div>
+          <div class="game-about-view" data-game-about hidden></div><div class="git-view" id="git-view" data-game-view><div data-git-scenario></div><div data-git-command></div><div class="git-visualization-host" data-git-visualization></div></div>
         </section>
 
         <section class="wiki-galaxy-game" id="wiki-galaxy-game" aria-labelledby="wiki-galaxy-heading" hidden>

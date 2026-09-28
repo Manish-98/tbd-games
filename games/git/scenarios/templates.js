@@ -43,26 +43,57 @@ function createMissingFeatureTemplate() {
       const branch = random.pick(BRANCH_NAMES);
       const file = random.pick(FILES);
       const author = random.pick(AUTHORS);
-      const repository = createGraph(random, [
+      const definitions = [
         {
           message: 'Initial repository setup',
           changes: { 'README.md': '# Release' },
           author
         },
         {
-          message: 'Build ' + branch.split('/')[1],
-          changes: { [file]: 'feature work' },
+          message: 'Update dependency configuration',
+          changes: { 'package.json': 'release baseline' },
+          author: random.pick(AUTHORS)
+        },
+        {
+          message: 'Refresh release notes',
+          changes: { 'release-notes.md': 'Release preparation' },
+          author: random.pick(AUTHORS)
+        },
+        {
+          message: 'Refine request flow',
+          changes: { [file]: 'request flow' },
           author
         },
         {
-          message: 'Prepare unrelated release work',
-          changes: { 'release-notes.md': 'Release preparation' },
+          message: 'Adjust validation rules',
+          changes: { [file]: 'validation rules' },
+          author: random.pick(AUTHORS)
+        },
+        {
+          message: 'Prepare release artifacts',
+          changes: { 'release-checklist.md': 'Release checklist' },
+          author: random.pick(AUTHORS)
+        },
+        {
+          message: 'Tune error handling',
+          changes: { [file]: 'error handling' },
+          author
+        },
+        {
+          message: 'Polish request flow',
+          changes: { [file]: 'request flow polish' },
+          author
+        },
+        {
+          message: 'Finalize release notes',
+          changes: { 'release-notes.md': 'Release ready' },
           author: random.pick(AUTHORS)
         }
-      ]);
-
-      const target = repository.commitIds[1];
-      const main = repository.commitIds[2];
+      ];
+      const targetIndex = random.pick([3, 6, 7]);
+      const repository = createGraph(random, definitions);
+      const target = repository.commitIds[targetIndex];
+      const main = repository.commitIds[repository.commitIds.length - 1];
 
       return {
         story:
@@ -71,7 +102,7 @@ function createMissingFeatureTemplate() {
         parameters: { branch, file },
         repository: {
           ...repository.input,
-          branches: { main, },
+          branches: { main },
           headBranch: 'main',
           reflog: [{
             id: 1,
@@ -141,6 +172,14 @@ function createFridayMergeTemplate() {
       const main = repository.commitIds[1];
       const feature = repository.commitIds[2];
 
+      console.debug('[Git Debug] generated friday-afternoon-merge scenario', {
+        seed: repository.input.seed,
+        commitIds: repository.commitIds,
+        commits: repository.input.commits,
+        branches: { main, feature },
+        headBranch: 'feature'
+      });
+
       return {
         story:
           'It is Friday afternoon. Two developers changed related parts of the release. ' +
@@ -160,7 +199,7 @@ function createFridayMergeTemplate() {
           evaluate(state) {
             const head = state.commits[state.head.commit];
             const satisfied =
-              state.head.branch === 'feature' &&
+              state.head.branch === 'main' &&
               state.conflicts.length === 0 &&
               head?.parents?.includes(main) &&
               head?.parents?.includes(feature) &&
@@ -173,7 +212,7 @@ function createFridayMergeTemplate() {
                 id: 'both-sides-integrated',
                 description: 'The current branch must preserve both lines of development.',
                 expected: {
-                  parents: [feature, main],
+                  parents: [main, feature],
                   conflicts: 0,
                   files: [fileA, fileB]
                 },
