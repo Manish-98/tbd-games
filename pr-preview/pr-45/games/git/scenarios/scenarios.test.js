@@ -1,4 +1,5 @@
 import { createGitEngine } from '../engine.js';
+import { createRandom } from './random.js';
 import {
   createObjective,
   defineScenarioTemplate,
@@ -8,6 +9,17 @@ import {
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
+}
+
+function assertThrows(callback, expectedError, message) {
+  try {
+    callback();
+  } catch (error) {
+    assert(error instanceof expectedError, message);
+    return;
+  }
+
+  throw new Error(message);
 }
 
 const template = defineScenarioTemplate({
@@ -84,9 +96,6 @@ assert(
   'failed objectives must expose structured unmet conditions'
 );
 
-console.log('Git scenario framework tests passed.');
-
-
 const modifiedTemplate = defineScenarioTemplate({
   id: 'modifier-check',
   story: 'Test modifier support.',
@@ -122,11 +131,22 @@ const modifiedTemplate = defineScenarioTemplate({
   }
 });
 
-const modified = generateScenario(modifiedTemplate, { seed: 'modifier' });
+const unmodified = generateScenario(modifiedTemplate, { seed: 'modifier' });
+assert(
+  unmodified.enabledModifiers.length === 0 &&
+  !unmodified.repository.files['noise.txt'],
+  'modifiers must be opt-in'
+);
+
+const modified = generateScenario(modifiedTemplate, {
+  seed: 'modifier',
+  modifiers: ['extra-file']
+});
 
 assert(
-  modified.enabledModifiers[0] === 'extra-file',
-  'enabled modifiers must be recorded'
+  modified.enabledModifiers[0] === 'extra-file' &&
+  modified.repository.files['noise.txt'] === 'noise',
+  'explicitly enabled modifiers must be applied'
 );
 assert(
   Object.isFrozen(modified.repository) &&
@@ -134,4 +154,117 @@ assert(
   'generated repository data must be immutable'
 );
 
-console.log('Git scenario modifier tests passed.');
+assertThrows(
+  () => generateScenario(modifiedTemplate, { modifiers: 'extra-file' }),
+  TypeError,
+  'modifier selections must be arrays'
+);
+assertThrows(
+  () => generateScenario(modifiedTemplate, { modifiers: ['unknown'] }),
+  RangeError,
+  'unknown modifiers must be rejected'
+);
+
+assertThrows(
+  () => defineScenarioTemplate({
+    id: 'invalid-commands',
+    story: 'Invalid command collection.',
+    availableCommands: {},
+    generate() {
+      return {};
+    }
+  }),
+  TypeError,
+  'template command collections must be arrays'
+);
+
+assertThrows(
+  () => defineScenarioTemplate({
+    id: 'invalid-objectives',
+    story: 'Invalid objective collection.',
+    objectives: {},
+    generate() {
+      return {};
+    }
+  }),
+  TypeError,
+  'template objective collections must be arrays'
+);
+
+assertThrows(
+  () => defineScenarioTemplate({
+    id: 'invalid-modifiers',
+    story: 'Invalid modifier collection.',
+    modifiers: {},
+    generate() {
+      return {};
+    }
+  }),
+  TypeError,
+  'template modifier collections must be arrays'
+);
+
+assertThrows(
+  () => defineScenarioTemplate({
+    id: 'invalid-command',
+    story: 'Unsupported command.',
+    availableCommands: ['not-a-command'],
+    generate() {
+      return {};
+    }
+  }),
+  RangeError,
+  'unsupported template commands must be rejected'
+);
+
+assertThrows(
+  () => defineScenarioTemplate({
+    id: 'invalid-objective',
+    story: 'Invalid objective.',
+    objectives: [{}],
+    generate() {
+      return {};
+    }
+  }),
+  TypeError,
+  'invalid template objectives must be rejected'
+);
+
+assertThrows(
+  () => defineScenarioTemplate({
+    id: 'invalid-modifier',
+    story: 'Invalid modifier.',
+    modifiers: [{}],
+    generate() {
+      return {};
+    }
+  }),
+  TypeError,
+  'invalid template modifiers must be rejected'
+);
+
+const random = createRandom('validation');
+assert(random.boolean(0), 'zero probability must always be false');
+assert(random.boolean(1), 'one probability must always be true');
+assertThrows(
+  () => random.boolean(NaN),
+  RangeError,
+  'NaN probability must be rejected'
+);
+assertThrows(
+  () => random.boolean('0.5'),
+  RangeError,
+  'non-numeric probability must be rejected'
+);
+assertThrows(
+  () => random.boolean(-0.1),
+  RangeError,
+  'negative probability must be rejected'
+);
+assertThrows(
+  () => random.boolean(1.1),
+  RangeError,
+  'probability above one must be rejected'
+);
+
+console.log('Git scenario framework tests passed.');
