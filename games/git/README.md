@@ -2,6 +2,19 @@
 
 The Git game engine is intentionally independent of the DOM, scenario templates, and rendering.
 
+## Module boundaries
+
+The engine is split by responsibility:
+
+- `constants.js` — command names and domain defaults
+- `utils.js` — immutable tree helpers, graph traversal, ref validation, and deterministic IDs
+- `validation.js` — command parameter validation and normalized command input
+- `operations.js` — Git state transitions and read models
+- `engine.js` — repository lifecycle, command orchestration, and public API
+- `engine.test.js` — framework-free behavioral smoke tests
+
+This keeps Git algorithms out of command parsing and keeps UI/scenario concerns out of the state layer.
+
 ## Repository model
 
 The state model represents:
@@ -22,20 +35,20 @@ Commit IDs are deterministic for a given seed and generated input, which makes s
 
 Commands are structured data, for example:
 
-\`\`\`js
+```js
 {
   type: 'switch',
   params: { branch: 'feature' }
 }
-\`\`\`
+```
 
-validateCommand(state, command) handles parameter validation before execution. executeCommand(repository, command) then distinguishes validation failures from Git-level failures and successful state transitions.
+`validateCommand(state, command)` normalizes and validates command parameters before execution. `executeCommand(repository, command)` then dispatches the validated command to a read or write operation and distinguishes validation failures from Git-level failures.
 
 No arbitrary shell command or free-form Git string is executed.
 
 ## Supported command families
 
-The first engine implementation covers:
+The engine covers:
 
 - inspection: status, log, show, diff, reflog
 - everyday work: add, commit, branch, switch, merge
@@ -43,8 +56,8 @@ The first engine implementation covers:
 - remotes: fetch, pull, push
 - temporary work: stash
 
-The command list is data-driven so later issues can add specialized operations without coupling them to UI code.
+New command behavior should be added by extending validation and operation modules rather than growing the repository orchestration layer.
 
 ## Reset and state inspection
 
-reset() restores the exact generated repository snapshot. snapshot() returns a cloned state suitable for visualization or objective evaluation without exposing mutable engine internals.
+`reset()` restores the generated repository snapshot **and its deterministic ID sequences**. `snapshot()` / `inspect()` return cloned state suitable for visualization or objective evaluation without exposing mutable engine state through the returned object.
