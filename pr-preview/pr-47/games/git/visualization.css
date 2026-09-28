@@ -40,6 +40,10 @@
 .git-ref-kind.remote-branch { background: var(--lavender); }
 .git-remote-panel { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--line); }
 .git-remote-group { margin-top: 12px; }
+.git-remote-commits { display: grid; gap: 4px; margin-top: 10px; }
+.git-remote-commits > span { color: var(--muted); font-size: .6rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.git-remote-commit { width: fit-content; padding: 3px 6px; border: 0; background: transparent; color: var(--muted); cursor: pointer; text-align: left; }
+.git-remote-commit:hover, .git-remote-commit:focus { background: var(--yellow); color: var(--ink); outline: 0; }
 .git-remote-group.git-visualization-changed { padding: 8px; border: 1px solid var(--line); }
 .git-remote-group.git-visualization-changed .git-panel-heading { border-bottom: 0; }
 
