@@ -42,6 +42,7 @@ export class GitRepository {
     setRepositoryState(this, { commits: {} });
 
     this.#initialState = createInitialState(input, this);
+    this.#reflogSequence = nextReflogSequence(this.#initialState.reflog);
     this.#initialCommitSequence = this.#commitSequence;
     this.#initialReflogSequence = this.#reflogSequence;
     this.#initialClockSequence = this.#clock.snapshot();
@@ -199,9 +200,9 @@ function createInitialState(input, repo) {
     remotes: normalizeRemotes(input.remotes || {}),
     remoteTracking: clone(input.remoteTracking || {}),
     tags: clone(input.tags || {}),
-    conflicts: [],
-    reflog: [],
-    stash: [],
+    conflicts: clone(input.conflicts || []),
+    reflog: clone(input.reflog || []),
+    stash: clone(input.stash || []),
     commandHistory: []
   };
 }
@@ -256,6 +257,13 @@ function createBranches(input, defaultCommit) {
     [defaultBranch]: defaultCommit,
     ...clone(input.branches || {})
   };
+}
+
+function nextReflogSequence(reflog) {
+  return reflog.reduce(
+    (next, entry) => Math.max(next, Number(entry.id) + 1),
+    1
+  );
 }
 
 function executionError(code, message) {

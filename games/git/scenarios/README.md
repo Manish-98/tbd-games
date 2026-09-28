@@ -70,3 +70,27 @@ The framework applies only requested modifiers. By default, no template modifier
 A scenario is immutable after generation. To regenerate or reset, call `generateScenario()` again with the same seed or another explicit seed, then create a fresh `GitRepository` from `scenario.repository`.
 
 This keeps scenario generation independent from repository execution and rendering.
+
+
+## Registered scenarios
+
+The initial playable scenario set is registered in `registry.js`:
+
+- **The Missing Feature** — recover a deleted feature branch from repository history.
+- **Friday Afternoon Merge** — integrate two cleanly divergent lines of development.
+- **Make This PR Presentable** — rebase a feature history onto an updated target branch.
+- **Your Teammate Got There First** — reconcile local work with an advanced remote branch.
+
+Each template randomizes repository details and exposes only commands currently supported by the engine. Scenario objectives inspect repository state rather than prescribing a command sequence.
+
+The scenario registry is UI-independent:
+
+~~~js
+import { generateRegisteredScenario } from './registry.js';
+
+const scenario = generateRegisteredScenario('missing-feature', {
+  seed: 'example-seed'
+});
+~~~
+
+The generated `repository` can be passed directly to `createGitEngine()`. Resetting a scenario means creating a fresh engine from the same immutable generated repository; regenerating with another seed creates a new instance.
