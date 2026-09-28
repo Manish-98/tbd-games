@@ -254,11 +254,18 @@ function renderRemotes(state, changed) {
       }).join('')
       : '<p class="git-empty">No remote branches.</p>';
 
-    const commitCount = Object.keys(remote.commits || {}).length;
+    const commitEntries = Object.entries(remote.commits || {});
+    const commitCount = commitEntries.length;
+    const commitRows = commitEntries.length
+      ? '<div class="git-remote-commits"><span>Commits</span>' + commitEntries.map(([commitId]) =>
+        '<button class="git-remote-commit" type="button" data-inspect-kind="remote-commit" data-inspect-id="' +
+        escapeHtml(name + '/' + commitId) + '"><code>' + escapeHtml(shortId(commitId)) + '</code></button>'
+      ).join('') + '</div>'
+      : '';
     return '<div class="git-remote-group' +
       (changed.remotes.has(name) ? ' git-visualization-changed' : '') + '"><div class="git-panel-heading"><span class="section-label">' +
       'Remote · ' + escapeHtml(name) + '</span><strong>' + commitCount + ' commits</strong></div>' +
-      '<div class="git-ref-list">' + branchRows + '</div></div>';
+      '<div class="git-ref-list">' + branchRows + '</div>' + commitRows + '</div>';
   }).join('');
 
   return '<div class="git-remote-panel"><div class="git-panel-heading"><span class="section-label">' +
@@ -282,6 +289,21 @@ function renderInspection(kind, item) {
       '<dt>Name</dt><dd>' + escapeHtml(item.name) + '</dd><dt>Target</dt><dd><code>' +
       escapeHtml(item.commit) + '</code></dd><dt>Tracking</dt><dd>' +
       escapeHtml(item.tracking || 'No tracking branch') + '</dd></dl>';
+  }
+
+  if (kind === 'remote-commit') {
+    const separator = id.indexOf('/');
+    const remoteName = id.slice(0, separator);
+    const commitId = id.slice(separator + 1);
+    return state.remotes[remoteName]?.commits?.[commitId] || null;
+  }
+  if (kind === 'remote-commit') {
+    return '<div class="git-inspection-heading"><span class="section-label">Remote commit</span></div><dl>' +
+      '<dt>ID</dt><dd><code>' + escapeHtml(item.id) + '</code></dd>' +
+      '<dt>Message</dt><dd>' + escapeHtml(item.message) + '</dd>' +
+      '<dt>Parents</dt><dd>' + escapeHtml(item.parents.join(', ') || 'None') + '</dd>' +
+      '<dt>Author</dt><dd>' + escapeHtml(formatAuthor(item.author)) + '</dd>' +
+      '<dt>Date</dt><dd>' + escapeHtml(item.date || 'Unknown') + '</dd></dl>';
   }
 
   if (kind === 'remote-branch') {
