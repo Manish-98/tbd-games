@@ -39,7 +39,7 @@ function switchBranch(repo, params) {
   const previousCommit = state.head.commit;
   const nextCommit = state.branches[params.branch];
 
-  console.debug('[Git Debug] switch operation', {
+  console.error('[Git Debug] switch operation', {
     branch: params.branch,
     previousCommit,
     nextCommit,
@@ -75,7 +75,7 @@ function merge(repo, branch) {
   const ours = state.head.commit;
   const theirs = state.branches[branch];
 
-  console.debug('[Git Debug] merge operation', {
+  console.error('[Git Debug] merge operation', {
     branch,
     ours,
     theirs,
@@ -101,7 +101,7 @@ function merge(repo, branch) {
   const oursCommit = state.commits[ours];
   const theirsCommit = state.commits[theirs];
 
-  console.debug('[Git Debug] merge tree inputs', {
+  console.error('[Git Debug] merge tree inputs', {
     ours,
     theirs,
     base,
