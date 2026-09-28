@@ -48,13 +48,17 @@ export function generateScenario(template, options = {}) {
   });
 
   const scenario = applyModifiers(
-    normalizeGeneratedScenario(normalizedTemplate, generated, seed),
+    normalizeGeneratedScenario(
+      normalizedTemplate,
+      generated,
+      seed,
+      enabledModifiers.map(modifier => modifier.id)
+    ),
     enabledModifiers
   );
 
   validateScenario(scenario);
 
-  scenario.enabledModifiers = enabledModifiers.map(modifier => modifier.id);
   return freezeScenario(scenario);
 }
 
@@ -64,7 +68,7 @@ export function evaluateScenario(scenario, repositoryState) {
   return evaluateObjectives(scenario, repositoryState);
 }
 
-function normalizeGeneratedScenario(template, generated, seed) {
+function normalizeGeneratedScenario(template, generated, seed, enabledModifiers) {
   if (!generated || typeof generated !== 'object') {
     throw new TypeError('Scenario templates must return an object.');
   }
@@ -82,7 +86,7 @@ function normalizeGeneratedScenario(template, generated, seed) {
       generated.completionExplanation ?? template.completionExplanation ?? '',
     concept: generated.concept ?? template.concept ?? null,
     modifiers: generated.modifiers || [],
-    enabledModifiers: [],
+    enabledModifiers,
     metadata: generated.metadata || {}
   };
 }
