@@ -59,7 +59,13 @@ for (const template of templates) {
 
 const recovery = generateRegisteredScenario('missing-feature', { seed: 'recovery' });
 const recoveryRepo = createGitEngine(recovery.repository);
-const recoveryTarget = recoveryRepo.inspect().reflog[0].oldValue;
+const reflogResult = recoveryRepo.execute({
+  type: 'reflog',
+  params: {}
+});
+assert(reflogResult.ok, 'missing-feature recovery must expose the reflog through git reflog');
+const recoveryTarget = reflogResult.data[0]?.oldValue;
+assert(recoveryTarget, 'missing-feature reflog must expose the deleted branch commit');
 const recoveryResult = recoveryRepo.execute({
   type: 'branch',
   params: {
@@ -68,8 +74,13 @@ const recoveryResult = recoveryRepo.execute({
   }
 });
 assert(recoveryResult.ok, 'missing-feature must be completable with branch recovery');
+const recoveredState = recoveryRepo.inspect();
 assert(
-  evaluateScenario(recovery, recoveryRepo.inspect()).complete,
+  recoveredState.branches[recovery.parameters.branch] === recoveryTarget,
+  'missing-feature recovery branch must point to the reflog commit'
+);
+assert(
+  evaluateScenario(recovery, recoveredState).complete,
   'missing-feature objective must pass after recovery'
 );
 
