@@ -28,6 +28,14 @@ function sameSnapshot(left, right, message) {
 export function runGitEngineTests() {
   const input = {
     seed: 'engine-test',
+    reflog: [{
+      id: 7,
+      ref: 'refs/heads/recovered',
+      oldValue: 'abc123',
+      newValue: null,
+      reason: 'branch deleted',
+      timestamp: '2000-01-01T00:00:00.000Z'
+    }],
     files: {
       'README.md': '# Test',
       'app.js': 'old'
@@ -44,6 +52,10 @@ export function runGitEngineTests() {
   const initialHead = initial.head.commit;
 
   assert(initial.branches.main === initialHead, 'main should point at HEAD');
+  assert(
+    initial.reflog[0].ref === 'refs/heads/recovered',
+    'repository fixtures should preserve seeded reflog entries'
+  );
   assert(
     initial.workingTree['app.js'] === 'new',
     'working tree should preserve the supplied fixture'
