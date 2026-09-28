@@ -200,6 +200,12 @@ function testExecutionHistoryAndReset() {
   const history = controller.getHistory();
   assert(history.length === 1, 'Read-only commands should appear in command history.');
   assert(history[0].display === 'git status', 'History should contain a readable command.');
+  assert(result.data?.head, 'Read-only command results should remain available to the UI.');
+
+  controller.selectCommand('reflog');
+  const reflogResult = controller.execute();
+  assert(reflogResult.ok, 'A valid reflog command should execute.');
+  assert(Array.isArray(reflogResult.data), 'Reflog execution should return structured inspection data.');
 
   controller.selectCommand('log');
   controller.setParameter('limit', 1);
