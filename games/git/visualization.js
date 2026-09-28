@@ -369,8 +369,8 @@ function getChangedItems(state, previousState) {
   compareRefs(state.remoteTracking, previousState.remoteTracking, 'remote', changed.refs);
   compareRefs(state.tags, previousState.tags, 'tag', changed.refs);
   compareRemoteState(state.remotes, previousState.remotes, changed);
-  compareFileSets(getWorkingFiles(previousState), getWorkingFiles(state), changed.working);
-  compareFileSets(Object.keys(previousState.staging || {}), Object.keys(state.staging || {}), changed.staging);
+  compareObjectValues(getWorkingChanges(previousState), getWorkingChanges(state), changed.working);
+  compareObjectValues(previousState.staging || {}, state.staging || {}, changed.staging);
   compareFileSets(previousState.conflicts || [], state.conflicts || [], changed.conflicts);
 
   changed.head = previousState.head.type !== state.head.type ||
@@ -412,9 +412,16 @@ function compareFileSets(previousFiles, currentFiles, changed) {
   });
 }
 
-function getWorkingFiles(state) {
+function compareObjectValues(previous, current, changed) {
+  const keys = new Set([...Object.keys(previous), ...Object.keys(current)]);
+  keys.forEach(key => {
+    if (JSON.stringify(previous[key]) !== JSON.stringify(current[key])) changed.add(key);
+  });
+}
+
+function getWorkingChanges(state) {
   const headTree = state.commits[state.head.commit]?.tree || {};
-  return diffTrees(headTree, state.workingTree || {}).map(change => change.file);
+  return Object.fromEntries(diffTrees(headTree, state.workingTree || {}).map(change => [change.file, change]));
 }
 
 function getInspectableItem(state, kind, id) {
