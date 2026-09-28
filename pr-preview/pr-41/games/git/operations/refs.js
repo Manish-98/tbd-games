@@ -1,4 +1,4 @@
-import { OPERATION_TYPES } from '../constants.js';
+import { COMMIT_MESSAGES, CONFLICT_MARKERS, OPERATION_TYPES, REF_PREFIX } from '../constants.js';
 import { clone, findMergeBase, firstParentPath, isAncestor, diffTrees, applyPatch } from '../utils.js';
 import {
   stateOf,
@@ -46,7 +46,7 @@ function switchBranch(repo, params) {
   };
   state.workingTree = clone(state.commits[nextCommit].tree);
   state.staging = {};
-  repo.refChange('HEAD', previousCommit, nextCommit, `switch: ${params.branch}`);
+  repo.refChange(REF_PREFIX.HEAD, previousCommit, nextCommit, `switch: ${params.branch}`);
 
   return success({
     head: clone(state.head),
@@ -96,7 +96,7 @@ function merge(repo, branch) {
   }
 
   const commit = repo.createCommit({
-    message: `Merge branch ${branch}`,
+    message: `${COMMIT_MESSAGES.MERGE_PREFIX}${branch}`,
     parents: [ours, theirs],
     tree: result.tree
   });
@@ -192,11 +192,11 @@ function mergeTrees(base, ours, theirs) {
 
 function conflictText(ours, theirs) {
   return [
-    '<<<<<<< HEAD',
+    CONFLICT_MARKERS.START,
     ours ?? '',
-    '=======',
+    CONFLICT_MARKERS.SEPARATOR,
     theirs ?? '',
-    '>>>>>>> incoming',
+    CONFLICT_MARKERS.END,
     ''
   ].join('\n');
 }
