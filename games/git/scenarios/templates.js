@@ -158,6 +158,7 @@ function createFridayMergeTemplate() {
           id: 'both-sides-integrated',
           description: 'The current history preserves both branch tips in one merge result.',
           evaluate(state) {
+            const head = state.commits[state.head.commit];
             const satisfied =
               state.head.branch === 'feature' &&
               state.conflicts.length === 0 &&
