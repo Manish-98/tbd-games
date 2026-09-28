@@ -25,27 +25,34 @@ export { COMMANDS, validateCommand };
 
 export class GitRepository {
   #clock;
+  #seed;
+  #commitSequence;
+  #reflogSequence;
+  #initialState;
+  #initialCommitSequence;
+  #initialReflogSequence;
+  #initialClockSequence;
 
   constructor(input = {}) {
-    this.seed = input.seed || DEFAULTS.seed;
-    this.commitSequence = 1;
-    this.reflogSequence = 1;
+    this.#seed = input.seed || DEFAULTS.seed;
+    this.#commitSequence = 1;
+    this.#reflogSequence = 1;
     this.#clock = createClock(input.startTime || DEFAULTS.startTime);
 
     setRepositoryState(this, { commits: {} });
 
-    this.initialState = createInitialState(input, this);
-    this.initialCommitSequence = this.commitSequence;
-    this.initialReflogSequence = this.reflogSequence;
-    this.initialClockSequence = this.#clock.snapshot();
-    setRepositoryState(this, clone(this.initialState));
+    this.#initialState = createInitialState(input, this);
+    this.#initialCommitSequence = this.#commitSequence;
+    this.#initialReflogSequence = this.#reflogSequence;
+    this.#initialClockSequence = this.#clock.snapshot();
+    setRepositoryState(this, clone(this.#initialState));
   }
 
   reset() {
-    this.commitSequence = this.initialCommitSequence;
-    this.reflogSequence = this.initialReflogSequence;
-    this.#clock.restore(this.initialClockSequence);
-    setRepositoryState(this, clone(this.initialState));
+    this.#commitSequence = this.#initialCommitSequence;
+    this.#reflogSequence = this.#initialReflogSequence;
+    this.#clock.restore(this.#initialClockSequence);
+    setRepositoryState(this, clone(this.#initialState));
     return this.snapshot();
   }
 
@@ -63,9 +70,9 @@ export class GitRepository {
 
   createCommit({ message, parents, tree, author = DEFAULTS.author }) {
     const state = getRepositoryState(this);
-    const sequence = this.commitSequence++;
+    const sequence = this.#commitSequence++;
     const id = makeCommitId(
-      this.seed,
+      this.#seed,
       sequence,
       message,
       parents,
@@ -95,7 +102,7 @@ export class GitRepository {
     if (oldValue === newValue) return;
 
     getRepositoryState(this).reflog.push({
-      id: this.reflogSequence++,
+      id: this.#reflogSequence++,
       ref,
       oldValue: oldValue || null,
       newValue: newValue || null,
@@ -106,6 +113,10 @@ export class GitRepository {
 
   now() {
     return this.#clock.now();
+  }
+
+  nextCommitSequence() {
+    return this.#commitSequence;
   }
 }
 
@@ -206,7 +217,7 @@ function createInitialCommits(input, repo) {
         : applyChanges(tree, definition.changes);
 
       const commit = repo.createCommit({
-        message: definition.message || `${DEFAULTS.commitPrefix}${repo.commitSequence}`,
+        message: definition.message || `${DEFAULTS.commitPrefix}${repo.nextCommitSequence()}`,
         parents: definition.parents || (parent ? [parent] : []),
         tree,
         author: definition.author || DEFAULTS.author
@@ -227,7 +238,7 @@ function createInitialCommits(input, repo) {
     for (const changes of input.history || []) {
       tree = applyChanges(tree, changes);
       parent = repo.createCommit({
-        message: `${DEFAULTS.commitPrefix}${repo.commitSequence}`,
+        message: `${DEFAULTS.commitPrefix}${repo.nextCommitSequence()}`,
         parents: [parent],
         tree,
         author: input.author || DEFAULTS.author
