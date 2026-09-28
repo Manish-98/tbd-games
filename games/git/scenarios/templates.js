@@ -65,25 +65,24 @@ function createMissingFeatureTemplate() {
           author: random.pick(AUTHORS)
         },
         {
+          message: 'Refresh release notes',
+          changes: { 'release-notes.md': 'Release preparation' },
+          author: random.pick(AUTHORS)
+        },
+        {
           message: 'Tune error handling',
           changes: { [file]: 'error handling' },
           author
         },
         {
-          message: 'Refresh release notes',
-          changes: { 'release-notes.md': 'Release preparation' },
+          message: 'Prepare release artifacts',
+          changes: { 'release-checklist.md': 'Release checklist' },
           author: random.pick(AUTHORS)
         },
         {
           message: 'Polish request flow',
           changes: { [file]: 'request flow polish' },
           author
-        },
-        {
-          message: 'Prepare release artifacts',
-
-          changes: { 'release-checklist.md': 'Release checklist' },
-          author: random.pick(AUTHORS)
         },
         {
           message: 'Finalize release notes',
