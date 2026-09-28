@@ -81,6 +81,7 @@ function createMissingFeatureTemplate() {
         },
         {
           message: 'Prepare release artifacts',
+
           changes: { 'release-checklist.md': 'Release checklist' },
           author: random.pick(AUTHORS)
         },
@@ -90,7 +91,7 @@ function createMissingFeatureTemplate() {
           author: random.pick(AUTHORS)
         }
       ];
-      const targetIndex = random.int(3, 6);
+      const targetIndex = random.pick([3, 5, 7]);
       const repository = createGraph(random, definitions);
       const target = repository.commitIds[targetIndex];
       const main = repository.commitIds[repository.commitIds.length - 1];
