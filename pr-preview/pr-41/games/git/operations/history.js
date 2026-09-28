@@ -1,5 +1,5 @@
 import { COMMIT_MESSAGES } from '../constants.js';
-import { clone, diffTrees, applyPatch } from '../utils.js';
+import { diffTrees, applyPatch } from '../utils.js';
 import { stateOf } from './common.js';
 import { applyDerivedCommit } from './working-tree.js';
 
