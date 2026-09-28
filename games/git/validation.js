@@ -103,8 +103,17 @@ function validateBranchCommand(state, params) {
 }
 
 function validateSwitchCommand(state, params) {
-  if (!state.branches[params.branch]) {
+  const targetCommit = state.branches[params.branch];
+
+  if (!targetCommit) {
     return invalid(ERROR_CODES.UNKNOWN_BRANCH, `Unknown branch: ${params.branch}`);
+  }
+
+  if (!state.commits[targetCommit]) {
+    return invalid(
+      ERROR_CODES.UNKNOWN_COMMIT,
+      `Branch ${params.branch} points to an unknown commit.`
+    );
   }
 
   if (hasChanges(state)) {
