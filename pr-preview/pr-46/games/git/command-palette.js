@@ -166,7 +166,11 @@ export function validateCommandBuilder(builder, repositoryState) {
     return invalid('INVALID_BUILDER', 'A valid command builder is required.');
   }
 
-  const params = builder.params || {};
+  const params = Object.fromEntries(
+    definition.parameters
+      .filter(item => isVisible(item, builder.params || {}))
+      .map(item => [item.name, builder.params?.[item.name]])
+  );
   const errors = [];
 
   for (const item of definition.parameters) {
@@ -210,6 +214,10 @@ export function validateCommandBuilder(builder, repositoryState) {
       };
 }
 
+/**
+ * Formats a command for player-facing history and UI display.
+ * This output is intentionally human-readable and is not shell-safe.
+ */
 export function formatCommand(command) {
   const definition = getCommandDefinition(command?.type);
 
