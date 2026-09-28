@@ -100,7 +100,7 @@ function applyModifiers(scenario, modifiers) {
 
 function resolveModifiers(modifiers, requested) {
   const available = new Map(modifiers.map(modifier => [modifier.id, modifier]));
-  const ids = requested ?? modifiers.map(modifier => modifier.id);
+  const ids = requested ?? [];
 
   if (!Array.isArray(ids)) {
     throw new TypeError('Scenario modifiers must be an array.');
@@ -132,8 +132,31 @@ function validateTemplate(template) {
     throw new TypeError('Scenario templates require a generate function.');
   }
 
+  validateTemplateCollection(
+    template.availableCommands,
+    'availableCommands'
+  );
+  validateTemplateCollection(template.objectives, 'objectives');
+  validateTemplateCollection(template.modifiers, 'modifiers');
+
+  for (const command of template.availableCommands || []) {
+    if (!COMMANDS.includes(command)) {
+      throw new RangeError('Unsupported scenario command: ' + command);
+    }
+  }
+
+  for (const objective of template.objectives || []) {
+    createObjective(objective);
+  }
+
   for (const modifier of template.modifiers || []) {
     validateModifier(modifier);
+  }
+}
+
+function validateTemplateCollection(value, field) {
+  if (value !== undefined && !Array.isArray(value)) {
+    throw new TypeError('Scenario template ' + field + ' must be an array.');
   }
 }
 
