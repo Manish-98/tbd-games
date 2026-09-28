@@ -79,10 +79,10 @@ export class GitRepository {
     return executeCommand(this, command);
   }
 
-  createCommit({ message, parents, tree, author = DEFAULTS.author }) {
+  createCommit({ message, parents, tree, author = DEFAULTS.author, id }) {
     const state = getRepositoryState(this);
     const sequence = this.#commitSequence++;
-    const id = makeCommitId(
+    const commitId = id || makeCommitId(
       this.#seed,
       sequence,
       message,
@@ -90,7 +90,7 @@ export class GitRepository {
       tree
     );
     const commit = {
-      id,
+      id: commitId,
       message: String(message),
       parents: parents.filter(Boolean),
       tree: clone(tree),
@@ -262,6 +262,7 @@ function createInitialCommits(input, repo) {
       });
 
       const commit = repo.createCommit({
+        id: definition.id,
         message: definition.message || `${DEFAULTS.commitPrefix}${repo.nextCommitSequence()}`,
         parents: definition.parents || (parent ? [parent] : []),
         tree,
