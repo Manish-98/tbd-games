@@ -1,6 +1,7 @@
 import { DEFAULTS } from '../constants.js';
-import { diffTrees, makeCommitId } from '../utils.js';
-import { createObjective, defineScenarioTemplate } from './index.js';
+import { makeCommitId } from '../utils.js';
+import { createObjective } from './objectives.js';
+import { defineScenarioTemplate } from './template.js';
 
 const AUTHORS = Object.freeze([
   Object.freeze({ name: 'Aisha', email: 'aisha@example.test' }),
