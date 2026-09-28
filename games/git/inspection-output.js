@@ -22,8 +22,8 @@ function formatInspectionData(type, data) {
         `${entry.id ?? ''} ${entry.ref || ''}`.trim(),
         `  ${oldValue} -> ${newValue}`,
         `  ${entry.reason || 'reference moved'}`
-      ].join('\\n');
-    }).join('\\n');
+      ].join('\n');
+    }).join('\n');
   }
 
   return JSON.stringify(data, null, 2);
