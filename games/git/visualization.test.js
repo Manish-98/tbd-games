@@ -54,6 +54,7 @@ function testRemoteStateAndDeletedRefs() {
 
   assert(remoteHtml.includes('Remote state'), 'Remote repository state should be visible.');
   assert(remoteHtml.includes('data-inspect-kind="remote-branch"'), 'Remote branches should be inspectable.');
+  assert(remoteHtml.includes('data-inspect-kind="remote-commit"'), 'Remote commits should be inspectable.');
   assert(remoteHtml.includes('Remote commits'), 'Remote branch inspection should expose remote commit state.');
   assert(remoteHtml.includes('push · 2 visual changes'), 'Remote changes should contribute to transition emphasis.');
 
