@@ -33,7 +33,8 @@ function renderBuilder(controller, state, error) {
   const errors = error ? `<p class="git-command-error">${escapeHtml(error)}</p>` :
     validation.valid ? '' : validation.errors.map(e => `<p class="git-command-error">${escapeHtml(e.message)}</p>`).join('');
   return `<div class="git-builder-header"><div><span class="section-label">Command builder</span><strong>${escapeHtml(definition.syntax)}</strong></div></div>
-    <div class="git-parameters">${fields || '<p class="git-builder-empty">This command has no parameters.</p>'}</div>${errors}
+    <div class="git-parameters">${fields || '<p class="git-builder-empty">This command has no parameters.</p>'}</div>
+    <div data-command-errors>${errors}</div>
     <div class="git-builder-actions"><button type="button" class="secondary-button" data-explain-command>Explain</button><button type="button" class="primary-button" data-execute-command ${validation.valid ? '' : 'disabled'}>Execute</button></div>
     <div class="git-command-explanation" data-command-explanation hidden></div>`;
 }
@@ -100,6 +101,21 @@ export function initGitGame(section) {
       render();
     }
   }
+  function refreshBuilderValidation() {
+    const builder = commands.getBuilder();
+    const builderView = commandHost.querySelector('[data-builder]');
+    if (!builder || !builderView) return;
+    const validation = commands.validate();
+    const executeButton = builderView.querySelector('[data-execute-command]');
+    const errorView = builderView.querySelector('[data-command-errors]');
+    if (executeButton) executeButton.disabled = !validation.valid;
+    if (errorView) {
+      errorView.innerHTML = validation.valid
+        ? ''
+        : validation.errors.map(error => `<p class="git-command-error">${escapeHtml(error.message)}</p>`).join('');
+    }
+  }
+
   function input(event) {
     const parameter = event.target.closest('[data-command-parameter]');
     if (parameter) {
@@ -107,7 +123,7 @@ export function initGitGame(section) {
       if (!builder) return;
       commands.setParameter(parameter.dataset.commandParameter, parameter.type === 'checkbox' ? parameter.checked : parameter.value);
       executionError = '';
-      render();
+      refreshBuilderValidation();
       return;
     }
     const search = event.target.closest('[data-command-search]');
@@ -117,6 +133,16 @@ export function initGitGame(section) {
     }
   }
   function change(event) {
+    const parameter = event.target.closest('[data-command-parameter]');
+    if (parameter) {
+      const builder = commands.getBuilder();
+      if (builder) {
+        commands.setParameter(parameter.dataset.commandParameter, parameter.type === 'checkbox' ? parameter.checked : parameter.value);
+        executionError = '';
+        refreshBuilderValidation();
+      }
+      return;
+    }
     const select = event.target.closest('[data-scenario-select]');
     if (select) createScenario(select.value);
   }
