@@ -1,4 +1,4 @@
-import { COMMIT_MESSAGES, CONFLICT_MARKERS, OPERATION_TYPES, REF_PREFIX } from '../constants.js';
+import { COMMIT_MESSAGES, CONFLICT_MARKERS, ERROR_CODES, OPERATION_TYPES, REF_PREFIX } from '../constants.js';
 import { clone, findMergeBase, firstParentPath, isAncestor, diffTrees, applyPatch } from '../utils.js';
 import {
   stateOf,
@@ -89,7 +89,7 @@ function merge(repo, branch) {
   if (result.conflicts.length) {
     state.conflicts = result.conflicts;
     return gitFailure(
-      'MERGE_CONFLICT',
+      ERROR_CODES.MERGE_CONFLICT,
       'Automatic merge failed; resolve conflicts and commit the result.',
       { conflicts: clone(result.conflicts) }
     );
