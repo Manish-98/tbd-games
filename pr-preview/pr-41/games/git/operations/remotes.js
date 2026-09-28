@@ -4,8 +4,6 @@ import {
   stateOf,
   success,
   gitFailure,
-  moveHead,
-  headRef,
   remoteRef,
   branchRef,
   createChange
