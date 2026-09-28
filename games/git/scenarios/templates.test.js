@@ -109,8 +109,19 @@ const pullResult = teammateRepo.execute({
   params: { remote: 'origin' }
 });
 assert(pullResult.ok, 'teammate-got-there-first must allow remote reconciliation');
+const reconciled = teammateRepo.inspect();
+const reconciledHead = reconciled.commits[reconciled.head.commit];
 assert(
-  evaluateScenario(teammate, teammateRepo.inspect()).complete,
+  reconciled.head.branch === 'main',
+  'teammate-got-there-first pull must keep HEAD on main'
+);
+assert(
+  reconciledHead?.parents?.includes(remoteTip) &&
+    reconciledHead.parents.includes(teammate.repository.branches.main),
+  'teammate-got-there-first pull must create a merge commit containing both tips'
+);
+assert(
+  evaluateScenario(teammate, reconciled).complete,
   'teammate-got-there-first objective must pass after reconciliation'
 );
 

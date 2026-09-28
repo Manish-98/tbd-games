@@ -67,7 +67,7 @@ function switchBranch(repo, params) {
 }
 
 export function mergeForPull(repo, branch) {
-  return merge(repo, branch);
+  return merge(repo, { branch });
 }
 
 function merge(repo, params) {
