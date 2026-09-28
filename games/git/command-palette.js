@@ -78,8 +78,10 @@ const COMMAND_DEFINITIONS = Object.freeze([
   createDefinition('reflog', 'Reflog', 'git reflog', 'Show recorded reference movements.')
 ]);
 
-const DEFINITION_BY_TYPE = new Map(
-  COMMAND_DEFINITIONS.map(definition => [definition.type, definition])
+const DEFINITION_BY_TYPE = Object.freeze(
+  Object.fromEntries(
+    COMMAND_DEFINITIONS.map(definition => [definition.type, definition])
+  )
 );
 
 export { PARAMETER_TYPES };
@@ -89,7 +91,7 @@ export function getCommandDefinitions() {
 }
 
 export function getCommandDefinition(type) {
-  return DEFINITION_BY_TYPE.get(type) || null;
+  return DEFINITION_BY_TYPE[type] || null;
 }
 
 export function searchCommands(query = '', availableCommands = COMMANDS) {
