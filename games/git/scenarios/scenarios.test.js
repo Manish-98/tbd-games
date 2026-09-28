@@ -24,23 +24,24 @@ const template = defineScenarioTemplate({
       parameters: { branch, depth },
       repository: {
         seed: 'scenario-test',
+        branches: { [branch]: null },
         history: Array.from({ length: depth }, (_, index) => ({
           ['file-' + index + '.txt']: 'change-' + index
         }))
       },
       objectives: [createObjective({
-        id: 'branch-exists',
-        description: 'The generated feature branch exists.',
+        id: 'history-exists',
+        description: 'The generated repository contains the requested history.',
         evaluate(state) {
-          const satisfied = Boolean(state.branches[branch]);
+          const satisfied = Object.keys(state.commits).length === depth + 1;
 
           return {
             satisfied,
             unmet: satisfied ? [] : [{
-              id: 'branch-exists',
-              description: 'Branch ' + branch + ' must exist.',
-              expected: true,
-              actual: false
+              id: 'history-exists',
+              description: 'Repository history must contain the generated commits.',
+              expected: depth + 1,
+              actual: Object.keys(state.commits).length
             }]
           };
         }
@@ -63,7 +64,8 @@ assert(
 );
 assert(
   first.parameters.branch !== undefined &&
-  first.parameters.depth >= 2,
+  first.parameters.depth >= 2 &&
+  first.enabledModifiers.length === 0,
   'generated parameters must satisfy the template constraints'
 );
 
@@ -79,7 +81,7 @@ const failed = evaluateScenario(first, {
 
 assert(!failed.complete, 'failed objectives must report an incomplete scenario');
 assert(
-  failed.results[0].unmet[0].expected === true,
+  failed.results[0].unmet[0].expected === depth + 1,
   'failed objectives must expose structured unmet conditions'
 );
 
