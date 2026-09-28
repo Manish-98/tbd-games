@@ -158,7 +158,6 @@ function createFridayMergeTemplate() {
           id: 'both-sides-integrated',
           description: 'The current history preserves both branch tips in one merge result.',
           evaluate(state) {
-            const head = state.commits[state.head.commit];
             const satisfied =
               state.head.branch === 'feature' &&
               state.conflicts.length === 0 &&
@@ -228,12 +227,11 @@ function createPresentablePrTemplate() {
           message: 'Refine implementation',
           changes: { [file]: 'step two' },
           author,
-          parents: 'root-plus-feature'
+          parents: 2
         }
       ]);
 
       const main = repository.commitIds[1];
-      const featureOne = repository.commitIds[2];
       const featureTwo = repository.commitIds[3];
 
       return {
@@ -362,7 +360,7 @@ function createTeammateTemplate() {
 }
 
 function createGraph(random, definitions) {
-  const seed = 'git-scenario-' + random.next();
+  const seed = 'git-scenario-' + random.int(1, 2147483647);
   const commits = [];
   const commitIds = [];
   const trees = [];
@@ -407,9 +405,7 @@ function createGraph(random, definitions) {
 function resolveParents(value, context) {
   if (!value) return context.previous ? [context.previous] : [];
   if (value === 'root') return [context.rootId];
-  if (value === 'root-plus-feature') {
-    return [context.commitIds[2]];
-  }
+  if (Number.isInteger(value)) return [context.commitIds[value]];
   if (Array.isArray(value)) return value;
   return [value];
 }
