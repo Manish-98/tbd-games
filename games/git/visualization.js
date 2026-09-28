@@ -1,5 +1,6 @@
 import { escapeHtml } from '../../dom.js';
 import { createLifecycle } from '../../shared/lifecycle.js';
+import { diffTrees } from './utils.js';
 
 const INITIAL_TRANSITION = Object.freeze({ type: 'initial', command: null });
 const REQUIRED_STATE = Object.freeze([
@@ -193,7 +194,8 @@ function renderRefRow(kind, name, commit, changed) {
 }
 
 function renderWorkingState(state) {
-  const working = Object.keys(state.workingTree || {});
+  const headTree = state.commits[state.head.commit]?.tree || {};
+  const working = diffTrees(headTree, state.workingTree || {}).map(change => change.file);
   const staged = Object.keys(state.staging || {});
   const conflicts = state.conflicts || [];
 
