@@ -57,6 +57,10 @@ function switchBranch(repo, params) {
   });
 }
 
+export function mergeForPull(repo, branch) {
+  return merge(repo, branch);
+}
+
 function merge(repo, branch) {
   const state = stateOf(repo);
   const ours = state.head.commit;
