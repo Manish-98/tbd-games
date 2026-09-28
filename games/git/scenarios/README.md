@@ -63,7 +63,7 @@ The structured form gives the UI diagnostic information about unmet conditions.
 
 Templates can register reusable modifiers. A modifier has an `id` and an `apply(scenario)` function that returns a new scenario.
 
-The framework applies only requested modifiers. By default, all template modifiers are enabled.
+The framework applies only requested modifiers. By default, no template modifiers are enabled; pass modifier ids through `generateScenario(template, { modifiers })` to opt in.
 
 ## Reset and regeneration
 
