@@ -10,7 +10,9 @@ const REQUIRED_STATE = Object.freeze([
   'workingTree',
   'staging',
   'remoteTracking',
-  'tags'
+  'tags',
+  'remotes',
+  'conflicts'
 ]);
 
 export function createGitVisualization(container, options = {}) {
