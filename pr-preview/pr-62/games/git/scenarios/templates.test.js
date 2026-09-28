@@ -72,7 +72,7 @@ assert(
 );
 const recoveryIndex = recovery.repository.commitIds.indexOf(recoveryTarget);
 assert(
-  [3, 5, 7].includes(recoveryIndex),
+  [3, 6, 7].includes(recoveryIndex),
   'missing-feature recovery target must be selected from plausible feature commits'
 );
 assert(
