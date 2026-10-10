@@ -1,4 +1,4 @@
-import { DEFAULTS, OPERATION_TYPES } from '../constants.js';
+import { CONFLICT_MARKERS, DEFAULTS, OPERATION_TYPES } from '../constants.js';
 import { applyChanges, clone } from '../utils.js';
 import {
   stateOf,
@@ -10,6 +10,7 @@ import {
 
 export const WORKING_TREE_OPERATIONS = Object.freeze({
   add: stageFile,
+  resolve: resolveConflict,
   commit,
   restore,
   reset
@@ -25,18 +26,39 @@ function stageFile(repo, params) {
     ? state.workingTree[params.file]
     : null;
 
+  const content = state.workingTree[params.file];
+  const hasMarkers = typeof content === 'string' && Object.values(CONFLICT_MARKERS)
+    .some(marker => content.includes(marker));
+
+  if (!hasMarkers) {
+    state.conflicts = state.conflicts.filter(conflict => conflict.file !== params.file);
+  }
+
   return success({
+    resolved: !hasMarkers,
     changes: [createChange(OPERATION_TYPES.STAGE, { file: params.file })]
+  });
+}
+
+function resolveConflict(repo, params) {
+  const state = stateOf(repo);
+  state.workingTree[params.file] = params.content;
+
+  return success({
+    file: params.file,
+    resolved: !Object.values(CONFLICT_MARKERS).some(marker => params.content.includes(marker))
   });
 }
 
 function commit(repo, params) {
   const state = stateOf(repo);
   const parent = state.head.commit;
+  const merge = state.mergeInProgress;
   const tree = applyChanges(state.commits[parent].tree, state.staging);
+  const parents = merge ? [parent, merge.theirs] : [parent];
   const commit = repo.createCommit({
     message: params.message,
-    parents: [parent],
+    parents,
     tree,
     author: params.author || DEFAULTS.author
   });
@@ -45,6 +67,7 @@ function commit(repo, params) {
   state.workingTree = clone(tree);
   state.staging = {};
   state.conflicts = [];
+  state.mergeInProgress = null;
   repo.refChange(
     headRef(repo),
     parent,
