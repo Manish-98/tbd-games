@@ -199,3 +199,8 @@
 @media (max-width: 720px) {
   .git-graph { min-width: 640px; }
 }
+
+.git-graph-edges .git-graph-lane-0 { stroke: #267568; }
+.git-graph-edges .git-graph-lane-1 { stroke: #6f58ad; }
+.git-graph-edges .git-graph-lane-2 { stroke: #b45c3b; }
+.git-graph-edges .git-graph-lane-3 { stroke: #94751b; }
