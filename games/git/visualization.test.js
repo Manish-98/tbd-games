@@ -24,7 +24,7 @@ function testInitialRender() {
   assert(html.includes('tabindex="0"'), 'Graph inspection targets should be keyboard focusable.');
   assert(html.includes('class="git-graph-edge"'), 'Commit connections should use dedicated edge paths.');
   assert(!html.includes('marker-end='), 'Commit connections should not use oversized arrow markers.');
-  assert(html.includes('fill="none" stroke-width="1.8"'), 'Branch connections should render as thin unfilled SVG strokes.');
+  assert(html.includes('fill="none" stroke="#267568" stroke-width="2"'), 'Branch connections should render as visible straight SVG strokes with explicit colors.');
   assert(html.includes('fill="transparent" stroke="none"'), 'Branch label backgrounds should remain transparent.');
   assert(html.includes('class="git-commit-message"'), 'Commit metadata should render in its own aligned column.');
   assert(html.includes('class="git-graph-ref'), 'Reference labels should remain inspectable in the metadata column.');
