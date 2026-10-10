@@ -159,7 +159,8 @@ function renderEdge(parent, child) {
     ? 'M ' + parent.x + ' ' + startY + ' L ' + child.x + ' ' + endY
     : 'M ' + parent.x + ' ' + startY + ' L ' + parent.x + ' ' + midY +
       ' L ' + child.x + ' ' + midY + ' L ' + child.x + ' ' + endY;
-  return '<path class="git-graph-edge" d="' + path + '" />';
+  const laneClass = ' git-graph-lane-' + (child.lane % 4);
+  return '<path class="git-graph-edge' + laneClass + '" d="' + path + '" />';
 }
 
 function renderCommit(commit, position, refs, changed, metadataX) {
