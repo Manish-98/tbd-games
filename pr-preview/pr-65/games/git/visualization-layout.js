@@ -2,10 +2,10 @@
  * Deterministic, topology-first layout for the Git repository commit DAG.
  * Coordinates are independent of the DOM so the graph can be tested in isolation.
  */
-const NODE_X = 58;
-const LANE_GAP = 176;
+const NODE_X = 42;
+const LANE_GAP = 54;
 const NODE_Y = 58;
-const ROW_GAP = 88;
+const ROW_GAP = 68;
 
 function compareCommits(left, right) {
   const dateOrder = String(left.date || '').localeCompare(String(right.date || ''));
@@ -97,11 +97,15 @@ export function buildCommitGraph(state) {
   });
 
   const maxX = Math.max(NODE_X, ...[...positions.values()].map(position => position.x));
+  // Keep the graph lanes in a dedicated left column and reserve a fixed
+  // metadata column on the right, aligned to each commit's row.
+  const metadataX = maxX + 74;
   return {
     commits: sorted,
     positions,
     lanes,
-    width: Math.max(720, maxX + 440),
-    height: Math.max(250, sorted.length * ROW_GAP + 56)
+    metadataX,
+    width: Math.max(640, metadataX + 560),
+    height: Math.max(250, sorted.length * ROW_GAP + 48)
   };
 }
