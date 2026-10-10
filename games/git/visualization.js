@@ -137,9 +137,9 @@ function renderGraph(state, graph, changed) {
 
   const refs = [...refsByCommit.entries()].flatMap(([commitId, refsForCommit]) => {
     let offset = 0;
-    return refsForCommit.map(ref => {
-      const badge = renderRefBadge(ref, graph.positions.get(commitId), changed, offset);
-      offset += Math.max(72, ref.label.length * 7 + 20) + 6;
+    return refsForCommit.map((ref, index) => {
+      const badge = renderRefBadge(ref, graph.positions.get(commitId), changed, offset, index);
+      offset += Math.max(82, ref.label.length * 7 + 20) + 8;
       return badge;
     });
   }).join('');
@@ -151,10 +151,15 @@ function renderGraph(state, graph, changed) {
 }
 
 function renderEdge(source, target) {
-  const middle = source.y + (target.y - source.y) / 2;
-  return '<path class="git-graph-edge" marker-end="url(#git-graph-arrow)" d="M ' + source.x + ' ' + source.y +
-    ' C ' + source.x + ' ' + middle + ', ' + target.x + ' ' + middle +
-    ', ' + target.x + ' ' + target.y + '" />';
+  // Use a thin, single orthogonal path so parallel histories remain readable.
+  const startY = source.y + 14;
+  const endY = target.y - 14;
+  const middleY = startY + (endY - startY) / 2;
+  const path = source.x === target.x
+    ? 'M ' + source.x + ' ' + startY + ' L ' + target.x + ' ' + endY
+    : 'M ' + source.x + ' ' + startY + ' L ' + source.x + ' ' + middleY +
+      ' L ' + target.x + ' ' + middleY + ' L ' + target.x + ' ' + endY;
+  return '<path class="git-graph-edge" marker-end="url(#git-graph-arrow)" d="' + path + '" />';
 }
 
 function renderCommit(commit, position, refs, changed) {
@@ -173,16 +178,21 @@ function renderCommit(commit, position, refs, changed) {
     files + ' changed files · ' + refs.length + ' refs</text></g>';
 }
 
-function renderRefBadge(ref, position, changed, offset = 0) {
+function renderRefBadge(ref, position, changed, offset = 0, index = 0) {
   const className = changed.refs.has(ref.id) ? ' git-visualization-changed' : '';
-  const width = Math.max(72, ref.label.length * 7 + 20);
+  const width = Math.max(82, ref.label.length * 7 + 20);
+  const x = position.x - 7 + offset;
+  // Place ref labels above the commit row, away from adjacent commit metadata.
+  const y = position.y - 54;
+  const palette = ['branch-a', 'branch-b', 'branch-c', 'branch-d'];
+  const colorClass = ref.kind === 'branch' ? ' ' + palette[index % palette.length] : '';
 
-  return '<g class="git-graph-ref' + className +
+  return '<g class="git-graph-ref ' + colorClass + className +
     '" data-inspect-kind="' + escapeHtml(ref.kind) + '" data-inspect-id="' +
     escapeHtml(ref.id) + '" tabindex="0" role="button" aria-label="Inspect ' +
-    escapeHtml(ref.label) + '"><rect x="' + (position.x - 7 + offset) + '" y="' +
-    (position.y - 39) + '" width="' + width + '" height="22" rx="11" />' +
-    '<text x="' + (position.x + 2 + offset) + '" y="' + (position.y - 24) + '">' +
+    escapeHtml(ref.label) + '"><rect x="' + x + '" y="' + y +
+    '" width="' + width + '" height="22" rx="6" />' +
+    '<text x="' + (x + 10) + '" y="' + (y + 15) + '">' +
     escapeHtml(ref.label) + '</text></g>';
 }
 
