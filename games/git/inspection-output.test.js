@@ -43,7 +43,7 @@ const status = renderInspectionOutput('status', {
   mergeInProgress: null,
   clean: true
 });
-assert(status.includes('Main'), 'camel-case status fields should receive readable labels.');
+assert(status.includes('Merge In Progress'), 'camel-case status fields should receive readable labels.');
 assert(status.includes('main'), 'status should display the current branch.');
 assert(status.includes('Yes'), 'boolean status should be displayed as a readable pill.');
 assert(status.includes('None'), 'empty arrays should be summarized instead of shown as raw JSON.');
