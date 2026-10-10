@@ -135,9 +135,14 @@ function renderGraph(state, graph, changed) {
     renderCommit(commit, graph.positions.get(commit.id), refsByCommit.get(commit.id) || [], changed)
   ).join('');
 
-  const refs = [...refsByCommit.entries()].flatMap(([commitId, refsForCommit]) =>
-    refsForCommit.map(ref => renderRefBadge(ref, graph.positions.get(commitId), changed))
-  ).join('');
+  const refs = [...refsByCommit.entries()].flatMap(([commitId, refsForCommit]) => {
+    let offset = 0;
+    return refsForCommit.map(ref => {
+      const badge = renderRefBadge(ref, graph.positions.get(commitId), changed, offset);
+      offset += Math.max(72, ref.label.length * 7 + 20) + 6;
+      return badge;
+    });
+  }).join('');
 
   return '<svg class="git-graph" viewBox="0 0 ' + graph.width + ' ' + graph.height +
     '" role="img" aria-label="Commit graph"><defs><marker id="git-graph-arrow" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" /></marker></defs><g class="git-graph-edges">' +
@@ -168,16 +173,16 @@ function renderCommit(commit, position, refs, changed) {
     files + ' changed files · ' + refs.length + ' refs</text></g>';
 }
 
-function renderRefBadge(ref, position, changed) {
+function renderRefBadge(ref, position, changed, offset = 0) {
   const className = changed.refs.has(ref.id) ? ' git-visualization-changed' : '';
   const width = Math.max(72, ref.label.length * 7 + 20);
 
   return '<g class="git-graph-ref' + className +
     '" data-inspect-kind="' + escapeHtml(ref.kind) + '" data-inspect-id="' +
     escapeHtml(ref.id) + '" tabindex="0" role="button" aria-label="Inspect ' +
-    escapeHtml(ref.label) + '"><rect x="' + (position.x - 7) + '" y="' +
+    escapeHtml(ref.label) + '"><rect x="' + (position.x - 7 + offset) + '" y="' +
     (position.y - 39) + '" width="' + width + '" height="22" rx="11" />' +
-    '<text x="' + (position.x + 2) + '" y="' + (position.y - 24) + '">' +
+    '<text x="' + (position.x + 2 + offset) + '" y="' + (position.y - 24) + '">' +
     escapeHtml(ref.label) + '</text></g>';
 }
 
