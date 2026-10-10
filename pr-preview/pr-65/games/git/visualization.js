@@ -195,7 +195,8 @@ function renderRefBadge(ref, position, changed, index = 0) {
     '" data-inspect-kind="' + escapeHtml(ref.kind) + '" data-inspect-id="' +
     escapeHtml(ref.id) + '" tabindex="0" role="button" aria-label="Inspect ' +
     escapeHtml(ref.label) + '"><rect x="' + x + '" y="' + y +
-    '" width="' + width + '" height="17" rx="4" />' +
+    '" width="' + width + '" height="17" rx="4" fill="transparent" stroke="none" ' +
+    'style="fill:transparent;stroke:none" />' +
     '<text x="' + (x + 8) + '" y="' + (y + 11.5) + '">' +
     escapeHtml(ref.label) + '</text></g>';
 }
