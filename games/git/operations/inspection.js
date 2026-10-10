@@ -19,6 +19,7 @@ function getStatus(state) {
     staged: diffTrees(headTree, stagedTree),
     unstaged: diffTrees(stagedTree, state.workingTree),
     conflicts: clone(state.conflicts),
+    mergeInProgress: clone(state.mergeInProgress),
     clean: !hasChanges(state) && state.conflicts.length === 0
   };
 }
