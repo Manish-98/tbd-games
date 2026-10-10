@@ -224,16 +224,74 @@ export function validateCommandBuilder(builder, repositoryState) {
  */
 export function formatCommand(command) {
   const definition = getCommandDefinition(command?.type);
-
   if (!definition) return '';
 
-  const values = definition.parameters
-    .filter(item => isVisible(item, command.params || {}))
-    .filter(item => !isEmpty(command.params?.[item.name]))
-    .map(item => formatParameter(item, command.params[item.name]))
-    .filter(Boolean);
+  const params = command.params || {};
+  const arg = value => quoteCommandArgument(value);
+  const withOptional = (parts, value) => value ? [...parts, arg(value)] : parts;
+  let parts = definition.syntax.split(' ');
 
-  return [definition.syntax, ...values].join(' ');
+  switch (command.type) {
+    case 'log':
+      if (params.limit !== undefined && params.limit !== '') parts.push('-n', String(params.limit));
+      parts = withOptional(parts, params.commit);
+      break;
+    case 'show':
+    case 'switch':
+    case 'merge':
+    case 'rebase':
+    case 'revert':
+    case 'cherry-pick':
+    case 'fetch':
+    case 'pull':
+      parts = withOptional(parts, params.commit || params.branch || params.remote);
+      break;
+    case 'diff':
+    case 'add':
+      parts = withOptional(parts, params.file);
+      break;
+    case 'resolve':
+      parts = withOptional(parts, params.file);
+      if (params.content !== undefined) parts.push('--content', arg(params.content));
+      break;
+    case 'commit':
+      if (params.message !== undefined && params.message !== '') parts.push('-m', arg(params.message));
+      break;
+    case 'branch':
+      if (params.delete) parts.push('-d', arg(params.name));
+      else {
+        parts = withOptional(parts, params.name);
+        parts = withOptional(parts, params.startPoint);
+      }
+      break;
+    case 'reset':
+      if (params.mode) parts.push('--' + params.mode);
+      parts = withOptional(parts, params.commit);
+      break;
+    case 'restore':
+      if (params.source) parts.push('--source=' + arg(params.source));
+      if (params.file) parts.push('--', arg(params.file));
+      break;
+    case 'push':
+      parts = withOptional(parts, params.remote);
+      parts = withOptional(parts, params.branch);
+      break;
+    case 'stash': {
+      const action = params.action || 'push';
+      if (action !== 'push') parts.push(action);
+      else if (params.message) parts.push('-m', arg(params.message));
+      break;
+    }
+    default:
+      break;
+  }
+
+  return parts.join(' ');
+}
+
+function quoteCommandArgument(value) {
+  const text = String(value);
+  return /^[a-zA-Z0-9_./:@=-]+$/.test(text) ? text : JSON.stringify(text);
 }
 
 export function createCommandController(repository, availableCommands = COMMANDS) {
