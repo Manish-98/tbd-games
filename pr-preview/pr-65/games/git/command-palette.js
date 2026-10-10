@@ -278,8 +278,8 @@ export function formatCommand(command) {
       break;
     case 'stash': {
       const action = params.action || 'push';
-      if (action !== 'push') parts.push(action);
-      else if (params.message) parts.push('-m', arg(params.message));
+      parts.push(action);
+      if (action === 'push' && params.message) parts.push('-m', arg(params.message));
       break;
     }
     default:
