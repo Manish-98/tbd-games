@@ -84,3 +84,45 @@
 @media (prefers-reduced-motion: reduce) {
   .git-graph-commit circle { transition: none; }
 }
+
+
+/* Improve branch legibility and keep the commit DAG visually lightweight. */
+.git-graph-edge {
+  fill: none;
+  stroke: #9aa7a5;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+#git-graph-arrow path { fill: #9aa7a5; }
+.git-graph-commit circle {
+  fill: var(--white);
+  stroke: #344e4b;
+  stroke-width: 2.5;
+}
+.git-graph-commit:hover circle,
+.git-graph-commit:focus circle,
+.git-graph-commit.git-visualization-selected circle {
+  fill: var(--yellow);
+}
+.git-graph-ref rect {
+  fill: #d8eee9;
+  stroke: #267568;
+  stroke-width: 1.2;
+}
+.git-graph-ref text {
+  fill: #173d38;
+  font: 600 11px var(--body);
+  dominant-baseline: middle;
+  pointer-events: none;
+}
+.git-graph-ref.branch-b rect { fill: #e4ddfb; stroke: #6f58ad; }
+.git-graph-ref.branch-b text { fill: #3d2b70; }
+.git-graph-ref.branch-c rect { fill: #ffe3d8; stroke: #b45c3b; }
+.git-graph-ref.branch-c text { fill: #74351f; }
+.git-graph-ref.branch-d rect { fill: #f8edbd; stroke: #94751b; }
+.git-graph-ref.branch-d text { fill: #5b4810; }
+.git-graph-ref[data-inspect-kind="remote"] rect { fill: #e4ddfb; stroke: #6f58ad; }
+.git-graph-ref[data-inspect-kind="tag"] rect { fill: #f8edbd; stroke: #94751b; }
+.git-graph-ref[data-inspect-kind="head"] rect { fill: #ffe3d8; stroke: #b45c3b; }
+.git-graph-ref:focus-visible rect { stroke: var(--ink); stroke-width: 2.5; }
