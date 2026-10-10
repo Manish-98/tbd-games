@@ -1,5 +1,6 @@
 import { createGitEngine } from './engine.js';
 import { createGitVisualization, renderGitVisualization } from './visualization.js';
+import { runGitVisualizationLayoutTests } from './visualization-layout.test.js';
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
@@ -151,5 +152,6 @@ testWorkingStagingAndConflictTransitions();
 testKeyboardInspection();
 testDetachedHeadAndInspectionData();
 testValidation();
+assert(runGitVisualizationLayoutTests(), 'Commit graph layout tests should pass.');
 
 console.log('Git visualization tests passed.');
