@@ -64,3 +64,6 @@
 @media (prefers-reduced-motion: reduce) {
   .git-view * { scroll-behavior: auto; }
 }
+
+/* Explicitly preserve the native hidden behavior despite the grid display declaration. */
+.git-view[hidden] { display: none; }
