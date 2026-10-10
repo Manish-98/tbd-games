@@ -24,6 +24,10 @@ const COMMAND_DEFINITIONS = Object.freeze([
   createDefinition('add', 'Add', 'git add', 'Stage changes for a file.', [
     parameter('file', 'File', PARAMETER_TYPES.SELECT, true, fileOptions)
   ]),
+  createDefinition('resolve', 'Resolve conflict', 'git resolve', 'Replace the contents of a conflicted file with the resolved text.', [
+    parameter('file', 'Conflicted file', PARAMETER_TYPES.SELECT, true, conflictFileOptions),
+    parameter('content', 'Resolved content', PARAMETER_TYPES.TEXT, true)
+  ]),
   createDefinition('commit', 'Commit', 'git commit -m', 'Create a commit from staged changes.', [
     parameter('message', 'Commit message', PARAMETER_TYPES.TEXT, true, null, {
       formatPrefix: '-m'
@@ -428,6 +432,12 @@ function commitOptions(state) {
       commit.id,
       commit.id.slice(0, 7) + ' — ' + commit.message
     ])
+  );
+}
+
+function conflictFileOptions(state) {
+  return optionsFromEntries(
+    (state.conflicts || []).map(conflict => [conflict.file, conflict.file])
   );
 }
 
