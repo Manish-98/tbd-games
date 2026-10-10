@@ -29,7 +29,7 @@ export function validateCommand(state, command) {
   ) {
     return invalid(
       ERROR_CODES.MERGE_IN_PROGRESS,
-      'Complete or reset the in-progress merge before running this command.'
+      'Complete the in-progress merge before running this command.'
     );
   }
 
@@ -89,15 +89,15 @@ function validateCommitCommand(state, params) {
     return invalid(ERROR_CODES.EMPTY_MESSAGE, 'Commit message cannot be empty.');
   }
 
-  if (!Object.keys(state.staging).length) {
-    return invalid(ERROR_CODES.NOTHING_STAGED, 'There is nothing staged to commit.');
-  }
-
   if (state.conflicts.length) {
     return invalid(
       ERROR_CODES.UNRESOLVED_CONFLICTS,
       'Resolve merge conflicts before committing.'
     );
+  }
+
+  if (!Object.keys(state.staging).length) {
+    return invalid(ERROR_CODES.NOTHING_STAGED, 'There is nothing staged to commit.');
   }
 
   return valid({ type: 'commit', params });
