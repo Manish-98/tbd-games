@@ -23,7 +23,7 @@ function assertThrows(callback, expectedError, message) {
 
 const templates = getScenarioTemplates();
 
-assert(templates.length === 4, 'the initial scenario set must contain four templates');
+assert(templates.length === 5, 'the scenario set must contain five templates');
 assert(
   new Set(templates.map(template => template.id)).size === templates.length,
   'scenario template ids must be unique'
@@ -119,6 +119,68 @@ assert(mergeResult.ok, 'friday-afternoon-merge must allow a clean merge');
 assert(
   evaluateScenario(merge, mergeRepo.inspect()).complete,
   'friday-afternoon-merge objective must pass after integration'
+);
+
+
+const conflictMerge = generateRegisteredScenario('conflict-merge-resolution', { seed: 'conflict-merge' });
+const conflictMergeRepo = createGitEngine(conflictMerge.repository);
+assert(
+  conflictMerge.availableCommands.includes('resolve') &&
+    conflictMerge.availableCommands.includes('add') &&
+    conflictMerge.availableCommands.includes('commit'),
+  'conflict-merge-resolution must expose the complete resolution command sequence'
+);
+const conflictMergeResult = conflictMergeRepo.execute({
+  type: 'merge',
+  params: { branch: 'feature' }
+});
+assert(
+  !conflictMergeResult.ok &&
+    conflictMergeResult.error.code === 'MERGE_CONFLICT',
+  'conflict-merge-resolution must reliably create a real merge conflict'
+);
+let conflictMergeState = conflictMergeRepo.inspect();
+assert(
+  conflictMergeState.mergeInProgress &&
+    conflictMergeState.conflicts.some(conflict => conflict.file === conflictMerge.parameters.conflictFile),
+  'conflict-merge-resolution must enter merge-in-progress with its target file conflicted'
+);
+assert(
+  conflictMergeState.staging['src/feature-check.js'] === 'validate feature release',
+  'conflict-merge-resolution must retain the incoming non-conflicting change in the index'
+);
+const resolvedText = 'release-mode=stable-with-feature';
+const resolveConflict = conflictMergeRepo.execute({
+  type: 'resolve',
+  params: {
+    file: conflictMerge.parameters.conflictFile,
+    content: resolvedText
+  }
+});
+assert(resolveConflict.ok, 'conflict-merge-resolution must allow editing the conflicted file');
+const stageResolved = conflictMergeRepo.execute({
+  type: 'add',
+  params: { file: conflictMerge.parameters.conflictFile }
+});
+assert(stageResolved.ok, 'conflict-merge-resolution must allow staging the resolved file');
+conflictMergeState = conflictMergeRepo.inspect();
+assert(
+  conflictMergeState.conflicts.length === 0 && conflictMergeState.mergeInProgress,
+  'staging a marker-free resolution must clear the conflict but keep the merge active'
+);
+const finishConflictMerge = conflictMergeRepo.execute({
+  type: 'commit',
+  params: { message: 'Resolve release configuration conflict' }
+});
+assert(finishConflictMerge.ok, 'conflict-merge-resolution must allow the merge commit after resolution');
+conflictMergeState = conflictMergeRepo.inspect();
+assert(
+  evaluateScenario(conflictMerge, conflictMergeState).complete,
+  'conflict-merge-resolution objective must pass after the merge is completed'
+);
+assert(
+  finishConflictMerge.data.commit.tree['config/release.txt'] === resolvedText,
+  'conflict-merge-resolution must preserve the player-provided resolution'
 );
 
 const presentable = generateRegisteredScenario('presentable-pr', { seed: 'rebase' });
