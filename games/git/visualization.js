@@ -1,6 +1,7 @@
 import { escapeHtml } from '../../dom.js';
 import { createLifecycle } from '../../shared/lifecycle.js';
 import { diffTrees } from './utils.js';
+import { buildCommitGraph } from './visualization-layout.js';
 
 const INITIAL_TRANSITION = Object.freeze({ type: 'initial', command: null });
 const REQUIRED_STATE = Object.freeze([
@@ -139,14 +140,14 @@ function renderGraph(state, graph, changed) {
   ).join('');
 
   return '<svg class="git-graph" viewBox="0 0 ' + graph.width + ' ' + graph.height +
-    '" role="img" aria-label="Commit graph"><g class="git-graph-edges">' +
+    '" role="img" aria-label="Commit graph"><defs><marker id="git-graph-arrow" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" /></marker></defs><g class="git-graph-edges">' +
     edges.join('') + '</g><g class="git-graph-refs">' + refs +
     '</g><g class="git-graph-commits">' + commits + '</g></svg>';
 }
 
 function renderEdge(source, target) {
   const middle = source.y + (target.y - source.y) / 2;
-  return '<path class="git-graph-edge" d="M ' + source.x + ' ' + source.y +
+  return '<path class="git-graph-edge" marker-end="url(#git-graph-arrow)" d="M ' + source.x + ' ' + source.y +
     ' C ' + source.x + ' ' + middle + ', ' + target.x + ' ' + middle +
     ', ' + target.x + ' ' + target.y + '" />';
 }
@@ -326,26 +327,7 @@ function renderInspection(kind, item) {
 }
 
 function buildGraph(state) {
-  const commits = Object.values(state.commits);
-  const positions = new Map();
-  const lanes = new Map();
-  const sorted = [...commits].sort((a, b) => String(a.date).localeCompare(String(b.date)));
-
-  sorted.forEach((commit, index) => {
-    const lane = commit.parents.length && lanes.has(commit.parents[0])
-      ? lanes.get(commit.parents[0])
-      : index % 3;
-    lanes.set(commit.id, lane);
-    positions.set(commit.id, { x: 72 + lane * 118, y: 62 + index * 92 });
-  });
-
-  const maxX = Math.max(72, ...[...positions.values()].map(position => position.x));
-  return {
-    commits: sorted,
-    positions,
-    width: Math.max(720, maxX + 520),
-    height: Math.max(250, sorted.length * 92 + 70)
-  };
+  return buildCommitGraph(state);
 }
 
 function collectRefs(state) {
