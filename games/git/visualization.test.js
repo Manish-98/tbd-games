@@ -22,6 +22,10 @@ function testInitialRender() {
   assert(html.includes('Working tree'), 'Visualization should render working-tree state.');
   assert(html.includes('data-inspect-kind="commit"'), 'Commits should be inspectable.');
   assert(html.includes('tabindex="0"'), 'Graph inspection targets should be keyboard focusable.');
+  assert(html.includes('class="git-graph-edge"'), 'Commit connections should use dedicated edge paths.');
+  assert(!html.includes('marker-end='), 'Commit connections should not use oversized arrow markers.');
+  assert(html.includes('class="git-commit-message"'), 'Commit metadata should render in its own aligned column.');
+  assert(html.includes('class="git-graph-ref'), 'Reference labels should remain inspectable in the metadata column.');
 }
 
 function testTransitionHighlight() {
