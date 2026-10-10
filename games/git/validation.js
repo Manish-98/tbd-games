@@ -23,6 +23,16 @@ export function validateCommand(state, command) {
     );
   }
 
+  if (
+    state.mergeInProgress &&
+    !['status', 'log', 'show', 'diff', 'add', 'resolve', 'commit', 'reflog'].includes(normalized.type)
+  ) {
+    return invalid(
+      ERROR_CODES.MERGE_IN_PROGRESS,
+      'Complete or reset the in-progress merge before running this command.'
+    );
+  }
+
   const validator = VALIDATORS[normalized.type];
   return validator
     ? validator(state, normalized.params)
@@ -35,6 +45,7 @@ const VALIDATORS = Object.freeze({
   show: (state, params) => validateCommit(state, params.commit, 'show'),
   diff: params => valid({ type: 'diff', params }),
   add: (state, params) => validateFileForAdd(state, params.file),
+  resolve: validateResolveCommand,
   commit: validateCommitCommand,
   branch: validateBranchCommand,
   switch: validateSwitchCommand,
@@ -50,6 +61,28 @@ const VALIDATORS = Object.freeze({
   stash: validateStashCommand,
   reflog: params => valid({ type: 'reflog', params })
 });
+
+function validateResolveCommand(state, params) {
+  if (!state.mergeInProgress) {
+    return invalid(
+      ERROR_CODES.NOT_CONFLICTED_FILE,
+      'There is no merge in progress to resolve.'
+    );
+  }
+
+  if (!state.conflicts.some(conflict => conflict.file === params.file)) {
+    return invalid(
+      ERROR_CODES.NOT_CONFLICTED_FILE,
+      `File is not an unresolved conflict: ${params.file || ''}`
+    );
+  }
+
+  if (typeof params.content !== 'string') {
+    return invalid(ERROR_CODES.EMPTY_FILE, 'Resolved file content must be text.');
+  }
+
+  return valid({ type: 'resolve', params });
+}
 
 function validateCommitCommand(state, params) {
   if (!String(params.message || '').trim()) {
