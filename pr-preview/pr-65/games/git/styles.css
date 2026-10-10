@@ -67,3 +67,57 @@
 
 /* Explicitly preserve the native hidden behavior despite the grid display declaration. */
 .git-view[hidden] { display: none; }
+
+
+/* Compact repository metrics. These rules belong in styles.css, which is the
+   stylesheet loaded by index.html for the Git game. */
+.git-visualization .git-visualization-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 0;
+  margin: 10px 0 14px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 254, 249, .55);
+}
+
+.git-visualization .git-summary-item {
+  display: inline-flex;
+  flex: 0 0 auto;
+  min-height: 0;
+  flex-direction: row;
+  align-items: baseline;
+  gap: 6px;
+  padding: 2px 12px;
+  border: 0;
+  border-right: 1px solid var(--line);
+  font-size: .76rem;
+  line-height: 1.35;
+}
+
+.git-visualization .git-summary-item:first-child { padding-left: 0; }
+.git-visualization .git-summary-item:last-child { padding-right: 0; border-right: 0; }
+
+.git-visualization .git-summary-item span {
+  color: var(--muted);
+  font-size: .72rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.git-visualization .git-summary-item strong {
+  color: var(--ink);
+  font: 700 .8rem var(--display);
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 720px) {
+  .git-visualization .git-visualization-summary { gap: 4px 0; padding: 7px 9px; }
+  .git-visualization .git-summary-item { padding: 2px 8px; font-size: .72rem; }
+}
