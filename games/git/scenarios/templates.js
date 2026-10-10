@@ -27,6 +27,7 @@ const FILES = Object.freeze([
 export const SCENARIO_TEMPLATES = Object.freeze([
   createMissingFeatureTemplate(),
   createFridayMergeTemplate(),
+  createConflictMergeTemplate(),
   createPresentablePrTemplate(),
   createTeammateTemplate()
 ]);
@@ -222,6 +223,112 @@ function createFridayMergeTemplate() {
                   files: [
                     state.workingTree?.[fileA],
                     state.workingTree?.[fileB]
+                  ]
+                }
+              }]
+            };
+          }
+        })]
+      };
+    }
+  });
+}
+
+
+function createConflictMergeTemplate() {
+  return defineScenarioTemplate({
+    id: 'conflict-merge-resolution',
+    story: 'Two release branches changed the same configuration entry. Integrate the feature without losing either branch’s work.',
+    availableCommands: ['status', 'log', 'show', 'diff', 'switch', 'merge', 'resolve', 'add', 'commit'],
+    concept: 'merge conflict resolution',
+    completionExplanation:
+      'This scenario demonstrates resolving a content conflict, staging the resolved file, preserving non-conflicting changes, and completing a two-parent merge commit.',
+    generate({ random }) {
+      const mainAuthor = random.pick(AUTHORS);
+      const featureAuthor = random.pick(AUTHORS);
+      const repository = createGraph(random, [
+        {
+          message: 'Establish release baseline',
+          changes: {
+            'README.md': '# Release',
+            'config/release.txt': 'release-mode=standard'
+          },
+          author: mainAuthor
+        },
+        {
+          message: 'Adjust release configuration',
+          changes: {
+            'config/release.txt': 'release-mode=stable',
+            'src/release-check.js': 'validate stable release'
+          },
+          author: mainAuthor,
+          parents: 'root'
+        },
+        {
+          message: 'Add feature configuration',
+          changes: {
+            'config/release.txt': 'release-mode=feature',
+            'src/feature-check.js': 'validate feature release'
+          },
+          author: featureAuthor,
+          parents: 'root'
+        }
+      ]);
+      const main = repository.commitIds[1];
+      const feature = repository.commitIds[2];
+
+      return {
+        story:
+          'The release and feature branches both changed config/release.txt. ' +
+          'Merge the feature into main, resolve the conflicting configuration, and preserve both teams’ non-conflicting files.',
+        parameters: {
+          conflictFile: 'config/release.txt',
+          main,
+          feature
+        },
+        repository: {
+          ...repository.input,
+          branches: { main, feature },
+          headBranch: 'main'
+        },
+        objectives: [createObjective({
+          id: 'conflict-merge-completed',
+          description: 'Resolve the conflict and complete a merge commit without losing either branch’s changes.',
+          evaluate(state) {
+            const head = state.commits[state.head.commit];
+            const resolvedContent = state.workingTree?.['config/release.txt'];
+            const satisfied =
+              state.head.branch === 'main' &&
+              !state.mergeInProgress &&
+              state.conflicts.length === 0 &&
+              head?.parents?.includes(main) &&
+              head?.parents?.includes(feature) &&
+              typeof head?.tree?.['config/release.txt'] === 'string' &&
+              !head.tree['config/release.txt'].includes('<<<<<<<') &&
+              !head.tree['config/release.txt'].includes('=======') &&
+              !head.tree['config/release.txt'].includes('>>>>>>>') &&
+              head.tree['src/release-check.js'] === 'validate stable release' &&
+              head.tree['src/feature-check.js'] === 'validate feature release';
+
+            return {
+              satisfied,
+              unmet: satisfied ? [] : [{
+                id: 'conflict-merge-completed',
+                description: 'main must contain a completed two-parent merge, a marker-free resolution, and both non-conflicting files.',
+                expected: {
+                  parents: [main, feature],
+                  conflicts: 0,
+                  mergeInProgress: false,
+                  preservedFiles: ['src/release-check.js', 'src/feature-check.js']
+                },
+                actual: {
+                  parents: head?.parents || [],
+                  conflicts: state.conflicts.length,
+                  mergeInProgress: Boolean(state.mergeInProgress),
+                  resolvedContent,
+                  preservedFiles: [
+                    head?.tree?.['src/release-check.js'],
+                    head?.tree?.['src/feature-check.js']
                   ]
                 }
               }]
