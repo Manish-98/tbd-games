@@ -124,7 +124,14 @@ function merge(repo, params) {
   state.workingTree = clone(result.tree);
 
   if (result.conflicts.length) {
+    const conflictedFiles = new Set(result.conflicts.map(conflict => conflict.file));
+    state.staging = Object.fromEntries(
+      diffTrees(oursCommit.tree, result.tree)
+        .filter(change => !conflictedFiles.has(change.file))
+        .map(change => [change.file, change.newValue ?? null])
+    );
     state.conflicts = result.conflicts;
+    state.mergeInProgress = { ours, theirs, branch };
     return gitFailure(
       ERROR_CODES.MERGE_CONFLICT,
       'Automatic merge failed; resolve conflicts and commit the result.',
@@ -132,6 +139,8 @@ function merge(repo, params) {
     );
   }
 
+  state.conflicts = [];
+  state.mergeInProgress = null;
   const commit = repo.createCommit({
     message: `${COMMIT_MESSAGES.MERGE_PREFIX}${branch}`,
     parents: [ours, theirs],

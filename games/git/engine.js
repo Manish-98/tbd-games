@@ -237,6 +237,7 @@ function createInitialState(input, repo) {
     remoteTracking: clone(input.remoteTracking || {}),
     tags: clone(input.tags || {}),
     conflicts: clone(input.conflicts || []),
+    mergeInProgress: clone(input.mergeInProgress || null),
     reflog: clone(input.reflog || []),
     stash: clone(input.stash || []),
     commandHistory: []

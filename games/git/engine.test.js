@@ -205,5 +205,120 @@ export function runGitEngineTests() {
     'identical repository inputs should produce identical snapshots'
   );
 
+
+  const conflictEngine = createGitEngine({
+    seed: 'merge-conflict-lifecycle',
+    files: {
+      'README.md': 'base',
+      'shared.txt': 'base'
+    },
+    commits: [
+      { id: 'base', message: 'Base', parents: [], tree: {
+        'README.md': 'base',
+        'shared.txt': 'base'
+      } },
+      { id: 'ours', message: 'Current-side change', parents: ['base'], tree: {
+        'README.md': 'current-side',
+        'shared.txt': 'base'
+      } },
+      { id: 'theirs', message: 'Incoming change', parents: ['base'], tree: {
+        'README.md': 'incoming-side',
+        'shared.txt': 'clean incoming change'
+      } }
+    ],
+    branches: { main: 'ours', feature: 'theirs' },
+    headBranch: 'main'
+  });
+  const mergeConflict = conflictEngine.execute({
+    type: 'merge',
+    params: { branch: 'feature' }
+  });
+  assert(!mergeConflict.ok, 'conflicting merge should stop for manual resolution');
+  assert(
+    mergeConflict.error.code === 'MERGE_CONFLICT',
+    'conflicting merge should return MERGE_CONFLICT'
+  );
+  let conflictState = conflictEngine.inspect();
+  assert(
+    conflictState.mergeInProgress?.ours === 'ours' &&
+      conflictState.mergeInProgress?.theirs === 'theirs',
+    'conflict state must preserve both merge parents'
+  );
+  assert(
+    conflictState.staging['shared.txt'] === 'clean incoming change',
+    'non-conflicting merge changes should remain staged'
+  );
+  assert(
+    conflictState.conflicts.some(conflict => conflict.file === 'README.md'),
+    'the conflicted file should remain unresolved'
+  );
+
+  const prematureCommit = conflictEngine.execute({
+    type: 'commit',
+    params: { message: 'Premature merge commit' }
+  });
+  assert(
+    !prematureCommit.valid &&
+      prematureCommit.error.code === 'UNRESOLVED_CONFLICTS',
+    'commit must be blocked while conflicts remain unresolved'
+  );
+
+  const markerResolution = conflictEngine.execute({
+    type: 'resolve',
+    params: {
+      file: 'README.md',
+      content: '<<<<<<< HEAD\\ncurrent-side\\n=======\\nincoming-side\\n>>>>>>> incoming'
+    }
+  });
+  assertValid(markerResolution, 'conflicted file content should be editable');
+  assertValid(
+    conflictEngine.execute({ type: 'add', params: { file: 'README.md' } }),
+    'a file containing conflict markers should still be stageable'
+  );
+  assert(
+    conflictEngine.inspect().conflicts.length === 1,
+    'staging conflict markers must not mark the file resolved'
+  );
+
+  assertValid(
+    conflictEngine.execute({
+      type: 'resolve',
+      params: { file: 'README.md', content: 'combined resolution' }
+    }),
+    'resolved file content should be accepted'
+  );
+  assertValid(
+    conflictEngine.execute({ type: 'add', params: { file: 'README.md' } }),
+    'resolved file should be stageable'
+  );
+  conflictState = conflictEngine.inspect();
+  assert(conflictState.conflicts.length === 0, 'staging marker-free content should clear the conflict');
+  assert(conflictState.mergeInProgress, 'merge metadata must remain until the merge commit succeeds');
+
+  const mergeCommit = conflictEngine.execute({
+    type: 'commit',
+    params: { message: 'Complete merge' }
+  });
+  assertValid(mergeCommit, 'merge commit should succeed after all conflicts are resolved');
+  assert(
+    JSON.stringify(mergeCommit.data.commit.parents) === JSON.stringify(['ours', 'theirs']),
+    'merge commit must preserve both parent commits in order'
+  );
+  assert(
+    mergeCommit.data.commit.tree['README.md'] === 'combined resolution' &&
+      mergeCommit.data.commit.tree['shared.txt'] === 'clean incoming change',
+    'merge commit should preserve resolved and non-conflicting changes'
+  );
+  conflictState = conflictEngine.inspect();
+  assert(conflictState.mergeInProgress === null, 'successful merge commit should clear merge metadata');
+  assert(conflictState.conflicts.length === 0, 'successful merge commit should clear conflicts');
+  assert(conflictEngine.execute({ type: 'status', params: {} }).data.clean, 'completed merge should leave a clean tree');
+
+  conflictEngine.reset();
+  assert(
+    conflictEngine.inspect().mergeInProgress === null,
+    'repository reset should clear merge-in-progress state'
+  );
+
   return true;
 }

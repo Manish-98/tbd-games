@@ -69,6 +69,37 @@ function testContextOptionsAndValidation() {
   assert(!validation.valid, 'Unknown branch should be blocked before execution.');
 }
 
+function testConflictResolutionBuilder() {
+  const repository = createGitEngine();
+  const base = repository.snapshot();
+  const state = {
+    ...base,
+    mergeInProgress: {
+      ours: base.head.commit,
+      theirs: 'incoming',
+      branch: 'feature'
+    },
+    conflicts: [{ file: 'README.md', base: '# Repository', ours: '# Current', theirs: '# Incoming' }]
+  };
+  const options = getParameterOptions('resolve', 'file', state);
+  assert(
+    options.length === 1 && options[0].value === 'README.md',
+    'Conflict resolution should only offer unresolved files.'
+  );
+
+  const builder = updateCommandParameter(
+    updateCommandParameter(createCommandBuilder('resolve', state), 'file', 'README.md'),
+    'content',
+    'Resolved README'
+  );
+  const validation = validateCommandBuilder(builder, state);
+  assert(validation.valid, 'A valid conflict resolution should pass palette validation.');
+  assert(
+    validation.command.params.content === 'Resolved README',
+    'The palette should pass resolved content to the engine.'
+  );
+}
+
 function testBuilderValidation() {
   const repository = createGitEngine();
   const state = repository.snapshot();
@@ -247,6 +278,7 @@ function testFormatting() {
   testSearchAndBuilder,
   testContextOptionsAndValidation,
   testBuilderValidation,
+  testConflictResolutionBuilder,
   testResetModes,
   testToggleAndConditionalParameters,
   testExecutionHistoryAndReset,

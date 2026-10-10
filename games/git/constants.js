@@ -14,7 +14,7 @@ export const DEFAULTS = Object.freeze({
 export const COMMANDS = Object.freeze([
   'status', 'log', 'show', 'diff', 'add', 'commit', 'branch', 'switch',
   'merge', 'rebase', 'reset', 'restore', 'revert', 'cherry-pick',
-  'fetch', 'pull', 'push', 'stash', 'reflog'
+  'fetch', 'pull', 'push', 'stash', 'reflog', 'resolve'
 ]);
 
 export const READ_ONLY_COMMANDS = Object.freeze([
@@ -49,6 +49,8 @@ export const ERROR_CODES = Object.freeze({
   NO_REMOTE_BRANCH: 'NO_REMOTE_BRANCH',
   NON_FAST_FORWARD: 'NON_FAST_FORWARD',
   MERGE_CONFLICT: 'MERGE_CONFLICT',
+  MERGE_IN_PROGRESS: 'MERGE_IN_PROGRESS',
+  NOT_CONFLICTED_FILE: 'NOT_CONFLICTED_FILE',
   INVALID_COMMAND: 'INVALID_COMMAND'
 });
 
