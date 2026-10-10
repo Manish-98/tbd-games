@@ -152,15 +152,18 @@ function renderGraph(state, graph, changed) {
 function renderEdge(parent, child) {
   // Keep connections as strokes only. No arrow marker: Git history is read
   // from parent to child top-to-bottom, and markers previously rendered as wedges.
-  const startY = parent.y + 14;
-  const endY = child.y - 14;
-  const midY = startY + (endY - startY) / 2;
+  const startY = parent.y + 9;
+  const endY = child.y - 9;
+  const laneClass = ' git-graph-lane-' + (child.lane % 4);
+  // Use a true stroked curve for lane changes. Explicit inline SVG styling
+  // prevents broad site-level path rules from filling the open path as a wedge.
   const path = parent.x === child.x
     ? 'M ' + parent.x + ' ' + startY + ' L ' + child.x + ' ' + endY
-    : 'M ' + parent.x + ' ' + startY + ' L ' + parent.x + ' ' + midY +
-      ' L ' + child.x + ' ' + midY + ' L ' + child.x + ' ' + endY;
-  const laneClass = ' git-graph-lane-' + (child.lane % 4);
-  return '<path class="git-graph-edge' + laneClass + '" d="' + path + '" />';
+    : 'M ' + parent.x + ' ' + startY + ' C ' + parent.x + ' ' + (startY + 20) +
+      ', ' + child.x + ' ' + (endY - 20) + ', ' + child.x + ' ' + endY;
+  return '<path class="git-graph-edge' + laneClass + '" d="' + path +
+    '" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" ' +
+    'style="fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round" />';
 }
 
 function renderCommit(commit, position, refs, changed, metadataX) {
