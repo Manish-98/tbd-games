@@ -174,7 +174,8 @@ export function initGitGame(section) {
       repository = null;
       commands = null;
       visualization = null;
-      view.innerHTML = '';
+      // Keep the static mount points in the DOM so the game can be initialized again
+      // after switching to the About tab. render() replaces their dynamic contents.
     }
   };
 }
