@@ -289,19 +289,34 @@ export function createCommandController(repository, availableCommands = COMMANDS
     execute() {
       const validation = this.validate();
 
-      if (!validation.valid) return validation;
+      // Capture the attempted command before execution so history is immutable
+      // even when validation or Git execution fails.
+      const attemptedCommand = clone(validation.command || builder);
+      const display = formatCommand(attemptedCommand);
+
+      if (!validation.valid) {
+        history = history.concat({
+          command: attemptedCommand,
+          display,
+          ok: false,
+          result: clone(validation),
+          phase: 'validation'
+        });
+        return { ...validation, command: attemptedCommand };
+      }
 
       const command = clone(validation.command);
       const result = repository.execute(command);
 
-      if (result.ok) {
-        history = history.concat({
-          command,
-          display: formatCommand(command),
-          result: clone(result)
-        });
-        builder = null;
-      }
+      history = history.concat({
+        command,
+        display: formatCommand(command),
+        ok: Boolean(result.ok),
+        result: clone(result),
+        phase: result.phase || 'git'
+      });
+
+      if (result.ok) builder = null;
 
       return {
         ...result,
