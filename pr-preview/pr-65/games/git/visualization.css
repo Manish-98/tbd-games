@@ -72,3 +72,15 @@
   .git-visualization-lower { grid-template-columns: 1fr; }
   .git-graph { min-width: 680px; }
 }
+
+/* Directional, topology-based commit graph. */
+.git-graph-edge { stroke-width: 3; }
+.git-graph-arrow path { fill: var(--line); }
+.git-graph-commit circle { transition: fill .15s ease, stroke-width .15s ease; }
+.git-graph-commit:focus-visible { outline: none; }
+.git-graph-commit:focus-visible circle { stroke: var(--coral); stroke-width: 6; }
+.git-graph-commit.git-visualization-selected circle { fill: var(--yellow); stroke-width: 5; }
+.git-graph-ref:focus-visible rect { stroke: var(--coral); stroke-width: 3; }
+@media (prefers-reduced-motion: reduce) {
+  .git-graph-commit circle { transition: none; }
+}
