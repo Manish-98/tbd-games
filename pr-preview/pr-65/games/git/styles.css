@@ -70,3 +70,13 @@
 
 /* Explicitly preserve the native hidden behavior despite the grid display declaration. */
 .git-view[hidden] { display: none; }
+
+
+/* Command history records the exact displayed command and its outcome. */
+.git-history-entry { min-width: 0; }
+.git-history-command { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; gap: 8px; min-width: 0; }
+.git-history-command code { display: block; min-width: 0; white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-word; color: var(--ink); }
+.git-history-status { display: inline-block; padding: 2px 6px; border: 1px solid var(--line); font-size: .62rem; font-weight: 700; line-height: 1.4; text-transform: uppercase; }
+.git-history-entry.is-success .git-history-status { color: #205b43; background: #dcefe5; }
+.git-history-entry.is-failure .git-history-status { color: #7a3028; background: #f6e2df; }
+.git-history-detail { margin: 5px 0 0; color: var(--muted); font-size: .72rem; line-height: 1.4; overflow-wrap: anywhere; }

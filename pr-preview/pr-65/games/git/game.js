@@ -45,7 +45,15 @@ function renderCommands(controller) {
 }
 function renderHistory(controller) {
   const history = controller.getHistory();
-  return history.length ? history.slice().reverse().map(e => `<li><code>${escapeHtml(e.display)}</code></li>`).join('') : '<p class="git-history-empty">No commands executed yet.</p>';
+  return history.length ? history.slice().reverse().map((entry, index) => {
+    const status = entry.ok ? 'Succeeded' : 'Failed';
+    const detail = entry.result?.error?.message ||
+      entry.result?.errors?.map(error => error.message).join(' ') || '';
+    return `<li class="git-history-entry ${entry.ok ? 'is-success' : 'is-failure'}">
+      <div class="git-history-command"><span class="git-history-status" aria-label="${status}">${status}</span><code title="${escapeHtml(entry.display)}">${escapeHtml(entry.display)}</code></div>
+      ${detail ? `<p class="git-history-detail">${escapeHtml(detail)}</p>` : ''}
+    </li>`;
+  }).join('') : '<p class="git-history-empty">No commands executed yet.</p>';
 }
 function renderObjectives(result) {
   return `<div class="git-objective-state"><div class="git-panel-heading"><span class="section-label">Objective</span><strong>${result.complete ? 'Complete' : 'In progress'}</strong></div><ul>${result.results.map(r => `<li class="${r.satisfied ? 'satisfied' : ''}"><span aria-hidden="true">${r.satisfied ? '✓' : '○'}</span><span>${escapeHtml(r.description)}</span></li>`).join('')}</ul></div>`;
