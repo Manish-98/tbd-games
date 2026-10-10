@@ -230,7 +230,9 @@ function testExecutionHistoryAndReset() {
 
   const history = controller.getHistory();
   assert(history.length === 1, 'Read-only commands should appear in command history.');
-  assert(history[0].display === 'git status', 'History should contain a readable command.');
+  assert(history[0].display === 'git status', 'History should contain the exact displayed command.');
+  assert(history[0].ok === true, 'History should record successful execution status.');
+  assert(history[0].command.type === 'status', 'History should retain the executed command data.');
   assert(result.data?.head, 'Read-only command results should remain available to the UI.');
 
   controller.selectCommand('reflog');
@@ -260,6 +262,10 @@ function testEngineFailuresArePreserved() {
 
   assert(!result.ok, 'A valid stash command should preserve the Git failure.');
   assert(result.error.code === 'CLEAN_WORKTREE', 'Git failure must remain a Git error.');
+  const history = controller.getHistory();
+  assert(history.length === 1, 'Failed Git attempts should be recorded in history.');
+  assert(history[0].display === 'git stash push', 'History should preserve the failed attempted command.');
+  assert(history[0].ok === false, 'History should mark failed commands.');
 }
 
 function testFormatting() {
@@ -268,8 +274,12 @@ function testFormatting() {
     'Command formatting should be readable.'
   );
   assert(
-    formatCommand({ type: 'commit', params: { message: 'Add feature' } }) === 'git commit -m Add feature',
-    'Commit formatting should preserve -m.'
+    formatCommand({ type: 'commit', params: { message: 'Add feature' } }) === 'git commit -m "Add feature"',
+    'Commit formatting should quote multi-word messages.'
+  );
+  assert(
+    formatCommand({ type: 'log', params: { limit: 5, commit: 'main' } }) === 'git log -n 5 main',
+    'Log history should include flags and positional arguments in command order.'
   );
 }
 
