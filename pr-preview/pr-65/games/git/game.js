@@ -37,7 +37,7 @@ function renderBuilder(controller, state, error) {
   return `<div class="git-builder-header"><div><span class="section-label">Command builder</span><strong>${escapeHtml(definition.syntax)}</strong></div></div>
     <div class="git-parameters">${fields || '<p class="git-builder-empty">This command has no parameters.</p>'}</div>
     <div data-command-errors>${errors}</div>
-    <div class="git-builder-actions"><button type="button" class="secondary-button" data-explain-command>Explain</button><button type="button" class="primary-button" data-execute-command ${validation.valid ? '' : 'disabled'}>Execute</button></div>
+    <div class="git-builder-actions"><button type="button" class="primary-button" data-explain-command>Explain</button><button type="button" class="primary-button" data-execute-command ${validation.valid ? '' : 'disabled'}>Execute</button></div>
     <div class="git-command-explanation" data-command-explanation hidden></div>`;
 }
 function renderCommands(controller) {
