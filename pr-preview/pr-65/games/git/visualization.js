@@ -227,14 +227,12 @@ function renderRefs(state, changed) {
 }
 
 function renderRefRow(kind, name, commit, changed, options = {}) {
-  const headMarker = options.isHead
-    ? '<span class="git-head-marker" aria-label="Current HEAD" title="Current HEAD">HEAD</span>'
-    : '';
   return '<button class="git-ref-row' + (changed ? ' git-visualization-changed' : '') +
     (options.isHead ? ' is-head' : '') +
     '" type="button" data-inspect-kind="' + kind + '" data-inspect-id="' +
-    escapeHtml(name) + '">' + headMarker + '<strong>' + escapeHtml(name) +
-    '</strong><code>' + escapeHtml(shortId(commit)) + '</code></button>';
+    escapeHtml(name) + '"' + (options.isHead ? ' aria-label="' + escapeHtml(name) + ', current HEAD"' : '') +
+    '><strong>' + escapeHtml(name) + '</strong><code>' +
+    escapeHtml(shortId(commit)) + '</code></button>';
 }
 
 function renderWorkingState(state) {
