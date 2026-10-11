@@ -37,7 +37,7 @@ function renderBuilder(controller, state, error) {
   return `<div class="git-builder-header"><div><span class="section-label">Command builder</span><strong>${escapeHtml(definition.syntax)}</strong></div></div>
     <div class="git-parameters">${fields || '<p class="git-builder-empty">This command has no parameters.</p>'}</div>
     <div data-command-errors>${errors}</div>
-    <div class="git-builder-actions"><button type="button" class="secondary-button" data-explain-command>Explain</button><button type="button" class="primary-button" data-execute-command ${validation.valid ? '' : 'disabled'}>Execute</button></div>
+    <div class="git-builder-actions"><button type="button" class="primary-button" data-explain-command>Explain</button><button type="button" class="primary-button" data-execute-command ${validation.valid ? '' : 'disabled'}>Execute</button></div>
     <div class="git-command-explanation" data-command-explanation hidden></div>`;
 }
 function renderCommands(controller) {
@@ -45,7 +45,15 @@ function renderCommands(controller) {
 }
 function renderHistory(controller) {
   const history = controller.getHistory();
-  return history.length ? history.slice().reverse().map(e => `<li><code>${escapeHtml(e.display)}</code></li>`).join('') : '<p class="git-history-empty">No commands executed yet.</p>';
+  return history.length ? history.slice().reverse().map((entry, index) => {
+    const status = entry.ok ? 'Succeeded' : 'Failed';
+    const detail = entry.result?.error?.message ||
+      entry.result?.errors?.map(error => error.message).join(' ') || '';
+    return `<li class="git-history-entry ${entry.ok ? 'is-success' : 'is-failure'}">
+      <div class="git-history-command"><span class="git-history-status" aria-label="${status}">${status}</span><code title="${escapeHtml(entry.display)}">${escapeHtml(entry.display)}</code></div>
+      ${detail ? `<p class="git-history-detail">${escapeHtml(detail)}</p>` : ''}
+    </li>`;
+  }).join('') : '<p class="git-history-empty">No commands executed yet.</p>';
 }
 function renderObjectives(result) {
   return `<div class="git-objective-state"><div class="git-panel-heading"><span class="section-label">Objective</span><strong>${result.complete ? 'Complete' : 'In progress'}</strong></div><ul>${result.results.map(r => `<li class="${r.satisfied ? 'satisfied' : ''}"><span aria-hidden="true">${r.satisfied ? '✓' : '○'}</span><span>${escapeHtml(r.description)}</span></li>`).join('')}</ul></div>`;
@@ -174,7 +182,8 @@ export function initGitGame(section) {
       repository = null;
       commands = null;
       visualization = null;
-      view.innerHTML = '';
+      // Keep the static mount points in the DOM so the game can be initialized again
+      // after switching to the About tab. render() replaces their dynamic contents.
     }
   };
 }

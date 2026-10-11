@@ -1,6 +1,7 @@
 import { escapeHtml } from '../../dom.js';
 import { createLifecycle } from '../../shared/lifecycle.js';
 import { diffTrees } from './utils.js';
+import { buildCommitGraph } from './visualization-layout.js';
 
 const INITIAL_TRANSITION = Object.freeze({ type: 'initial', command: null });
 const REQUIRED_STATE = Object.freeze([
@@ -124,65 +125,86 @@ function renderGraph(state, graph, changed) {
   const refsByCommit = collectRefs(state);
   const edges = Object.values(state.commits).flatMap(commit =>
     commit.parents.flatMap(parentId => {
-      const source = graph.positions.get(parentId);
-      const target = graph.positions.get(commit.id);
-      return source && target ? [renderEdge(source, target)] : [];
+      const parent = graph.positions.get(parentId);
+      const child = graph.positions.get(commit.id);
+      return parent && child ? [renderEdge(parent, child)] : [];
     })
   );
 
   const commits = graph.commits.map(commit =>
-    renderCommit(commit, graph.positions.get(commit.id), refsByCommit.get(commit.id) || [], changed)
+    renderCommit(commit, graph.positions.get(commit.id), refsByCommit.get(commit.id) || [], changed, graph.metadataX)
   ).join('');
 
-  const refs = [...refsByCommit.entries()].flatMap(([commitId, refsForCommit]) =>
-    refsForCommit.map(ref => renderRefBadge(ref, graph.positions.get(commitId), changed))
-  ).join('');
+  const refs = graph.commits.flatMap(commit => {
+    const position = graph.positions.get(commit.id);
+    const refsForCommit = refsByCommit.get(commit.id) || [];
+    return refsForCommit.map((ref, index) =>
+      renderRefBadge(ref, { x: graph.metadataX, y: position.y + 23 }, changed, index)
+    );
+  }).join('');
 
   return '<svg class="git-graph" viewBox="0 0 ' + graph.width + ' ' + graph.height +
     '" role="img" aria-label="Commit graph"><g class="git-graph-edges">' +
-    edges.join('') + '</g><g class="git-graph-refs">' + refs +
-    '</g><g class="git-graph-commits">' + commits + '</g></svg>';
+    edges.join('') + '</g><g class="git-graph-commits">' + commits +
+    '</g><g class="git-graph-refs">' + refs + '</g></svg>';
 }
 
-function renderEdge(source, target) {
-  const middle = source.y + (target.y - source.y) / 2;
-  return '<path class="git-graph-edge" d="M ' + source.x + ' ' + source.y +
-    ' C ' + source.x + ' ' + middle + ', ' + target.x + ' ' + middle +
-    ', ' + target.x + ' ' + target.y + '" />';
+function renderEdge(parent, child) {
+  // Draw a single straight SVG segment between each pair of connected nodes.
+  // Explicit stroke attributes keep global path styles from hiding the edge.
+  const startY = parent.y + 9;
+  const endY = child.y - 9;
+  const lane = child.lane % 4;
+  const colors = ['#267568', '#6f58ad', '#b45c3b', '#94751b'];
+  const color = colors[lane];
+  const path = 'M ' + parent.x + ' ' + startY + ' L ' + child.x + ' ' + endY;
+
+  return '<path class="git-graph-edge git-graph-lane-' + lane + '" d="' + path +
+    '" fill="none" stroke="' + color + '" stroke-width="2" ' +
+    'stroke-linecap="round" stroke-linejoin="round" ' +
+    'style="fill:none;stroke:' + color + ';stroke-width:2;stroke-linecap:round;stroke-linejoin:round" />';
 }
 
-function renderCommit(commit, position, refs, changed) {
+function renderCommit(commit, position, refs, changed, metadataX) {
   const className = changed.commits.has(commit.id) ? ' git-visualization-changed' : '';
   const files = Object.keys(commit.changes || {}).length;
+  const labelX = metadataX;
 
   return '<g class="git-graph-commit' + className +
     '" data-inspect-kind="commit" data-inspect-id="' + escapeHtml(commit.id) +
     '" tabindex="0" role="button" aria-label="Inspect commit ' + escapeHtml(commit.id) + '">' +
-    '<circle cx="' + position.x + '" cy="' + position.y + '" r="13" />' +
-    '<text x="' + (position.x + 24) + '" y="' + (position.y - 4) + '" class="git-commit-id">' +
+    '<circle cx="' + position.x + '" cy="' + position.y + '" r="7" />' +
+    '<text x="' + labelX + '" y="' + (position.y - 5) + '" class="git-commit-id">' +
     escapeHtml(commit.id.slice(0, 7)) + '</text>' +
-    '<text x="' + (position.x + 24) + '" y="' + (position.y + 15) + '" class="git-commit-message">' +
+    '<text x="' + (labelX + 70) + '" y="' + (position.y - 5) + '" class="git-commit-message">' +
     escapeHtml(commit.message) + '</text>' +
-    '<text x="' + (position.x + 24) + '" y="' + (position.y + 32) + '" class="git-commit-meta">' +
+    '<text x="' + labelX + '" y="' + (position.y + 14) + '" class="git-commit-meta">' +
     files + ' changed files · ' + refs.length + ' refs</text></g>';
 }
 
-function renderRefBadge(ref, position, changed) {
+function renderRefBadge(ref, position, changed, index = 0) {
   const className = changed.refs.has(ref.id) ? ' git-visualization-changed' : '';
-  const width = Math.max(72, ref.label.length * 7 + 20);
+  const width = Math.max(48, ref.label.length * 6.5 + 16);
+  const x = position.x + index * (width + 6);
+  const y = position.y;
+  const palette = ['branch-a', 'branch-b', 'branch-c', 'branch-d'];
+  const colorClass = ref.kind === 'branch' ? ' ' + palette[index % palette.length] : '';
 
-  return '<g class="git-graph-ref' + className +
+  return '<g class="git-graph-ref ' + colorClass + className +
     '" data-inspect-kind="' + escapeHtml(ref.kind) + '" data-inspect-id="' +
     escapeHtml(ref.id) + '" tabindex="0" role="button" aria-label="Inspect ' +
-    escapeHtml(ref.label) + '"><rect x="' + (position.x - 7) + '" y="' +
-    (position.y - 39) + '" width="' + width + '" height="22" rx="11" />' +
-    '<text x="' + (position.x + 2) + '" y="' + (position.y - 24) + '">' +
+    escapeHtml(ref.label) + '"><rect x="' + x + '" y="' + y +
+    '" width="' + width + '" height="17" rx="4" fill="transparent" stroke="none" ' +
+    'style="fill:transparent;stroke:none" />' +
+    '<text x="' + (x + 8) + '" y="' + (y + 11.5) + '">' +
     escapeHtml(ref.label) + '</text></g>';
 }
 
 function renderRefs(state, changed) {
   const rows = Object.entries(state.branches).map(([name, commit]) =>
-    renderRefRow('branch', name, commit, changed.refs.has('branch:' + name))
+    renderRefRow('branch', name, commit, changed.refs.has('branch:' + name), {
+      isHead: state.head.type !== 'detached' && state.head.branch === name
+    })
   ).join('') +
     Object.entries(state.remoteTracking).map(([name, commit]) =>
       renderRefRow('remote', name, commit, changed.refs.has('remote:' + name))
@@ -195,18 +217,21 @@ function renderRefs(state, changed) {
     (Object.keys(state.branches).length + Object.keys(state.remoteTracking).length + Object.keys(state.tags).length) +
     '</strong></div><div class="git-ref-list">' +
     (rows || '<p class="git-empty">No references.</p>') +
-    '</div><button class="git-head-row' + (changed.head ? ' git-visualization-changed' : '') +
-    '" type="button" data-inspect-kind="head" data-inspect-id="HEAD">' +
-    '<span class="git-ref-kind head">HEAD</span><strong>' +
-    (state.head.type === 'detached' ? 'detached' : escapeHtml(state.head.branch)) +
-    '</strong><code>' + escapeHtml(shortId(state.head.commit)) + '</code></button>';
+    '</div>' +
+    (state.head.type === 'detached'
+      ? '<button class="git-head-row' + (changed.head ? ' git-visualization-changed' : '') +
+        '" type="button" data-inspect-kind="head" data-inspect-id="HEAD">' +
+        '<span class="git-ref-kind head">HEAD</span><strong>detached</strong><code>' +
+        escapeHtml(shortId(state.head.commit)) + '</code></button>'
+      : '');
 }
 
-function renderRefRow(kind, name, commit, changed) {
+function renderRefRow(kind, name, commit, changed, options = {}) {
   return '<button class="git-ref-row' + (changed ? ' git-visualization-changed' : '') +
+    (options.isHead ? ' is-head' : '') +
     '" type="button" data-inspect-kind="' + kind + '" data-inspect-id="' +
-    escapeHtml(name) + '"><span class="git-ref-kind ' + kind + '">' + kind +
-    '</span><strong>' + escapeHtml(name) + '</strong><code>' +
+    escapeHtml(name) + '"' + (options.isHead ? ' aria-label="' + escapeHtml(name) + ', current HEAD"' : '') +
+    '><strong>' + escapeHtml(name) + '</strong><code>' +
     escapeHtml(shortId(commit)) + '</code></button>';
 }
 
@@ -326,26 +351,7 @@ function renderInspection(kind, item) {
 }
 
 function buildGraph(state) {
-  const commits = Object.values(state.commits);
-  const positions = new Map();
-  const lanes = new Map();
-  const sorted = [...commits].sort((a, b) => String(a.date).localeCompare(String(b.date)));
-
-  sorted.forEach((commit, index) => {
-    const lane = commit.parents.length && lanes.has(commit.parents[0])
-      ? lanes.get(commit.parents[0])
-      : index % 3;
-    lanes.set(commit.id, lane);
-    positions.set(commit.id, { x: 72 + lane * 118, y: 62 + index * 92 });
-  });
-
-  const maxX = Math.max(72, ...[...positions.values()].map(position => position.x));
-  return {
-    commits: sorted,
-    positions,
-    width: Math.max(720, maxX + 520),
-    height: Math.max(250, sorted.length * 92 + 70)
-  };
+  return buildCommitGraph(state);
 }
 
 function collectRefs(state) {

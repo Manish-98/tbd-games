@@ -22,7 +22,9 @@ const log = renderInspectionOutput('log', [{
   message: 'Initial commit'
 }]);
 
-assert(log.includes('"message": "Initial commit"'), 'generic inspection output must preserve structured command data');
+assert(log.includes('Initial commit'), 'commit messages should remain visible in structured output.');
+assert(log.includes('git-output-fields'), 'object results should render as readable key-value fields.');
+assert(!log.includes('<pre>'), 'structured command output should not render as raw JSON.');
 
 const unsafe = renderInspectionOutput('show', {
   commit: {
@@ -32,5 +34,19 @@ const unsafe = renderInspectionOutput('show', {
 
 assert(!unsafe.includes('<script>alert(1)</script>'), 'inspection output must escape command data before rendering');
 assert(unsafe.includes('&lt;script&gt;'), 'inspection output must encode unsafe command data');
+
+const status = renderInspectionOutput('status', {
+  head: { type: 'branch', branch: 'main', commit: '0cb931d9ef899038f28994f1f189935e' },
+  staged: [],
+  unstaged: [],
+  conflicts: [],
+  mergeInProgress: null,
+  clean: true
+});
+assert(status.includes('Merge In Progress'), 'camel-case status fields should receive readable labels.');
+assert(status.includes('main'), 'status should display the current branch.');
+assert(status.includes('Yes'), 'boolean status should be displayed as a readable pill.');
+assert(status.includes('None'), 'empty arrays should be summarized instead of shown as raw JSON.');
+assert(!status.includes('<pre>'), 'status should use a compact visual summary.');
 
 console.log('Git inspection output tests passed.');
