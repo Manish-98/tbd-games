@@ -28,7 +28,7 @@ const COMMAND_DEFINITIONS = Object.freeze([
     parameter('file', 'Conflicted file', PARAMETER_TYPES.SELECT, true, conflictFileOptions),
     parameter('content', 'Resolved content', PARAMETER_TYPES.TEXT, true)
   ]),
-  createDefinition('commit', 'Commit', 'git commit -m', 'Create a commit from staged changes.', [
+  createDefinition('commit', 'Commit', 'git commit', 'Create a commit from staged changes.', [
     parameter('message', 'Commit message', PARAMETER_TYPES.TEXT, true, null, {
       formatPrefix: '-m'
     })
