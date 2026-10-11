@@ -28,7 +28,7 @@ const COMMAND_DEFINITIONS = Object.freeze([
     parameter('file', 'Conflicted file', PARAMETER_TYPES.SELECT, true, conflictFileOptions),
     parameter('content', 'Resolved content', PARAMETER_TYPES.TEXT, true)
   ]),
-  createDefinition('commit', 'Commit', 'git commit', 'Create a commit from staged changes.', [
+  createDefinition('commit', 'Commit', 'git commit -m', 'Create a commit from staged changes.', [
     parameter('message', 'Commit message', PARAMETER_TYPES.TEXT, true, null, {
       formatPrefix: '-m'
     })
@@ -255,7 +255,10 @@ export function formatCommand(command) {
       if (params.content !== undefined) parts.push('--content', arg(params.content));
       break;
     case 'commit':
-      if (params.message !== undefined && params.message !== '') parts.push('-m', arg(params.message));
+      if (params.message !== undefined && params.message !== '') {
+        if (parts[parts.length - 1] !== '-m') parts.push('-m');
+        parts.push(arg(params.message));
+      }
       break;
     case 'branch':
       if (params.delete) parts.push('-d', arg(params.name));

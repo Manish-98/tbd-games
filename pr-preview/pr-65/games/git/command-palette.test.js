@@ -242,7 +242,25 @@ function testExecutionHistoryAndReset() {
 
   controller.selectCommand('log');
   controller.setParameter('limit', 1);
-  assert(controller.execute().ok, 'A valid numeric parameter should execute.');
+  const limitedLog = controller.execute();
+  assert(limitedLog.ok, 'A valid numeric parameter should execute.');
+  assert(limitedLog.data.length === 1, 'Log should return only the requested number of entries.');
+
+  const historyRepository = createGitEngine({
+    history: [
+      { 'README.md': '# First' },
+      { 'README.md': '# Second' },
+      { 'README.md': '# Third' }
+    ]
+  });
+  const historyController = createCommandController(historyRepository);
+  historyController.selectCommand('log');
+  const unboundedLog = historyController.execute();
+  assert(unboundedLog.ok, 'Log without a limit should execute.');
+  assert(
+    unboundedLog.data.length === Object.keys(historyRepository.snapshot().commits).length,
+    'Log without a limit should return all reachable commits.'
+  );
 
   controller.selectCommand('commit');
   controller.setParameter('message', 'should fail');
