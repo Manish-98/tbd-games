@@ -242,3 +242,45 @@
 .git-graph-edges .git-graph-lane-2 { stroke: #b45c3b; }
 .git-graph-edges .git-graph-lane-3 { stroke: #94751b; }
 
+
+
+/* Reference rows show the branch name and target commit without a separate kind pill. */
+.git-ref-row[data-inspect-kind="branch"] {
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: 12px;
+}
+.git-ref-row[data-inspect-kind="branch"] > strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.git-ref-row[data-inspect-kind="branch"] > code {
+  white-space: nowrap;
+  justify-self: end;
+}
+.git-head-marker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  grid-column: 1;
+  grid-row: 1;
+  justify-self: start;
+  margin-right: 8px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: var(--coral);
+  color: var(--white);
+  font-size: .58rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+}
+.git-ref-row[data-inspect-kind="branch"].is-head {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+.git-ref-row[data-inspect-kind="branch"].is-head > strong {
+  grid-column: 2;
+}
+.git-ref-row[data-inspect-kind="branch"].is-head > code {
+  grid-column: 3;
+}
+.git-head-row { display: none; }
+.git-head-row:has(.git-ref-kind.head) { display: none; }
