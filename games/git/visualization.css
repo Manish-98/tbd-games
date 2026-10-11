@@ -284,3 +284,28 @@
 }
 .git-head-row { display: none; }
 .git-head-row:has(.git-ref-kind.head) { display: none; }
+
+
+/* Mark the checked-out branch with a cell highlight, not an extra badge. */
+.git-ref-row[data-inspect-kind="branch"].is-head {
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 12px 10px;
+  border: 1px solid var(--coral);
+  background: rgba(239, 105, 79, .09);
+  box-shadow: inset 3px 0 0 var(--coral);
+}
+.git-ref-row[data-inspect-kind="branch"].is-head > strong {
+  grid-column: 1;
+  grid-row: 1;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+.git-ref-row[data-inspect-kind="branch"].is-head > code {
+  grid-column: 2;
+  grid-row: 1;
+  white-space: nowrap;
+}
+.git-ref-row[data-inspect-kind="branch"].is-head:hover,
+.git-ref-row[data-inspect-kind="branch"].is-head:focus-visible {
+  background: rgba(239, 105, 79, .16);
+}
