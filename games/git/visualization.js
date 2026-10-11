@@ -202,7 +202,9 @@ function renderRefBadge(ref, position, changed, index = 0) {
 
 function renderRefs(state, changed) {
   const rows = Object.entries(state.branches).map(([name, commit]) =>
-    renderRefRow('branch', name, commit, changed.refs.has('branch:' + name))
+    renderRefRow('branch', name, commit, changed.refs.has('branch:' + name), {
+      isHead: state.head.type !== 'detached' && state.head.branch === name
+    })
   ).join('') +
     Object.entries(state.remoteTracking).map(([name, commit]) =>
       renderRefRow('remote', name, commit, changed.refs.has('remote:' + name))
@@ -215,19 +217,24 @@ function renderRefs(state, changed) {
     (Object.keys(state.branches).length + Object.keys(state.remoteTracking).length + Object.keys(state.tags).length) +
     '</strong></div><div class="git-ref-list">' +
     (rows || '<p class="git-empty">No references.</p>') +
-    '</div><button class="git-head-row' + (changed.head ? ' git-visualization-changed' : '') +
-    '" type="button" data-inspect-kind="head" data-inspect-id="HEAD">' +
-    '<span class="git-ref-kind head">HEAD</span><strong>' +
-    (state.head.type === 'detached' ? 'detached' : escapeHtml(state.head.branch)) +
-    '</strong><code>' + escapeHtml(shortId(state.head.commit)) + '</code></button>';
+    '</div>' +
+    (state.head.type === 'detached'
+      ? '<button class="git-head-row' + (changed.head ? ' git-visualization-changed' : '') +
+        '" type="button" data-inspect-kind="head" data-inspect-id="HEAD">' +
+        '<span class="git-ref-kind head">HEAD</span><strong>detached</strong><code>' +
+        escapeHtml(shortId(state.head.commit)) + '</code></button>'
+      : '');
 }
 
-function renderRefRow(kind, name, commit, changed) {
+function renderRefRow(kind, name, commit, changed, options = {}) {
+  const headMarker = options.isHead
+    ? '<span class="git-head-marker" aria-label="Current HEAD" title="Current HEAD">HEAD</span>'
+    : '';
   return '<button class="git-ref-row' + (changed ? ' git-visualization-changed' : '') +
+    (options.isHead ? ' is-head' : '') +
     '" type="button" data-inspect-kind="' + kind + '" data-inspect-id="' +
-    escapeHtml(name) + '"><span class="git-ref-kind ' + kind + '">' + kind +
-    '</span><strong>' + escapeHtml(name) + '</strong><code>' +
-    escapeHtml(shortId(commit)) + '</code></button>';
+    escapeHtml(name) + '">' + headMarker + '<strong>' + escapeHtml(name) +
+    '</strong><code>' + escapeHtml(shortId(commit)) + '</code></button>';
 }
 
 function renderWorkingState(state) {
