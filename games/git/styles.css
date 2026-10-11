@@ -80,3 +80,47 @@
 .git-history-entry.is-success .git-history-status { color: #205b43; background: #dcefe5; }
 .git-history-entry.is-failure .git-history-status { color: #7a3028; background: #f6e2df; }
 .git-history-detail { margin: 5px 0 0; color: var(--muted); font-size: .72rem; line-height: 1.4; overflow-wrap: anywhere; }
+
+
+/* Keep the inspection output inside the command builder's grid track. */
+.git-view,
+.git-view > [data-git-command],
+.git-command-layout,
+.git-builder,
+.git-inspection-output {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.git-view > [data-git-command],
+.git-command-layout,
+.git-builder {
+  min-height: 0;
+}
+
+.git-command-layout {
+  grid-template-rows: minmax(0, auto) auto;
+}
+
+.git-builder {
+  overflow-wrap: anywhere;
+}
+
+.git-inspection-output {
+  width: 100%;
+  height: auto;
+  min-height: 0;
+  max-height: min(480px, 70vh);
+  overflow: auto;
+  align-self: start;
+}
+
+.git-inspection-output > *,
+.git-inspection-output .git-output-fields,
+.git-inspection-output .git-output-array,
+.git-inspection-output .git-output-card {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
