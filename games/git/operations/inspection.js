@@ -24,11 +24,13 @@ function getStatus(state) {
   };
 }
 
-function getLog(state, start = state.head.commit, limit = DEFAULTS.logLimit) {
+function getLog(state, start = state.head.commit, limit) {
   const result = [];
   const queue = [start];
   const seen = new Set();
-  const maxEntries = Math.max(1, Number(limit) || DEFAULTS.logLimit);
+  const maxEntries = limit === undefined || limit === null || limit === ''
+    ? Infinity
+    : Math.max(1, Number(limit));
 
   while (queue.length && result.length < maxEntries) {
     const id = queue.shift();
