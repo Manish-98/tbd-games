@@ -55,6 +55,8 @@ function commit(repo, params) {
   const parent = state.head.commit;
   const merge = state.mergeInProgress;
   const tree = applyChanges(state.commits[parent].tree, state.staging);
+  const workingTreeAfterCommit = clone(state.workingTree);
+  const stagedFiles = new Set(Object.keys(state.staging));
   const parents = merge ? [parent, merge.theirs] : [parent];
   const commit = repo.createCommit({
     message: params.message,
@@ -64,7 +66,16 @@ function commit(repo, params) {
   });
 
   moveHead(repo, commit.id);
-  state.workingTree = clone(tree);
+  // Commit only the staged snapshot. Keep unstaged edits and untracked files;
+  // staged paths now match the committed tree and no longer need worktree diffs.
+  for (const file of stagedFiles) {
+    if (Object.prototype.hasOwnProperty.call(tree, file)) {
+      workingTreeAfterCommit[file] = tree[file];
+    } else {
+      delete workingTreeAfterCommit[file];
+    }
+  }
+  state.workingTree = workingTreeAfterCommit;
   state.staging = {};
   state.conflicts = [];
   state.mergeInProgress = null;
