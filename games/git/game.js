@@ -113,11 +113,16 @@ export function initGitGame(section) {
     if (event.target.closest('[data-execute-command]')) {
       const result = commands.execute();
       executionError = result.ok ? '' : result.error?.message || 'Git command failed.';
-      if (result.ok && result.command && READ_ONLY_COMMANDS.includes(result.command.type)) {
-        inspectionOutput = {
-          command: result.command,
-          data: result.data
-        };
+      if (result.ok && result.command) {
+        if (READ_ONLY_COMMANDS.includes(result.command.type)) {
+          inspectionOutput = {
+            command: result.command,
+            data: result.data
+          };
+        } else {
+          // A successful write makes any previous inspection result stale.
+          inspectionOutput = null;
+        }
       }
       render();
     }
