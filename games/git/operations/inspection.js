@@ -1,4 +1,3 @@
-import { DEFAULTS } from '../constants.js';
 import { clone, diffTrees, applyChanges, hasChanges } from '../utils.js';
 import { stateOf, success } from './common.js';
 
