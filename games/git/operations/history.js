@@ -1,5 +1,5 @@
 import { COMMIT_MESSAGES, CONFLICT_MARKERS, ERROR_CODES } from '../constants.js';
-import { clone, diffTrees } from '../utils.js';
+import { applyPatch, clone, diffTrees } from '../utils.js';
 import { stateOf, success, gitFailure } from './common.js';
 import { applyDerivedCommit } from './working-tree.js';
 
