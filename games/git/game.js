@@ -237,6 +237,15 @@ export function initGitGame(section) {
     const markerWarning = !deleteFile && containsConflictMarkers(draft);
     const status = panel.querySelector('[data-conflict-status]');
     const stage = panel.querySelector('[data-conflict-action="stage"]');
+    panel.querySelectorAll('[data-conflict-option]').forEach(option => {
+      const optionFile = option.dataset.conflictOption;
+      const appliedDraft = appliedConflictDrafts[optionFile];
+      const isApplied = Boolean(appliedDraft) &&
+        appliedDraft.content === (conflictDrafts[optionFile] ?? '') &&
+        appliedDraft.deleteFile === (conflictDeleteChoices[optionFile] === true) &&
+        (appliedDraft.deleteFile || !containsConflictMarkers(appliedDraft.content));
+      option.textContent = optionFile + (isApplied ? ' — applied, not staged' : '');
+    });
     if (status) {
       status.textContent = markerWarning
         ? 'The final content still contains conflict markers.'
