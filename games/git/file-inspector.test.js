@@ -15,7 +15,7 @@ const repository = createGitEngine({
       'readme.txt': 'first line\nupdated line\nkeep this line', 'unchanged.txt': 'same', 'added.txt': 'new file'
     } }
   ],
-  branches: { main: 'next' },
+  branches: { main: 'base' },
   headBranch: 'main',
   workingTree: { 'readme.txt': 'first line\nworking edit\nkeep this line', 'unchanged.txt': 'same', 'added.txt': 'new file', 'local.txt': 'local untracked file' },
   staging: { 'readme.txt': 'first line\nstaged edit\nkeep this line', 'deleted.txt': null }
