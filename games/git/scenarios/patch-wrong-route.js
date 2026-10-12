@@ -343,6 +343,7 @@ function hasCherryPickedFix(commits, releaseTip, sourceFix) {
     if (!current) continue;
 
     if (
+      currentId !== sourceFix &&
       current.parents.length === 1 &&
       current.message === source.message &&
       current.tree['src/release-check.js'] === source.tree['src/release-check.js']
