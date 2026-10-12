@@ -80,6 +80,7 @@ The initial playable scenario set is registered in `registry.js`:
 - **Friday Afternoon Merge** — integrate two cleanly divergent lines of development.
 - **Make This PR Presentable** — rebase a feature history onto an updated target branch.
 - **Your Teammate Got There First** — reconcile local work with an advanced remote branch.
+- **The Patch That Took the Wrong Route** — correct a release while preserving exact staged/unstaged local edits, retaining a designated fix commit in release history, and keeping feature-only files on their development branch.
 
 Each template randomizes repository details and exposes only commands currently supported by the engine. Scenario objectives inspect repository state rather than prescribing a command sequence.
 
@@ -94,3 +95,20 @@ const scenario = generateRegisteredScenario('missing-feature', {
 ~~~
 
 The generated `repository` can be passed directly to `createGitEngine()`. Resetting a scenario means creating a fresh engine from the same immutable generated repository; regenerating with another seed creates a new instance.
+
+## The Patch That Took the Wrong Route
+
+The `patch-wrong-route` template starts with a release branch containing an incorrect compatibility change, a feature branch whose history includes the designated correction and feature-only files, and one staged plus one unstaged local edit.
+
+Its six objectives are state predicates, not command milestones:
+
+- **Local edits preserved:** the staged file remains in the index and worktree with its original content; the other edit remains only in the worktree.
+- **Release corrected:** the release tree has the expected configuration and retains valid release follow-up changes.
+- **Designated fix reachable:** the correction commit is an ancestor of the release branch tip.
+- **Feature work isolated:** feature-only files are absent from the release tree and present on the development branch.
+- **Feature branch usable:** the development branch still reaches the intended feature history and retains both feature files.
+- **Repository end state:** all required tree, reachability, index/worktree, and conflict predicates hold together.
+
+The local-edit objective intentionally does not require a clean worktree. Since switching branches resets the simulator's index/worktree, the scenario's preservation policy requires the original staged-versus-unstaged split to be restored, not merely the text content. The release correction is judged by tree content, while fix delivery is independently judged by commit reachability.
+
+The scenario exposes every command currently supported by the engine. Its generated graph is deterministic for a given seed and does not encode a required command sequence.
