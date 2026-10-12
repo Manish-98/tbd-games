@@ -16,12 +16,17 @@ export function gitFailure(code, message, data = {}) {
 
 export function moveHead(repo, commit) {
   const state = stateOf(repo);
-  state.branches[state.head.branch] = commit;
+  if (state.head.type !== 'detached' && state.head.branch) {
+    state.branches[state.head.branch] = commit;
+  }
   state.head.commit = commit;
 }
 
 export function headRef(repo) {
-  return branchRef(stateOf(repo).head.branch);
+  const state = stateOf(repo);
+  return state.head.type === 'detached' || !state.head.branch
+    ? 'HEAD'
+    : branchRef(state.head.branch);
 }
 
 export function branchRef(branch) {
