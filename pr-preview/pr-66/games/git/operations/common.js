@@ -1,5 +1,4 @@
 import { OPERATION_TYPES, REF_PREFIX } from '../constants.js';
-import { clone } from '../utils.js';
 import { getRepositoryState } from '../repository-state.js';
 
 export function stateOf(repo) {
