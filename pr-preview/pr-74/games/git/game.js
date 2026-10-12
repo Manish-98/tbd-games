@@ -113,6 +113,11 @@ export function initGitGame(section) {
     if (event.target.closest('[data-execute-command]')) {
       const result = commands.execute();
       executionError = result.ok ? '' : result.error?.message || 'Git command failed.';
+      if (!result.ok && result.phase !== 'validation') {
+        // Failed Git operations can still mutate state (for example, a merge
+        // that leaves the repository in conflict state).
+        inspectionOutput = null;
+      }
       if (result.ok && result.command) {
         if (READ_ONLY_COMMANDS.includes(result.command.type)) {
           inspectionOutput = {
