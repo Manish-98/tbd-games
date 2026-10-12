@@ -316,6 +316,35 @@ export function createCommandController(repository, availableCommands = COMMANDS
   let builder = null;
   let history = [];
 
+  function executeValidatedCommand(validation, attemptedCommand) {
+    const commandForDisplay = clone(attemptedCommand);
+    const display = formatCommand(commandForDisplay);
+
+    if (!validation.valid) {
+      history = history.concat({
+        command: commandForDisplay,
+        display,
+        ok: false,
+        result: clone(validation),
+        phase: 'validation'
+      });
+      return { ...validation, command: commandForDisplay };
+    }
+
+    const command = clone(validation.command);
+    const result = repository.execute(command);
+    history = history.concat({
+      command,
+      display: formatCommand(command),
+      ok: Boolean(result.ok),
+      result: clone(result),
+      phase: result.phase || 'git'
+    });
+
+    if (result.ok) builder = null;
+    return { ...result, command };
+  }
+
   return {
     listCommands(query = '') {
       return searchCommands(query, availableCommands);
@@ -355,40 +384,12 @@ export function createCommandController(repository, availableCommands = COMMANDS
 
     execute() {
       const validation = this.validate();
+      return executeValidatedCommand(validation, validation.command || builder);
+    },
 
-      // Capture the attempted command before execution so history is immutable
-      // even when validation or Git execution fails.
-      const attemptedCommand = clone(validation.command || builder);
-      const display = formatCommand(attemptedCommand);
-
-      if (!validation.valid) {
-        history = history.concat({
-          command: attemptedCommand,
-          display,
-          ok: false,
-          result: clone(validation),
-          phase: 'validation'
-        });
-        return { ...validation, command: attemptedCommand };
-      }
-
-      const command = clone(validation.command);
-      const result = repository.execute(command);
-
-      history = history.concat({
-        command,
-        display: formatCommand(command),
-        ok: Boolean(result.ok),
-        result: clone(result),
-        phase: result.phase || 'git'
-      });
-
-      if (result.ok) builder = null;
-
-      return {
-        ...result,
-        command
-      };
+    executeCommand(command) {
+      const validation = validateCommandBuilder(command, repository.snapshot());
+      return executeValidatedCommand(validation, validation.command || command);
     },
 
     getHistory() {
