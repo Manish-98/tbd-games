@@ -117,6 +117,11 @@ export function initGitGame(section) {
   }
   function click(event) {
     if (event.target.closest('[data-regenerate]')) return createScenario();
+    const conflictAction = event.target.closest('[data-conflict-action]');
+    if (conflictAction) {
+      handleConflictAction(conflictAction.dataset.conflictAction);
+      return;
+    }
     const select = event.target.closest('[data-select-command]');
     if (select) { commands.selectCommand(select.dataset.selectCommand); executionError = ''; render(); return; }
     if (event.target.closest('[data-explain-command]')) {
@@ -147,6 +152,88 @@ export function initGitGame(section) {
       render();
     }
   }
+  function synchronizeConflictDrafts(state) {
+    const conflicts = state.conflicts || [];
+    const files = new Set(conflicts.map(conflict => conflict.file));
+    for (const file of Object.keys(conflictDrafts)) {
+      if (!files.has(file)) {
+        delete conflictDrafts[file];
+        delete appliedConflictDrafts[file];
+        delete conflictDeleteChoices[file];
+      }
+    }
+    if (!conflicts.length) {
+      selectedConflictFile = '';
+      return;
+    }
+    if (!files.has(selectedConflictFile)) selectedConflictFile = conflicts[0].file;
+    for (const conflict of conflicts) {
+      if (!Object.prototype.hasOwnProperty.call(conflictDrafts, conflict.file)) {
+        conflictDrafts[conflict.file] = conflict.ours ?? '';
+      }
+    }
+  }
+
+  function isCurrentConflictDraftApplied(file) {
+    return isDraftApplied(file, conflictDrafts[file] ?? '', conflictDeleteChoices[file] === true, appliedConflictDrafts);
+  }
+
+  function executeConflictCommand(type, params) {
+    const result = commands.executeCommand({ type, params });
+    executionError = result.ok ? '' : result.error?.message || 'Git command failed.';
+    if (result.ok) inspectionOutput = null;
+    render();
+    return result;
+  }
+
+  function handleConflictAction(action) {
+    const state = repository.snapshot();
+    const conflict = state.conflicts.find(item => item.file === selectedConflictFile);
+    if (!conflict) return;
+
+    if (action === 'apply') {
+      const content = conflictDrafts[conflict.file] ?? '';
+      const deleteFile = conflictDeleteChoices[conflict.file] === true;
+      if (!deleteFile && containsConflictMarkers(content)) {
+        refreshConflictPanelStatus();
+        return;
+      }
+      const result = executeConflictCommand('resolve', { file: conflict.file, content, deleteFile });
+      if (result.ok) appliedConflictDrafts[conflict.file] = { content, deleteFile };
+      else delete appliedConflictDrafts[conflict.file];
+      render();
+      return;
+    }
+
+    if (action === 'stage') {
+      if (!isCurrentConflictDraftApplied(conflict.file)) return;
+      const result = executeConflictCommand('add', { file: conflict.file });
+      if (result.ok) selectedConflictFile = repository.snapshot().conflicts[0]?.file || '';
+      render();
+    }
+  }
+
+  function refreshConflictPanelStatus() {
+    const panel = commandHost.querySelector('[data-conflict-panel]');
+    if (!panel) return;
+    const file = selectedConflictFile;
+    const deleteFile = conflictDeleteChoices[file] === true;
+    const draft = conflictDrafts[file] ?? '';
+    const applied = isCurrentConflictDraftApplied(file);
+    const markerWarning = !deleteFile && containsConflictMarkers(draft);
+    const status = panel.querySelector('[data-conflict-status]');
+    const stage = panel.querySelector('[data-conflict-action="stage"]');
+    panel.querySelectorAll('[data-conflict-option]').forEach(option => {
+      const optionFile = option.dataset.conflictOption;
+      const isApplied = isDraftApplied(optionFile, conflictDrafts[optionFile] ?? '', conflictDeleteChoices[optionFile] === true, appliedConflictDrafts);
+      option.textContent = optionFile + (isApplied ? ' — applied, not staged' : '');
+    });
+    if (status) status.textContent = markerWarning
+      ? 'The final content still contains conflict markers.'
+      : applied ? 'Resolution applied. Stage this file to clear its conflict.' : 'Edit the final content, then apply the resolution.';
+    if (stage) stage.disabled = !applied || markerWarning;
+  }
+
   function refreshBuilderValidation() {
     const builder = commands.getBuilder();
     const builderView = commandHost.querySelector('[data-builder]');
@@ -163,6 +250,13 @@ export function initGitGame(section) {
   }
 
   function input(event) {
+    const conflictDraft = event.target.closest('[data-conflict-draft]');
+    if (conflictDraft) {
+      conflictDrafts[selectedConflictFile] = conflictDraft.value;
+      delete appliedConflictDrafts[selectedConflictFile];
+      refreshConflictPanelStatus();
+      return;
+    }
     const parameter = event.target.closest('[data-command-parameter]');
     if (parameter) {
       const builder = commands.getBuilder();
@@ -179,6 +273,19 @@ export function initGitGame(section) {
     }
   }
   function change(event) {
+    const conflictFile = event.target.closest('[data-conflict-file]');
+    if (conflictFile) {
+      selectedConflictFile = conflictFile.value;
+      render();
+      return;
+    }
+    const deleteChoice = event.target.closest('[data-conflict-delete]');
+    if (deleteChoice) {
+      conflictDeleteChoices[selectedConflictFile] = deleteChoice.checked;
+      delete appliedConflictDrafts[selectedConflictFile];
+      render();
+      return;
+    }
     const inspectorControl = event.target.closest('[data-inspector-selection]');
     if (inspectorControl) {
       inspectorSelection = {
