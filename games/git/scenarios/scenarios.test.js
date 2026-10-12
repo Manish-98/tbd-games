@@ -296,4 +296,111 @@ assert(
   'Friday merge scenario must complete after switching to main and merging feature.'
 );
 
+
+const patchScenario = generateRegisteredScenario('patch-wrong-route', {
+  seed: 'patch-wrong-route-regression'
+});
+const repeatedPatchScenario = generateRegisteredScenario('patch-wrong-route', {
+  seed: 'patch-wrong-route-regression'
+});
+const patchRepository = createGitEngine(patchScenario.repository);
+const patchState = patchRepository.inspect();
+const patchEvaluation = evaluateScenario(patchScenario, patchState);
+const patchObjectives = Object.fromEntries(
+  patchEvaluation.results.map(result => [result.id, result.satisfied])
+);
+
+assert(
+  JSON.stringify(patchScenario.repository) === JSON.stringify(repeatedPatchScenario.repository),
+  'patch wrong route scenario generation must be deterministic for a seed'
+);
+assert(
+  patchScenario.availableCommands.length === 20 &&
+  patchScenario.availableCommands.every(command =>
+    patchScenario.availableCommands.includes(command)
+  ),
+  'patch wrong route scenario must expose the full supported command palette'
+);
+assert(
+  patchState.head.branch === 'main' &&
+  patchState.conflicts.length === 0 &&
+  !patchState.mergeInProgress,
+  'patch wrong route scenario must start on main without active conflicts'
+);
+assert(
+  patchObjectives['local-edits-preserved'] &&
+  patchObjectives['feature-work-isolated'] &&
+  patchObjectives['feature-branch-usable'],
+  'the starting state must expose preserved local edits and retain isolated feature work'
+);
+assert(
+  !patchObjectives['release-corrected'] &&
+  !patchObjectives['designated-fix-reachable'] &&
+  !patchObjectives['repository-end-state'],
+  'the release and final-state objectives must begin incomplete'
+);
+
+const patchFinalState = patchRepository.inspect();
+const patchParameters = patchScenario.parameters;
+const patchFeatureTree = patchFinalState.commits[patchParameters.featureTip].tree;
+const patchReleaseTree = {
+  ...patchFeatureTree,
+  'config/release.txt': patchParameters.correctedConfig,
+  'src/release-check.js': 'validate release package; retry safely',
+  'CHANGELOG.md': 'Documented the compatibility review.'
+};
+for (const file of patchParameters.featureFiles) {
+  delete patchReleaseTree[file];
+}
+patchFinalState.commits['test-patch-final-release'] = {
+  id: 'test-patch-final-release',
+  message: 'Test-only completed release state',
+  parents: [patchParameters.featureTip],
+  tree: patchReleaseTree
+};
+patchFinalState.branches.main = 'test-patch-final-release';
+patchFinalState.workingTree = {
+  ...patchReleaseTree,
+  [patchParameters.stagedLocalFile]: patchParameters.stagedLocalContent,
+  [patchParameters.unstagedLocalFile]: patchParameters.unstagedLocalContent
+};
+patchFinalState.staging = {
+  [patchParameters.stagedLocalFile]: patchParameters.stagedLocalContent
+};
+patchFinalState.conflicts = [];
+patchFinalState.mergeInProgress = null;
+
+const patchFinalEvaluation = evaluateScenario(patchScenario, patchFinalState);
+assert(
+  patchFinalEvaluation.complete,
+  'all patch wrong route objectives must pass for a valid final repository state'
+);
+
+const lostStagingState = {
+  ...patchFinalState,
+  staging: {}
+};
+assert(
+  !evaluateScenario(patchScenario, lostStagingState).complete,
+  'final completion must be revoked when the staged local edit is lost'
+);
+
+const shippedFeatureState = {
+  ...patchFinalState,
+  commits: {
+    ...patchFinalState.commits,
+    'test-patch-final-release': {
+      ...patchFinalState.commits['test-patch-final-release'],
+      tree: {
+        ...patchFinalState.commits['test-patch-final-release'].tree,
+        [patchParameters.featureFiles[0]]: patchFeatureTree[patchParameters.featureFiles[0]]
+      }
+    }
+  }
+};
+assert(
+  !evaluateScenario(patchScenario, shippedFeatureState).complete,
+  'final completion must be revoked if feature-only content enters the release tree'
+);
+
 console.log('Git scenario framework tests passed.');
