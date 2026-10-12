@@ -151,6 +151,7 @@ export function runGitEngineTests() {
     'switch back to main should succeed'
   );
 
+  const targetTipBeforePick = engine.inspect().head.commit;
   const cherryPick = engine.execute({
     type: 'cherry-pick',
     params: { commit: featureCommit.data.commit.id }
@@ -160,8 +161,25 @@ export function runGitEngineTests() {
     cherryPick.data.commit.id !== featureCommit.data.commit.id,
     'cherry-pick should create a distinct commit'
   );
-  assert(JSON.stringify(cherryPick.data.commit.parents) === JSON.stringify([initialHead]), 'clean cherry-pick must have one parent: the prior target tip');
+  assert(JSON.stringify(cherryPick.data.commit.parents) === JSON.stringify([targetTipBeforePick]), 'clean cherry-pick must have one parent: the prior target tip');
   assert(engine.inspect().cherryPickInProgress === null, 'clean cherry-pick must clear pending operation state');
+
+  const cleanCherryPickEngine = createGitEngine({
+    seed: 'cherry-pick-clean-application',
+    commits: [
+      { id: 'clean-base', message: 'Base', parents: [], tree: { 'app.txt': 'base', 'untouched.txt': 'keep' } },
+      { id: 'clean-source', message: 'Add source change', parents: ['clean-base'], tree: { 'app.txt': 'incoming', 'untouched.txt': 'keep', 'new.txt': 'added' } }
+    ],
+    branches: { main: 'clean-base', feature: 'clean-source' },
+    headBranch: 'main'
+  });
+  const cleanPickResult = cleanCherryPickEngine.execute({
+    type: 'cherry-pick',
+    params: { commit: 'clean-source' }
+  });
+  assertValid(cleanPickResult, 'clean cherry-pick should apply the source patch');
+  assert(cleanPickResult.data.commit.tree['app.txt'] === 'incoming' && cleanPickResult.data.commit.tree['new.txt'] === 'added', 'clean cherry-pick must apply modifications and additions');
+  assert(JSON.stringify(cleanPickResult.data.commit.parents) === JSON.stringify(['clean-base']), 'clean cherry-pick must have only the target tip as its parent');
 
   const dirtyCherryPickEngine = createGitEngine({
     seed: 'cherry-pick-dirty-state', files: { 'note.txt': 'base', 'local.txt': 'committed' },
