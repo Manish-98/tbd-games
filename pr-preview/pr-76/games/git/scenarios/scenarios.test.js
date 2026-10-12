@@ -377,6 +377,21 @@ assert(
   'all patch wrong route objectives must pass for a valid final repository state'
 );
 
+const alternatePatchFinalState = {
+  ...patchFinalState,
+  commits: {
+    ...patchFinalState.commits,
+    'test-patch-final-release': {
+      ...patchFinalState.commits['test-patch-final-release'],
+      parents: [patchParameters.fix]
+    }
+  }
+};
+assert(
+  evaluateScenario(patchScenario, alternatePatchFinalState).complete,
+  'the same release tree must satisfy objectives when reached through a different valid history shape'
+);
+
 const lostStagingState = {
   ...patchFinalState,
   staging: {}
