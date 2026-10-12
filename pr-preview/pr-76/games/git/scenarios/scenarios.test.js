@@ -444,7 +444,7 @@ for (const file of patchParameters.featureFiles) {
 }
 patchFinalState.commits['test-patch-cherry-pick'] = {
   id: 'test-patch-cherry-pick',
-  message: 'Correct retry handling',
+  message: 'An arbitrary message unrelated to the source commit message',
   parents: [patchParameters.releaseFollowup],
   tree: patchReleaseTree
 };
@@ -469,7 +469,11 @@ patchFinalState.mergeInProgress = null;
 const patchFinalEvaluation = evaluateScenario(patchScenario, patchFinalState);
 assert(
   patchFinalEvaluation.complete,
-  'all patch wrong route objectives must pass for a valid final repository state'
+  'all patch wrong route objectives must pass for a valid final repository state even when the cherry-pick message differs'
+);
+assert(
+  patchFinalEvaluation.results.find(result => result.id === 'designated-fix-reachable').satisfied,
+  'a single-parent commit carrying the designated correction must be accepted regardless of its message'
 );
 
 const alternatePatchFinalState = {
