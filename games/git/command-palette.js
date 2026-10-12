@@ -328,7 +328,7 @@ export function createCommandController(repository, availableCommands = COMMANDS
         result: clone(validation),
         phase: 'validation'
       });
-      return { ...validation, command: commandForDisplay, phase: 'validation' };
+      return { ...validation, command: commandForDisplay };
     }
 
     const command = clone(validation.command);
