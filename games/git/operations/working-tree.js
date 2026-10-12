@@ -71,7 +71,7 @@ function commit(repo, params) {
   state.conflicts = [];
   state.mergeInProgress = null;
   state.cherryPickInProgress = null;
-  repo.refChange,
+  repo.refChange(
     headRef(repo),
     parent,
     commit.id,
