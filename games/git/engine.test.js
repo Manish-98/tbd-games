@@ -179,9 +179,9 @@ export function runGitEngineTests() {
   const cherryConflictEngine = createGitEngine({
     seed: 'cherry-pick-file-conflicts',
     commits: [
-      { id: 'cp-base', message: 'Base', parents: [], tree: { 'modify.txt': 'base', 'delete.txt': 'base', 'remove.txt': 'base', 'keep.txt': 'base' } },
-      { id: 'cp-target', message: 'Target edits', parents: ['cp-base'], tree: { 'modify.txt': 'target edit', 'delete.txt': 'target edit', 'keep.txt': 'base', 'target-only.txt': 'target' } },
-      { id: 'cp-source', message: 'Incoming changes', parents: ['cp-base'], tree: { 'modify.txt': 'source edit', 'remove.txt': 'source recreates file', 'keep.txt': 'incoming clean change', 'added.txt': 'source addition' } }
+      { id: 'cp-base', message: 'Base', parents: [], tree: { 'modify.txt': 'base', 'delete.txt': 'base', 'remove.txt': 'base', 'keep.txt': 'base', 'clean-delete.txt': 'remove me' } },
+      { id: 'cp-target', message: 'Target edits', parents: ['cp-base'], tree: { 'modify.txt': 'target edit', 'delete.txt': 'target edit', 'keep.txt': 'base', 'clean-delete.txt': 'remove me', 'both-added.txt': 'target added', 'target-only.txt': 'target' } },
+      { id: 'cp-source', message: 'Incoming changes', parents: ['cp-base'], tree: { 'modify.txt': 'source edit', 'remove.txt': 'source recreates file', 'keep.txt': 'incoming clean change', 'added.txt': 'source addition', 'both-added.txt': 'source added' } }
     ], branches: { main: 'cp-target', feature: 'cp-source' }, headBranch: 'main'
   });
   const conflictsBefore = cherryConflictEngine.inspect();
@@ -191,9 +191,10 @@ export function runGitEngineTests() {
   assert(cherryState.head.commit === 'cp-target' && cherryState.branches.main === 'cp-target', 'conflicting cherry-pick must not move HEAD or refs');
   assert(Object.keys(cherryState.commits).length === Object.keys(conflictsBefore.commits).length, 'conflicting cherry-pick must not create a commit');
   assert(cherryState.cherryPickInProgress?.sourceCommit === 'cp-source', 'pending source commit must be inspectable');
-  assert(cherryState.conflicts.map(conflict => conflict.file).sort().join(',') === 'delete.txt,modify.txt,remove.txt', 'modify, delete-versus-modify, and modify-versus-delete conflicts must be detected');
+  assert(cherryState.conflicts.map(conflict => conflict.file).sort().join(',') === 'both-added.txt,delete.txt,modify.txt,remove.txt', 'modify, delete-versus-modify, and modify-versus-delete conflicts must be detected');
   assert(cherryState.workingTree['keep.txt'] === 'incoming clean change' && cherryState.staging['keep.txt'] === 'incoming clean change', 'non-conflicting changes must stay applied and staged');
   assert(cherryState.workingTree['added.txt'] === 'source addition', 'non-conflicting additions must be retained');
+  assert(cherryState.staging['clean-delete.txt'] === null, 'non-conflicting deletions must be staged');
   assert(cherryState.workingTree['modify.txt'].includes('<<<<<<< HEAD'), 'conflicted files must contain markers');
   assert(cherryState.staging['delete.txt'] === undefined, 'conflicted files must not be staged automatically');
   const blockedSwitch = cherryConflictEngine.execute({ type: 'switch', params: { branch: 'feature' } });
@@ -204,6 +205,8 @@ export function runGitEngineTests() {
   assertValid(cherryConflictEngine.execute({ type: 'resolve', params: { file: 'modify.txt', content: '<<<<<<< HEAD\\ntarget\\n=======\\nincoming\\n>>>>>>> incoming' } }), 'conflict markers may be edited');
   assertValid(cherryConflictEngine.execute({ type: 'add', params: { file: 'modify.txt' } }), 'unresolved marker content may be staged without clearing its conflict');
   assert(cherryConflictEngine.inspect().conflicts.length === 3, 'staging conflict markers must keep the conflict unresolved');
+  assertValid(cherryConflictEngine.execute({ type: 'resolve', params: { file: 'both-added.txt', content: 'combined addition' } }), 'add/add conflict should be resolvable');
+  assertValid(cherryConflictEngine.execute({ type: 'add', params: { file: 'both-added.txt' } }), 'add/add resolution must be staged');
   assertValid(cherryConflictEngine.execute({ type: 'resolve', params: { file: 'modify.txt', content: 'combined modification' } }), 'modified conflict should be resolvable');
   assertValid(cherryConflictEngine.execute({ type: 'add', params: { file: 'modify.txt' } }), 'modified resolution must be staged');
   assertValid(cherryConflictEngine.execute({ type: 'resolve', params: { file: 'delete.txt', deleteFile: true } }), 'delete conflict should support deletion resolution');
@@ -212,6 +215,7 @@ export function runGitEngineTests() {
   assertValid(cherryConflictEngine.execute({ type: 'add', params: { file: 'remove.txt' } }), 'delete-versus-modify resolution must be staged');
   cherryState = cherryConflictEngine.inspect();
   assert(cherryState.conflicts.length === 0, 'marker-free staged resolutions must clear conflicts');
+  assert(cherryState.staging['clean-delete.txt'] === null, 'clean deletions must remain staged until completion');
   assert(!Object.prototype.hasOwnProperty.call(cherryState.workingTree, 'delete.txt'), 'deletion resolution must remove the file from the worktree');
   assert(cherryState.cherryPickInProgress, 'resolving conflicts must retain operation state until commit');
   const completedPick = cherryConflictEngine.execute({ type: 'commit', params: { message: 'Apply source changes' } });
@@ -219,6 +223,8 @@ export function runGitEngineTests() {
   assert(JSON.stringify(completedPick.data.commit.parents) === JSON.stringify(['cp-target']), 'completion must create a single-parent commit at the target tip');
   assert(completedPick.data.commit.tree['modify.txt'] === 'combined modification' && completedPick.data.commit.tree['keep.txt'] === 'incoming clean change', 'commit tree must include resolutions and clean changes');
   assert(!Object.prototype.hasOwnProperty.call(completedPick.data.commit.tree, 'delete.txt'), 'resolved deletion must be present in the committed tree');
+  assert(!Object.prototype.hasOwnProperty.call(completedPick.data.commit.tree, 'clean-delete.txt'), 'clean deletion must be present in the committed tree');
+  assert(completedPick.data.commit.tree['both-added.txt'] === 'combined addition', 'add/add resolution must be committed');
   cherryState = cherryConflictEngine.inspect();
   assert(cherryState.cherryPickInProgress === null && cherryState.conflicts.length === 0, 'completion must clear cherry-pick state and conflict records');
   assert(cherryConflictEngine.execute({ type: 'status', params: {} }).data.clean, 'completed cherry-pick should leave a clean tree');
