@@ -304,7 +304,7 @@ function testDirectCommandExecution() {
     headBranch: 'main',
     conflicts: [{ file: 'README.md', base: 'base', ours: 'current', theirs: 'incoming' }],
     mergeInProgress: { ours: 'root', theirs: 'incoming', branch: 'feature' },
-    workingTree: { 'README.md': '<<<<<<< HEAD\\ncurrent\\n=======\\nincoming\\n>>>>>>> incoming\\n' }
+    workingTree: { 'README.md': '<<<<<<< HEAD\ncurrent\n=======\nincoming\n>>>>>>> incoming\n' }
   });
   const controller = createCommandController(repository, ['status']);
   const resolved = controller.executeCommand({
