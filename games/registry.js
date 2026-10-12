@@ -3,6 +3,7 @@ import { initLogicGame } from './logic/game.js';
 import { initTurtleGame } from './turtle/game.js';
 import { initCellularGame } from './cellular/game.js';
 import { initWikiGalaxyGame } from './wiki-galaxy/game.js';
+import { initGitGame } from './git/game.js';
 
 export const games = [
   {
@@ -103,6 +104,20 @@ export const games = [
       controls: ['Click or drag across the grid to paint cells.', 'Run or pause continuous simulation.', 'Step one generation at a time.', 'Reset to the initial seed.', 'Randomize or clear the current world.', 'Toggle rule counts and save/load custom worlds.'],
       scoring: 'There is no score. The main feedback is the evolving pattern plus generation, population, change, and rule readouts.',
       visual: { title: 'Evolve a world', steps: ["Paint a seed","Set birth / survive rules","Step or run","Observe the pattern"] },
+    }
+  },
+  {
+    id: 'git', title: 'Git Troubleshooter', type: 'Strategy', category: 'strategy',
+    description: 'Investigate the repository. Fix the story.', symbol: '⌘', initialize: initGitGame, initialMode: 'play',
+    about: {
+      objective: 'Solve realistic Git situations by changing the repository until the scenario objective is satisfied.',
+      concept: 'Git repository state: commits, branches, HEAD, working-tree changes, remotes, and history operations.',
+      howToPlay: 'Choose a practice situation, inspect the repository map, construct commands from the Git command palette, and execute them until the objective is complete.',
+      rules: ['Commands are constructed from the available command palette.', 'Command parameters are validated before execution.', 'Git errors remain part of the investigation rather than becoming solution hints.', 'A scenario is complete when its repository-state objectives are satisfied.'],
+      components: ['Story-driven scenario selector', 'Git command palette and parameter builder', 'Repository visualization and inspection', 'Objective state and command history', 'Scenario completion explanation'],
+      controls: ['Choose a practice situation.', 'Select a Git command and fill its parameters.', 'Use Explain to read what an available command does.', 'Inspect commits, branches, and HEAD in the repository map.', 'Generate another scenario after completion.'],
+      scoring: 'There is no command-choice score. Completion is based on the resulting repository state.',
+      visual: { title: 'Investigate and repair', steps: ['Read the situation', 'Inspect the repository', 'Construct a command', 'Reach the objective'] },
     }
   },
   { title: 'Tiny Towers', type: 'Strategy', category: 'strategy', description: 'Build carefully. Balance everything.', symbol: '△' },
