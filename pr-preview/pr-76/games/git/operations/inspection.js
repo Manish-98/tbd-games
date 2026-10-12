@@ -19,6 +19,11 @@ function getStatus(state) {
     unstaged: diffTrees(stagedTree, state.workingTree),
     conflicts: clone(state.conflicts),
     mergeInProgress: clone(state.mergeInProgress),
+    cherryPickInProgress: state.cherryPickInProgress ? {
+      sourceCommit: state.cherryPickInProgress.sourceCommit,
+      targetCommit: state.cherryPickInProgress.targetCommit,
+      patchFiles: clone(state.cherryPickInProgress.patchFiles)
+    } : null,
     clean: !hasChanges(state) && state.conflicts.length === 0
   };
 }

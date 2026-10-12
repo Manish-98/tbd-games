@@ -26,11 +26,11 @@ export function createPatchWrongRouteTemplate() {
     id: 'patch-wrong-route',
     story:
       'A release candidate picked up changes from the wrong line of development. ' +
-      'The release must be corrected without losing the team’s local edits or abandoning ongoing feature work.',
+      'The release must be corrected by cherry-picking a fix that conflicts with release-side edits, without losing local work or abandoning ongoing feature work.',
     availableCommands: COMMANDS,
     concept: 'history recovery and selective integration',
     completionExplanation:
-      'The release contains the required correction without feature-only files, the designated fix remains in its history, ' +
+      'The release contains the required correction without feature-only files, the designated fix has been cherry-picked into its history, ' +
       'the feature branch still retains its work, and both local edits keep their original index/worktree status.',
     generate({ random }) {
       const seed = 'patch-wrong-route-' + random.int(1, 2147483647);
@@ -47,7 +47,7 @@ export function createPatchWrongRouteTemplate() {
       return {
         story:
           'A release candidate picked up changes from the wrong line of development. ' +
-          'Correct the release while keeping local edits safe and leaving ongoing feature work available to its team.',
+          'Protect the local edits, cherry-pick the release fix, resolve its file conflict, and keep ongoing feature work available to its team.',
         parameters: {
           base,
           releasePrep,
@@ -122,7 +122,8 @@ function createScenarioGraph(seed) {
   }, [0]);
   append('Align compatibility defaults', {
     'config/release.txt': 'channel=legacy\nretry=0\n',
-    'src/legacy-adapter.js': 'enable legacy adapter'
+    'src/legacy-adapter.js': 'enable legacy adapter',
+    'src/release-check.js': 'validate release package; retry through legacy adapter'
   }, [1]);
   append('Refresh the release checklist', {
     'CHANGELOG.md': 'Documented the compatibility review.'
@@ -214,15 +215,15 @@ function createObjectives(options) {
     }),
     createObjective({
       id: 'designated-fix-reachable',
-      description: 'The designated correction commit is reachable from the release branch.',
+      description: 'The designated correction has been cherry-picked into the release branch.',
       evaluate(state) {
-        const satisfied = hasAncestor(state.commits, fix, state.branches.main);
+        const satisfied = hasCherryPickedFix(state.commits, state.branches.main, fix);
 
         return objectiveResult(
           'designated-fix-reachable',
           satisfied,
-          'The release branch history must include the designated correction commit.',
-          { expectedCommit: fix, releaseTip: state.branches.main || null }
+          'The release history must contain a single-parent cherry-pick of the designated correction.',
+          { expectedSource: fix, releaseTip: state.branches.main || null }
         );
       }
     }),
@@ -301,7 +302,7 @@ function createObjectives(options) {
           !Object.prototype.hasOwnProperty.call(releaseTree, 'src/legacy-adapter.js') &&
           releaseTree['release-notes.md'] === 'Weekly package review completed.' &&
           releaseTree['CHANGELOG.md'] === 'Documented the compatibility review.' &&
-          hasAncestor(state.commits, fix, state.branches.main) &&
+          hasCherryPickedFix(state.commits, state.branches.main, fix) &&
           Boolean(featureCommit) &&
           hasAncestor(state.commits, featureTip, state.branches['feature/catalog-refresh']) &&
           featureFiles.every(file => typeof featureCommit.tree?.[file] === 'string') &&
@@ -316,7 +317,7 @@ function createObjectives(options) {
           'All required tree, reachability, local index/worktree, and conflict predicates must hold simultaneously.',
           {
             releaseConfig: releaseTree['config/release.txt'] ?? null,
-            fixReachable: hasAncestor(state.commits, fix, state.branches.main),
+            fixCherryPicked: hasCherryPickedFix(state.commits, state.branches.main, fix),
             featureFilesAbsent,
             localEditsPreserved,
             unresolvedConflicts: state.conflicts.length,
@@ -326,6 +327,32 @@ function createObjectives(options) {
       }
     })
   ];
+}
+
+function hasCherryPickedFix(commits, releaseTip, sourceFix) {
+  const source = commits[sourceFix];
+  if (!source || !releaseTip) return false;
+
+  const pending = [releaseTip];
+  const visited = new Set();
+  while (pending.length) {
+    const currentId = pending.pop();
+    if (!currentId || visited.has(currentId)) continue;
+    visited.add(currentId);
+    const current = commits[currentId];
+    if (!current) continue;
+
+    if (
+      currentId !== sourceFix &&
+      current.parents.length === 1 &&
+      current.message === source.message &&
+      current.tree['src/release-check.js'] === source.tree['src/release-check.js']
+    ) return true;
+
+    pending.push(...current.parents);
+  }
+
+  return false;
 }
 
 function objectiveResult(id, satisfied, description, actual) {
