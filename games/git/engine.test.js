@@ -263,6 +263,8 @@ export function runGitEngineTests() {
   assert(cherryState.head.commit === abortBefore.head.commit && cherryState.branches.main === abortBefore.branches.main, 'abort must preserve refs');
   assert(JSON.stringify(cherryState.workingTree) === JSON.stringify(abortBefore.workingTree) && JSON.stringify(cherryState.staging) === JSON.stringify(abortBefore.staging), 'abort must restore original worktree and index');
   assert(cherryState.cherryPickInProgress === null && cherryState.conflicts.length === 0, 'abort must clear operation metadata and conflicts');
+  const resetWhilePending = abortEngine.execute({ type: 'reset', params: { commit: 'abort-base', mode: 'hard' } });
+  assert(!resetWhilePending.valid && resetWhilePending.error.code === 'CHERRY_PICK_IN_PROGRESS', 'reset must be blocked until a pending cherry-pick is resolved or aborted');
 
   const statusResult = engine.execute({ type: 'status', params: {} });
   assert(
