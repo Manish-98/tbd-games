@@ -96,21 +96,24 @@ export function createPatchWrongRouteTemplate() {
 function createScenarioGraph(seed) {
   const definitions = [];
   const ids = [];
-  let tree = { ...BASELINE };
+  const rootTree = { ...BASELINE };
 
   const append = (message, changes, parentIndexes) => {
-    tree = { ...tree, ...changes };
     const parents = parentIndexes.map(index => ids[index]);
+    const parentTree = parentIndexes.length
+      ? definitions[parentIndexes[0]].tree
+      : rootTree;
+    const tree = { ...parentTree, ...changes };
     const id = makeCommitId(seed, ids.length + 1, message, parents, tree);
-    definitions.push({ id, message, parents, tree: { ...tree } });
+    definitions.push({ id, message, parents, tree });
     ids.push(id);
   };
 
   definitions.push({
-    id: makeCommitId(seed, 1, 'Establish release workspace', [], tree),
+    id: makeCommitId(seed, 1, 'Establish release workspace', [], rootTree),
     message: 'Establish release workspace',
     parents: [],
-    tree: { ...tree }
+    tree: { ...rootTree }
   });
   ids.push(definitions[0].id);
 
