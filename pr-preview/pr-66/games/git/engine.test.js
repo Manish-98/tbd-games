@@ -197,6 +197,58 @@ export function runGitEngineTests() {
     'reset should restore deterministic commit sequencing'
   );
 
+  // A commit records the staged snapshot but must preserve later working-tree edits.
+  const postStageEditEngine = createGitEngine({
+    seed: 'commit-post-stage-edit',
+    files: { 'note.txt': 'original' },
+    workingTree: { 'note.txt': 'newer unstaged edit' },
+    staging: { 'note.txt': 'staged' }
+  });
+  const postStageCommit = postStageEditEngine.execute({
+    type: 'commit',
+    params: { message: 'Commit staged note' }
+  });
+  assertValid(postStageCommit, 'commit should succeed with a post-staging edit');
+  const postStageState = postStageEditEngine.inspect();
+  assert(
+    postStageCommit.data.commit.tree['note.txt'] === 'staged',
+    'commit tree should contain the content captured when the file was staged'
+  );
+  assert(
+    postStageState.workingTree['note.txt'] === 'newer unstaged edit',
+    'working tree should retain content edited after staging'
+  );
+  assert(
+    postStageEditEngine.execute({ type: 'status', params: {} }).data.clean === false,
+    'a post-staging edit should remain visible as a working-tree change'
+  );
+
+  // A staged deletion followed by recreation must retain the recreated file.
+  const recreatedFileEngine = createGitEngine({
+    seed: 'commit-recreated-staged-deletion',
+    files: { 'note.txt': 'original' },
+    workingTree: { 'note.txt': 'recreated after staging deletion' },
+    staging: { 'note.txt': null }
+  });
+  const recreatedCommit = recreatedFileEngine.execute({
+    type: 'commit',
+    params: { message: 'Delete staged note' }
+  });
+  assertValid(recreatedCommit, 'staged deletion should commit');
+  const recreatedState = recreatedFileEngine.inspect();
+  assert(
+    !Object.prototype.hasOwnProperty.call(recreatedCommit.data.commit.tree, 'note.txt'),
+    'commit tree should reflect the staged deletion'
+  );
+  assert(
+    recreatedState.workingTree['note.txt'] === 'recreated after staging deletion',
+    'file recreated after staging deletion should survive as an unstaged addition'
+  );
+  assert(
+    recreatedFileEngine.execute({ type: 'status', params: {} }).data.clean === false,
+    'a recreated file should remain visible as a working-tree change'
+  );
+
   const first = createGitEngine(input).inspect();
   const second = createGitEngine(input).inspect();
   sameSnapshot(

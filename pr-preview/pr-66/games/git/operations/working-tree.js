@@ -55,6 +55,7 @@ function commit(repo, params) {
   const parent = state.head.commit;
   const merge = state.mergeInProgress;
   const tree = applyChanges(state.commits[parent].tree, state.staging);
+  const workingTreeAfterCommit = clone(state.workingTree);
   const parents = merge ? [parent, merge.theirs] : [parent];
   const commit = repo.createCommit({
     message: params.message,
@@ -64,7 +65,9 @@ function commit(repo, params) {
   });
 
   moveHead(repo, commit.id);
-  state.workingTree = clone(tree);
+  // The index determines the commit tree; preserve the working tree as-is
+  // so edits made after staging and recreated files remain unstaged.
+  state.workingTree = workingTreeAfterCommit;
   state.staging = {};
   state.conflicts = [];
   state.mergeInProgress = null;
