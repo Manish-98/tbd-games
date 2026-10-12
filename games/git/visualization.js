@@ -317,12 +317,6 @@ function renderInspection(kind, item) {
   }
 
   if (kind === 'remote-commit') {
-    const separator = id.indexOf('/');
-    const remoteName = id.slice(0, separator);
-    const commitId = id.slice(separator + 1);
-    return state.remotes[remoteName]?.commits?.[commitId] || null;
-  }
-  if (kind === 'remote-commit') {
     return '<div class="git-inspection-heading"><span class="section-label">Remote commit</span></div><dl>' +
       '<dt>ID</dt><dd><code>' + escapeHtml(item.id) + '</code></dd>' +
       '<dt>Message</dt><dd>' + escapeHtml(item.message) + '</dd>' +
@@ -463,6 +457,19 @@ function getInspectableItem(state, kind, id) {
   }
   if (kind === 'remote') {
     return state.remoteTracking[id] ? { name: id, commit: state.remoteTracking[id] } : null;
+  }
+  if (kind === 'remote-commit') {
+    // Remote names may contain '/', so match the full remote name before
+    // treating the remaining suffix as the commit ID. Prefer the longest
+    // match in case remote names share a prefix.
+    const remoteName = Object.keys(state.remotes)
+      .filter(name => id.startsWith(name + '/'))
+      .sort((a, b) => b.length - a.length)[0];
+    if (!remoteName) return null;
+
+    const commitId = id.slice(remoteName.length + 1);
+    const commit = state.remotes[remoteName]?.commits?.[commitId];
+    return commit ? { ...commit, id: commit.id || commitId } : null;
   }
   if (kind === 'remote-branch') {
     const separator = id.indexOf('/');
