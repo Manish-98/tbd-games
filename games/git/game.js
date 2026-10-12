@@ -4,7 +4,7 @@ import { createGitEngine } from './engine.js';
 import { createCommandController, getCommandDefinition, getParameterOptions, PARAMETER_TYPES } from './command-palette.js';
 import { createGitVisualization } from './visualization.js';
 import { renderInspectionOutput } from './inspection-output.js';
-import { renderConflictResolutionPanel, containsConflictMarkers } from './conflict-resolution-panel.js';
+import { renderConflictResolutionPanel, containsConflictMarkers, isDraftApplied } from './conflict-resolution-panel.js';
 import { READ_ONLY_COMMANDS } from './constants.js';
 import { evaluateScenario, generateRegisteredScenario, getScenarioTemplates } from './scenarios/index.js';
 
@@ -177,11 +177,12 @@ export function initGitGame(section) {
   }
 
   function isCurrentConflictDraftApplied(file) {
-    const applied = appliedConflictDrafts[file];
-    return Boolean(applied) &&
-      applied.content === (conflictDrafts[file] ?? '') &&
-      applied.deleteFile === (conflictDeleteChoices[file] === true) &&
-      (applied.deleteFile || !containsConflictMarkers(applied.content));
+    return isDraftApplied(
+      file,
+      conflictDrafts[file] ?? '',
+      conflictDeleteChoices[file] === true,
+      appliedConflictDrafts
+    );
   }
 
   function executeConflictCommand(type, params) {
@@ -201,7 +202,6 @@ export function initGitGame(section) {
       const content = conflictDrafts[conflict.file] ?? '';
       const deleteFile = conflictDeleteChoices[conflict.file] === true;
       if (!deleteFile && containsConflictMarkers(content)) {
-        executionError = 'Remove conflict markers from the final content before applying the resolution.';
         refreshConflictPanelStatus();
         return;
       }
@@ -239,11 +239,12 @@ export function initGitGame(section) {
     const stage = panel.querySelector('[data-conflict-action="stage"]');
     panel.querySelectorAll('[data-conflict-option]').forEach(option => {
       const optionFile = option.dataset.conflictOption;
-      const appliedDraft = appliedConflictDrafts[optionFile];
-      const isApplied = Boolean(appliedDraft) &&
-        appliedDraft.content === (conflictDrafts[optionFile] ?? '') &&
-        appliedDraft.deleteFile === (conflictDeleteChoices[optionFile] === true) &&
-        (appliedDraft.deleteFile || !containsConflictMarkers(appliedDraft.content));
+      const isApplied = isDraftApplied(
+        optionFile,
+        conflictDrafts[optionFile] ?? '',
+        conflictDeleteChoices[optionFile] === true,
+        appliedConflictDrafts
+      );
       option.textContent = optionFile + (isApplied ? ' — applied, not staged' : '');
     });
     if (status) {
