@@ -62,7 +62,7 @@ const COMMAND_DEFINITIONS = Object.freeze([
     parameter('commit', 'Commit', PARAMETER_TYPES.SELECT, true, commitOptions)
   ]),
   createDefinition('cherry-pick', 'Cherry-pick', 'git cherry-pick', 'Apply a commit, or abort an in-progress cherry-pick to restore the pre-operation state.', [
-    parameter('commit', 'Commit', PARAMETER_TYPES.SELECT, false, commitOptions, { visibleWhen: params => !params.abort }),
+    parameter('commit', 'Commit', PARAMETER_TYPES.SELECT, true, commitOptions, { visibleWhen: params => !params.abort }),
     parameter('abort', 'Abort cherry-pick', PARAMETER_TYPES.TOGGLE, false, null, { default: () => false })
   ]),
   createDefinition('fetch', 'Fetch', 'git fetch', 'Update remote-tracking references from a remote.', [
