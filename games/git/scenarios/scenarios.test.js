@@ -442,10 +442,16 @@ const patchReleaseTree = {
 for (const file of patchParameters.featureFiles) {
   delete patchReleaseTree[file];
 }
+patchFinalState.commits['test-patch-cherry-pick'] = {
+  id: 'test-patch-cherry-pick',
+  message: 'Correct retry handling',
+  parents: [patchParameters.releaseFollowup],
+  tree: patchReleaseTree
+};
 patchFinalState.commits['test-patch-final-release'] = {
   id: 'test-patch-final-release',
   message: 'Test-only completed release state',
-  parents: [patchParameters.featureTip],
+  parents: ['test-patch-cherry-pick'],
   tree: patchReleaseTree
 };
 patchFinalState.branches.main = 'test-patch-final-release';
@@ -472,7 +478,7 @@ const alternatePatchFinalState = {
     ...patchFinalState.commits,
     'test-patch-final-release': {
       ...patchFinalState.commits['test-patch-final-release'],
-      parents: [patchParameters.fix]
+      parents: ['test-patch-cherry-pick']
     }
   }
 };
