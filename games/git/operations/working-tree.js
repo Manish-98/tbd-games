@@ -42,12 +42,11 @@ function stageFile(repo, params) {
 
 function resolveConflict(repo, params) {
   const state = stateOf(repo);
-  state.workingTree[params.file] = params.content;
-
-  return success({
-    file: params.file,
-    resolved: !Object.values(CONFLICT_MARKERS).some(marker => params.content.includes(marker))
-  });
+  if (params.deleteFile === true) delete state.workingTree[params.file];
+  else state.workingTree[params.file] = params.content;
+  const content = state.workingTree[params.file];
+  const hasMarkers = typeof content === 'string' && Object.values(CONFLICT_MARKERS).some(marker => content.includes(marker));
+  return success({ file: params.file, deleted: params.deleteFile === true, resolved: !hasMarkers });
 }
 
 function commit(repo, params) {
@@ -71,7 +70,8 @@ function commit(repo, params) {
   state.staging = {};
   state.conflicts = [];
   state.mergeInProgress = null;
-  repo.refChange(
+  state.cherryPickInProgress = null;
+  repo.refChange,
     headRef(repo),
     parent,
     commit.id,
@@ -115,6 +115,9 @@ function reset(repo, params) {
   } else if (params.mode === 'mixed') {
     state.staging = {};
   }
+  state.conflicts = [];
+  state.mergeInProgress = null;
+  state.cherryPickInProgress = null;
 
   repo.refChange(
     headRef(repo),
