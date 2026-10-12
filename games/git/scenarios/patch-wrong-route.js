@@ -103,7 +103,7 @@ function createScenarioGraph(seed) {
     const parentTree = parentIndexes.length
       ? definitions[parentIndexes[0]].tree
       : rootTree;
-    const tree = Object.freeze({ ...parentTree, ...changes });
+    const tree = { ...parentTree, ...changes };
     const id = makeCommitId(seed, ids.length + 1, message, parents, tree);
     definitions.push({ id, message, parents, tree });
     ids.push(id);
