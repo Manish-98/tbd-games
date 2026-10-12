@@ -2,6 +2,7 @@ import { DEFAULTS } from '../constants.js';
 import { makeCommitId } from '../utils.js';
 import { createObjective } from './objectives.js';
 import { defineScenarioTemplate } from './template.js';
+import { createPatchWrongRouteTemplate } from './patch-wrong-route.js';
 
 const AUTHORS = Object.freeze([
   Object.freeze({ name: 'Aisha', email: 'aisha@example.test' }),
@@ -29,7 +30,8 @@ export const SCENARIO_TEMPLATES = Object.freeze([
   createFridayMergeTemplate(),
   createConflictMergeTemplate(),
   createPresentablePrTemplate(),
-  createTeammateTemplate()
+  createTeammateTemplate(),
+  createPatchWrongRouteTemplate()
 ]);
 
 function createMissingFeatureTemplate() {
