@@ -288,6 +288,14 @@ function testEngineFailuresArePreserved() {
 
 function testFormatting() {
   assert(
+    formatCommand({ type: 'cherry-pick', params: { abort: true } }) === 'git cherry-pick --abort',
+    'Cherry-pick abort formatting should expose the recovery command.'
+  );
+  assert(
+    formatCommand({ type: 'cherry-pick', params: { commit: 'abc1234' } }) === 'git cherry-pick abc1234',
+    'Cherry-pick formatting should include the selected source commit.'
+  );
+  assert(
     formatCommand({ type: 'switch', params: { branch: 'feature' } }) === 'git switch feature',
     'Command formatting should be readable.'
   );
