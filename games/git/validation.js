@@ -23,13 +23,31 @@ export function validateCommand(state, command) {
     );
   }
 
-  if (
-    state.mergeInProgress &&
-    !['status', 'log', 'show', 'diff', 'add', 'resolve', 'commit', 'reflog'].includes(normalized.type)
-  ) {
+  if (state.mergeInProgress && state.cherryPickInProgress) {
+    return invalid(
+      ERROR_CODES.EXECUTION_ERROR,
+      'Repository cannot have a merge and cherry-pick in progress simultaneously.'
+    );
+  }
+
+  const mergeAllowedCommands = [
+    'status', 'log', 'show', 'diff', 'add', 'resolve', 'commit', 'reflog'
+  ];
+  if (state.mergeInProgress && !mergeAllowedCommands.includes(normalized.type)) {
     return invalid(
       ERROR_CODES.MERGE_IN_PROGRESS,
       'Complete the in-progress merge before running this command.'
+    );
+  }
+
+  const cherryPickAllowedCommands = [
+    ...mergeAllowedCommands,
+    'cherry-pick'
+  ];
+  if (state.cherryPickInProgress && !cherryPickAllowedCommands.includes(normalized.type)) {
+    return invalid(
+      ERROR_CODES.CHERRY_PICK_IN_PROGRESS,
+      'Complete or abort the in-progress cherry-pick before running this command.'
     );
   }
 
@@ -54,7 +72,7 @@ const VALIDATORS = Object.freeze({
   reset: validateResetCommand,
   restore: validateRestoreCommand,
   revert: (state, params) => validateCommit(state, params.commit, 'revert'),
-  'cherry-pick': (state, params) => validateCommit(state, params.commit, 'cherry-pick'),
+  'cherry-pick': validateCherryPickCommand,
   fetch: (state, params) => validateRemote(state, params.remote, 'fetch'),
   pull: (state, params) => validateRemote(state, params.remote, 'pull'),
   push: validatePushCommand,
@@ -63,10 +81,10 @@ const VALIDATORS = Object.freeze({
 });
 
 function validateResolveCommand(state, params) {
-  if (!state.mergeInProgress) {
+  if (!state.mergeInProgress && !state.cherryPickInProgress) {
     return invalid(
       ERROR_CODES.NOT_CONFLICTED_FILE,
-      'There is no merge in progress to resolve.'
+      'There is no merge or cherry-pick in progress to resolve.'
     );
   }
 
@@ -77,11 +95,41 @@ function validateResolveCommand(state, params) {
     );
   }
 
-  if (typeof params.content !== 'string') {
-    return invalid(ERROR_CODES.EMPTY_FILE, 'Resolved file content must be text.');
+  if (params.deleteFile !== true && typeof params.content !== 'string') {
+    return invalid(
+      ERROR_CODES.EMPTY_FILE,
+      'Resolved file content must be text unless the file is being deleted.'
+    );
   }
 
   return valid({ type: 'resolve', params });
+}
+
+function validateCherryPickCommand(state, params) {
+  if (params.abort === true) {
+    return state.cherryPickInProgress
+      ? valid({ type: 'cherry-pick', params: { abort: true } })
+      : invalid(ERROR_CODES.NOT_CHERRY_PICKING, 'There is no cherry-pick in progress to abort.');
+  }
+  if (state.cherryPickInProgress) {
+    return invalid(
+      ERROR_CODES.CHERRY_PICK_IN_PROGRESS,
+      'A cherry-pick is already in progress. Resolve and commit it, or abort it first.'
+    );
+  }
+  if (state.mergeInProgress) {
+    return invalid(
+      ERROR_CODES.MERGE_IN_PROGRESS,
+      'Complete the in-progress merge before cherry-picking.'
+    );
+  }
+  if (hasChanges(state)) {
+    return invalid(
+      ERROR_CODES.DIRTY_WORKTREE,
+      'Commit or stash staged and unstaged local changes before cherry-picking.'
+    );
+  }
+  return validateCommit(state, params.commit, 'cherry-pick');
 }
 
 function validateCommitCommand(state, params) {
@@ -92,8 +140,26 @@ function validateCommitCommand(state, params) {
   if (state.conflicts.length) {
     return invalid(
       ERROR_CODES.UNRESOLVED_CONFLICTS,
-      'Resolve merge conflicts before committing.'
+      'Resolve all merge or cherry-pick conflicts before committing.'
     );
+  }
+
+  if (state.cherryPickInProgress) {
+    const stagedFiles = new Set(Object.keys(state.staging));
+    const unstagedPatchFiles = state.cherryPickInProgress.patchFiles.filter(file => {
+      const currentValue = Object.prototype.hasOwnProperty.call(state.workingTree, file)
+        ? state.workingTree[file]
+        : null;
+      const targetValue = Object.prototype.hasOwnProperty.call(
+        state.cherryPickInProgress.targetTree,
+        file
+      ) ? state.cherryPickInProgress.targetTree[file] : null;
+
+      return !stagedFiles.has(file) && currentValue !== targetValue;
+    });
+    if (unstagedPatchFiles.length) {
+      return invalid(ERROR_CODES.NOTHING_STAGED, 'Stage the resolved cherry-pick changes before completing the operation.');
+    }
   }
 
   if (!Object.keys(state.staging).length) {

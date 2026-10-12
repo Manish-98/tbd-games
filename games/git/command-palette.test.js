@@ -98,6 +98,14 @@ function testConflictResolutionBuilder() {
     validation.command.params.content === 'Resolved README',
     'The palette should pass resolved content to the engine.'
   );
+  const deleteBuilder = updateCommandParameter(
+    updateCommandParameter(createCommandBuilder('resolve', state), 'file', 'README.md'),
+    'deleteFile',
+    true
+  );
+  const deleteValidation = validateCommandBuilder(deleteBuilder, state);
+  assert(deleteValidation.valid, 'A file conflict may be resolved by deleting that file.');
+  assert(deleteValidation.command.params.deleteFile === true, 'The palette should pass the delete resolution flag.');
 }
 
 function testBuilderValidation() {
@@ -287,6 +295,14 @@ function testEngineFailuresArePreserved() {
 }
 
 function testFormatting() {
+  assert(
+    formatCommand({ type: 'cherry-pick', params: { abort: true } }) === 'git cherry-pick --abort',
+    'Cherry-pick abort formatting should expose the recovery command.'
+  );
+  assert(
+    formatCommand({ type: 'cherry-pick', params: { commit: 'abc1234' } }) === 'git cherry-pick abc1234',
+    'Cherry-pick formatting should include the selected source commit.'
+  );
   assert(
     formatCommand({ type: 'switch', params: { branch: 'feature' } }) === 'git switch feature',
     'Command formatting should be readable.'
