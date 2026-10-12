@@ -122,7 +122,8 @@ function createScenarioGraph(seed) {
   }, [0]);
   append('Align compatibility defaults', {
     'config/release.txt': 'channel=legacy\nretry=0\n',
-    'src/legacy-adapter.js': 'enable legacy adapter'
+    'src/legacy-adapter.js': 'enable legacy adapter',
+    'src/release-check.js': 'validate release package; retry through legacy adapter'
   }, [1]);
   append('Refresh the release checklist', {
     'CHANGELOG.md': 'Documented the compatibility review.'
