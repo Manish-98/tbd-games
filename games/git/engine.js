@@ -238,6 +238,7 @@ function createInitialState(input, repo) {
     tags: clone(input.tags || {}),
     conflicts: clone(input.conflicts || []),
     mergeInProgress: clone(input.mergeInProgress || null),
+    cherryPickInProgress: clone(input.cherryPickInProgress || null),
     reflog: clone(input.reflog || []),
     stash: clone(input.stash || []),
     commandHistory: []
