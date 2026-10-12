@@ -35,7 +35,8 @@ The state model represents:
 - working tree and staging area
 - remotes and remote-tracking references
 - tags
-- merge conflicts
+- merge and cherry-pick conflict records
+- merge/cherry-pick in-progress metadata
 - reflog entries
 - stash entries
 - structured command history
@@ -85,6 +86,12 @@ The engine covers:
 - temporary work: stash
 
 New command behavior should be added by extending validation and operation modules rather than growing the repository orchestration layer.
+
+### Cherry-pick conflicts and recovery
+
+Cherry-pick applies a source commit's file changes using a file-level three-way comparison. A file is applied when the target still matches the source parent, skipped when the target already matches the source result, and marked conflicted when the target independently diverged. This handles file additions, modifications, and deletions, but cannot distinguish independent edits to different lines or hunks in the same file; those edits still require manual resolution.
+
+Cherry-pick starts only with a clean index and working tree. On conflict, non-conflicting patch entries are staged, conflict markers remain in the worktree, and neither HEAD nor branch refs advance. Resolve a file (or mark a conflicted file for deletion), stage it with `add`, then complete with `commit`. Use `cherry-pick --abort` to restore the pre-operation working tree, index, and conflict state. Merge keeps its separate operation metadata and two-parent commit behavior.
 
 ## Reset and state inspection
 
