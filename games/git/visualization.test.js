@@ -141,6 +141,45 @@ function testDetachedHeadAndInspectionData() {
   assert(html.includes('Changed files'), 'Commit inspection should expose changed files.');
 }
 
+function testRemoteCommitInspectionWithSlashInRemoteName() {
+  const listeners = new Map();
+  const panel = { innerHTML: '', hidden: true };
+  const container = {
+    innerHTML: '',
+    addEventListener(event, handler) { listeners.set(event, handler); },
+    removeEventListener(event) { listeners.delete(event); },
+    contains() { return true; },
+    querySelector(selector) { return selector === '[data-inspection-panel]' ? panel : null; },
+    querySelectorAll() { return []; }
+  };
+  const state = createGitEngine().snapshot();
+  const commitId = state.head.commit;
+  const commit = state.commits[commitId];
+  state.remotes['team/origin'] = {
+    branches: {},
+    commits: { [commitId]: commit }
+  };
+
+  const visualization = createGitVisualization(container);
+  visualization.render(state);
+
+  const target = {
+    dataset: {
+      inspectKind: 'remote-commit',
+      inspectId: 'team/origin/' + commitId
+    },
+    classList: { toggle() {} },
+    closest() { return target; }
+  };
+  listeners.get('click')({
+    target: { closest() { return target; } }
+  });
+
+  assert(!panel.hidden, 'Remote commit inspection should open for remotes containing slashes.');
+  assert(panel.innerHTML.includes(commit.message), 'Inspection should display the matched remote commit details.');
+  visualization.destroy();
+}
+
 function testValidation() {
   let failed = false;
   try {
@@ -157,6 +196,7 @@ testRemoteStateAndDeletedRefs();
 testWorkingStagingAndConflictTransitions();
 testKeyboardInspection();
 testDetachedHeadAndInspectionData();
+testRemoteCommitInspectionWithSlashInRemoteName();
 testValidation();
 assert(runGitVisualizationLayoutTests(), 'Commit graph layout tests should pass.');
 
