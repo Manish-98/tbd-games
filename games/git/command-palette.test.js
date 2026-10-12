@@ -294,6 +294,28 @@ function testEngineFailuresArePreserved() {
   assert(history[0].ok === false, 'History should mark failed commands.');
 }
 
+function testDirectCommandExecution() {
+  const repository = createGitEngine({
+    files: { 'README.md': 'base' },
+    commits: [
+      { id: 'root', message: 'root', tree: { 'README.md': 'base' } }
+    ],
+    branches: { main: 'root' },
+    headBranch: 'main',
+    conflicts: [{ file: 'README.md', base: 'base', ours: 'current', theirs: 'incoming' }],
+    mergeInProgress: { ours: 'root', theirs: 'incoming', branch: 'feature' },
+    workingTree: { 'README.md': '<<<<<<< HEAD\ncurrent\n=======\nincoming\n>>>>>>> incoming\n' }
+  });
+  const controller = createCommandController(repository, ['status']);
+  const resolved = controller.executeCommand({
+    type: 'resolve',
+    params: { file: 'README.md', content: 'resolved', deleteFile: false }
+  });
+  assert(resolved.ok, 'UI actions should be able to execute engine-supported conflict commands outside the scenario palette.');
+  assert(controller.getHistory().length === 1, 'direct UI command execution should be added to command history.');
+  assert(controller.getHistory()[0].display.includes('git resolve'), 'direct command history should retain the command syntax.');
+}
+
 function testFormatting() {
   assert(
     formatCommand({ type: 'cherry-pick', params: { abort: true } }) === 'git cherry-pick --abort',
@@ -327,5 +349,6 @@ function testFormatting() {
   testToggleAndConditionalParameters,
   testExecutionHistoryAndReset,
   testEngineFailuresArePreserved,
+  testDirectCommandExecution,
   testFormatting
 ].forEach(test => test());
