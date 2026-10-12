@@ -354,6 +354,68 @@ assert(
   !patchState.mergeInProgress,
   'patch wrong route scenario must start on main without active conflicts'
 );
+
+const cherryPickScenario = generateRegisteredScenario('patch-wrong-route', {
+  seed: 'patch-wrong-route-cherry-pick-conflict'
+});
+const cherryPickEngine = createGitEngine(cherryPickScenario.repository);
+const cherryPickParameters = cherryPickScenario.parameters;
+const stashResult = cherryPickEngine.execute({ type: 'stash', params: { action: 'push', message: 'protect release edits' } });
+assert(stashResult.ok, 'scenario local edits must be stashable before cherry-pick');
+const cherryPickConflict = cherryPickEngine.execute({
+  type: 'cherry-pick',
+  params: { commit: cherryPickParameters.fix }
+});
+assert(!cherryPickConflict.ok, 'cherry-pick must stop when the release-side file conflicts');
+assert(
+  cherryPickConflict.error?.code === 'CHERRY_PICK_CONFLICT' ||
+  cherryPickConflict.code === 'CHERRY_PICK_CONFLICT',
+  'scenario cherry-pick must expose the expected conflict'
+);
+assert(
+  cherryPickEngine.inspect().conflicts.some(conflict => conflict.file === 'src/release-check.js'),
+  'scenario cherry-pick must conflict on src/release-check.js'
+);
+assert(
+  cherryPickEngine.inspect().head.commit === cherryPickParameters.releaseFollowup,
+  'conflicted cherry-pick must not advance the release branch'
+);
+assert(
+  cherryPickEngine.execute({
+    type: 'resolve',
+    params: { file: 'src/release-check.js', content: 'validate release package; retry safely' }
+  }).ok,
+  'the release-check conflict must be resolvable'
+);
+assert(
+  cherryPickEngine.execute({ type: 'add', params: { file: 'src/release-check.js' } }).ok,
+  'the resolved release-check file must be stageable'
+);
+const finishCherryPick = cherryPickEngine.execute({
+  type: 'commit',
+  params: { message: 'Correct retry handling' }
+});
+assert(finishCherryPick.ok, 'the resolved cherry-pick must complete');
+assert(
+  finishCherryPick.data?.commit?.parents?.length === 1,
+  'the cherry-picked correction must be a single-parent commit'
+);
+assert(
+  cherryPickEngine.inspect().head.commit === finishCherryPick.data.commit.id,
+  'the cherry-pick commit must become the release branch tip'
+);
+assert(
+  cherryPickEngine.execute({ type: 'stash', params: { action: 'pop' } }).ok,
+  'the original local edits must be restored after cherry-pick'
+);
+const cherryPickFinalState = cherryPickEngine.inspect();
+assert(
+  cherryPickFinalState.staging[cherryPickParameters.stagedLocalFile] === cherryPickParameters.stagedLocalContent &&
+  cherryPickFinalState.workingTree[cherryPickParameters.unstagedLocalFile] === cherryPickParameters.unstagedLocalContent &&
+  !Object.prototype.hasOwnProperty.call(cherryPickFinalState.staging, cherryPickParameters.unstagedLocalFile),
+  'stash restoration must preserve the original staged and unstaged edits'
+);
+
 assert(
   patchObjectives['local-edits-preserved'] &&
   patchObjectives['feature-work-isolated'] &&
