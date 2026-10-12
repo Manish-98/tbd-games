@@ -347,6 +347,7 @@ const patchReleaseTree = {
   ...patchFeatureTree,
   'config/release.txt': patchParameters.correctedConfig,
   'src/release-check.js': 'validate release package; retry safely',
+  'release-notes.md': 'Weekly package review completed.',
   'CHANGELOG.md': 'Documented the compatibility review.'
 };
 for (const file of patchParameters.featureFiles) {
