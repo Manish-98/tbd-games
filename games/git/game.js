@@ -175,6 +175,7 @@ export function initGitGame(section) {
         [inspectorControl.dataset.inspectorSelection]: inspectorControl.value
       };
       render();
+      commandHost.querySelector('[data-inspector-selection="' + inspectorControl.dataset.inspectorSelection + '"]')?.focus();
       return;
     }
     const parameter = event.target.closest('[data-command-parameter]');
