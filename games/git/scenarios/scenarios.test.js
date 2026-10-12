@@ -1,4 +1,5 @@
 import { createGitEngine } from '../engine.js';
+import { COMMANDS } from '../constants.js';
 import { createRandom } from './random.js';
 import {
   createObjective,
@@ -315,10 +316,7 @@ assert(
   'patch wrong route scenario generation must be deterministic for a seed'
 );
 assert(
-  patchScenario.availableCommands.length === 20 &&
-  patchScenario.availableCommands.every(command =>
-    patchScenario.availableCommands.includes(command)
-  ),
+  JSON.stringify(patchScenario.availableCommands) === JSON.stringify(COMMANDS),
   'patch wrong route scenario must expose the full supported command palette'
 );
 assert(
