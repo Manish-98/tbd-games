@@ -42,11 +42,21 @@ function stageFile(repo, params) {
 
 function resolveConflict(repo, params) {
   const state = stateOf(repo);
-  if (params.deleteFile === true) delete state.workingTree[params.file];
-  else state.workingTree[params.file] = params.content;
+  if (params.deleteFile === true) {
+    delete state.workingTree[params.file];
+  } else {
+    state.workingTree[params.file] = params.content;
+  }
+
   const content = state.workingTree[params.file];
-  const hasMarkers = typeof content === 'string' && Object.values(CONFLICT_MARKERS).some(marker => content.includes(marker));
-  return success({ file: params.file, deleted: params.deleteFile === true, resolved: !hasMarkers });
+  const hasMarkers = typeof content === 'string' && Object.values(CONFLICT_MARKERS)
+    .some(marker => content.includes(marker));
+
+  return success({
+    file: params.file,
+    deleted: params.deleteFile === true,
+    resolved: !hasMarkers
+  });
 }
 
 function commit(repo, params) {
