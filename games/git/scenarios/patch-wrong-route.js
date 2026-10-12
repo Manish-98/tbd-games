@@ -197,6 +197,7 @@ function createObjectives(options) {
           tree['config/release.txt'] === correctedConfig &&
           tree['src/release-check.js'] === 'validate release package; retry safely' &&
           !Object.prototype.hasOwnProperty.call(tree, 'src/legacy-adapter.js') &&
+          tree['release-notes.md'] === 'Weekly package review completed.' &&
           tree['CHANGELOG.md'] === 'Documented the compatibility review.';
 
         return objectiveResult(
@@ -298,6 +299,7 @@ function createObjectives(options) {
           releaseTree['config/release.txt'] === correctedConfig &&
           releaseTree['src/release-check.js'] === 'validate release package; retry safely' &&
           !Object.prototype.hasOwnProperty.call(releaseTree, 'src/legacy-adapter.js') &&
+          releaseTree['release-notes.md'] === 'Weekly package review completed.' &&
           releaseTree['CHANGELOG.md'] === 'Documented the compatibility review.' &&
           hasAncestor(state.commits, fix, state.branches.main) &&
           Boolean(featureCommit) &&
