@@ -5,7 +5,9 @@ import { applyDerivedCommit } from './working-tree.js';
 
 export const HISTORY_OPERATIONS = Object.freeze({
   revert: (repo, params) => revert(repo, params.commit),
-  'cherry-pick': (repo, params) => params.abort ? abortCherryPick(repo) : cherryPick(repo, params.commit)
+  'cherry-pick': (repo, params) => params.abort
+    ? abortCherryPick(repo)
+    : cherryPick(repo, params.commit)
 });
 
 function revert(repo, commitId) {
@@ -37,7 +39,8 @@ function cherryPick(repo, commitId) {
   const patchFiles = patch.map(change => change.file);
 
   for (const change of patch) {
-    const targetValue = Object.prototype.hasOwnProperty.call(nextTree, change.file) ? nextTree[change.file] : null;
+    const targetHasFile = Object.prototype.hasOwnProperty.call(nextTree, change.file);
+    const targetValue = targetHasFile ? nextTree[change.file] : null;
     const expectedValue = change.oldValue;
     const incomingValue = change.newValue;
     if (targetValue === expectedValue) {
@@ -47,12 +50,24 @@ function cherryPick(repo, commitId) {
       continue;
     }
     if (targetValue === incomingValue) continue;
-    conflicts.push({ file: change.file, base: expectedValue, ours: targetValue, theirs: incomingValue });
+    conflicts.push({
+      file: change.file,
+      base: expectedValue,
+      ours: targetValue,
+      theirs: incomingValue
+    });
     nextTree[change.file] = createConflictText(targetValue, incomingValue);
   }
 
   if (!conflicts.length) {
-    return applyDerivedCommit(repo, nextTree, sourceCommit.message, 'cherry-pick', commitId, sourceCommit.author);
+    return applyDerivedCommit(
+      repo,
+      nextTree,
+      sourceCommit.message,
+      'cherry-pick',
+      commitId,
+      sourceCommit.author
+    );
   }
 
   state.workingTree = nextTree;
@@ -68,24 +83,42 @@ function cherryPick(repo, commitId) {
     preOperation: { workingTree: clone(targetTree), staging: {}, conflicts: [] }
   };
 
-  return gitFailure(ERROR_CODES.CHERRY_PICK_CONFLICT,
+  return gitFailure(
+    ERROR_CODES.CHERRY_PICK_CONFLICT,
     'Cherry-pick stopped because some files changed on both sides. Resolve the conflicts, stage the resolutions, and commit; or abort the cherry-pick.',
-    { conflicts: clone(conflicts) });
+    { conflicts: clone(conflicts) }
+  );
 }
 
 function abortCherryPick(repo) {
   const state = stateOf(repo);
   const operation = state.cherryPickInProgress;
-  if (!operation) return gitFailure(ERROR_CODES.NOT_CHERRY_PICKING, 'There is no cherry-pick in progress to abort.');
+  if (!operation) {
+    return gitFailure(
+      ERROR_CODES.NOT_CHERRY_PICKING,
+      'There is no cherry-pick in progress to abort.'
+    );
+  }
 
   state.workingTree = clone(operation.preOperation.workingTree);
   state.staging = clone(operation.preOperation.staging);
   state.conflicts = clone(operation.preOperation.conflicts);
   state.cherryPickInProgress = null;
 
-  return success({ aborted: true, sourceCommit: operation.sourceCommit, restoredHead: operation.targetCommit });
+  return success({
+    aborted: true,
+    sourceCommit: operation.sourceCommit,
+    restoredHead: operation.targetCommit
+  });
 }
 
 function createConflictText(ours, theirs) {
-  return [CONFLICT_MARKERS.START, ours ?? '', CONFLICT_MARKERS.SEPARATOR, theirs ?? '', CONFLICT_MARKERS.END, ''].join('\n');
+  return [
+    CONFLICT_MARKERS.START,
+    ours ?? '',
+    CONFLICT_MARKERS.SEPARATOR,
+    theirs ?? '',
+    CONFLICT_MARKERS.END,
+    ''
+  ].join('\n');
 }

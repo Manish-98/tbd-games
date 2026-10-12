@@ -194,6 +194,20 @@ export function runGitEngineTests() {
   assert(!dirtyResult.valid && dirtyResult.error.code === 'DIRTY_WORKTREE', 'dirty worktree must reject cherry-pick before mutation');
   sameSnapshot(dirtyBefore, dirtyCherryPickEngine.inspect(), 'rejected cherry-pick must preserve existing unstaged changes');
 
+  const stagedDirtyEngine = createGitEngine({
+    seed: 'cherry-pick-staged-state',
+    files: { 'note.txt': 'base', 'local.txt': 'committed' },
+    staging: { 'local.txt': 'staged but uncommitted' },
+    commits: [
+      { id: 'staged-base', message: 'Base', parents: [], tree: { 'note.txt': 'base', 'local.txt': 'committed' } },
+      { id: 'staged-source', message: 'Source', parents: ['staged-base'], tree: { 'note.txt': 'incoming', 'local.txt': 'committed' } }
+    ], branches: { main: 'staged-base', feature: 'staged-source' }, headBranch: 'main'
+  });
+  const stagedBefore = stagedDirtyEngine.inspect();
+  const stagedResult = stagedDirtyEngine.execute({ type: 'cherry-pick', params: { commit: 'staged-source' } });
+  assert(!stagedResult.valid && stagedResult.error.code === 'DIRTY_WORKTREE', 'staged local changes must reject cherry-pick before mutation');
+  sameSnapshot(stagedBefore, stagedDirtyEngine.inspect(), 'rejected cherry-pick must preserve pre-existing staged content');
+
   const cherryConflictEngine = createGitEngine({
     seed: 'cherry-pick-file-conflicts',
     commits: [
@@ -222,7 +236,7 @@ export function runGitEngineTests() {
   assert(!blockedCommit.valid && blockedCommit.error.code === 'UNRESOLVED_CONFLICTS', 'commit must be blocked while conflicts remain');
   assertValid(cherryConflictEngine.execute({ type: 'resolve', params: { file: 'modify.txt', content: '<<<<<<< HEAD\\ntarget\\n=======\\nincoming\\n>>>>>>> incoming' } }), 'conflict markers may be edited');
   assertValid(cherryConflictEngine.execute({ type: 'add', params: { file: 'modify.txt' } }), 'unresolved marker content may be staged without clearing its conflict');
-  assert(cherryConflictEngine.inspect().conflicts.length === 3, 'staging conflict markers must keep the conflict unresolved');
+  assert(cherryConflictEngine.inspect().conflicts.length === 4, 'staging conflict markers must keep all conflicts unresolved');
   assertValid(cherryConflictEngine.execute({ type: 'resolve', params: { file: 'both-added.txt', content: 'combined addition' } }), 'add/add conflict should be resolvable');
   assertValid(cherryConflictEngine.execute({ type: 'add', params: { file: 'both-added.txt' } }), 'add/add resolution must be staged');
   assertValid(cherryConflictEngine.execute({ type: 'resolve', params: { file: 'modify.txt', content: 'combined modification' } }), 'modified conflict should be resolvable');
