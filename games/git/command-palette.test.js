@@ -98,6 +98,14 @@ function testConflictResolutionBuilder() {
     validation.command.params.content === 'Resolved README',
     'The palette should pass resolved content to the engine.'
   );
+  const deleteBuilder = updateCommandParameter(
+    updateCommandParameter(createCommandBuilder('resolve', state), 'file', 'README.md'),
+    'deleteFile',
+    true
+  );
+  const deleteValidation = validateCommandBuilder(deleteBuilder, state);
+  assert(deleteValidation.valid, 'A file conflict may be resolved by deleting that file.');
+  assert(deleteValidation.command.params.deleteFile === true, 'The palette should pass the delete resolution flag.');
 }
 
 function testBuilderValidation() {
