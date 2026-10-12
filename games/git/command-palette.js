@@ -24,9 +24,10 @@ const COMMAND_DEFINITIONS = Object.freeze([
   createDefinition('add', 'Add', 'git add', 'Stage changes for a file.', [
     parameter('file', 'File', PARAMETER_TYPES.SELECT, true, fileOptions)
   ]),
-  createDefinition('resolve', 'Resolve conflict', 'git resolve', 'Replace the contents of a conflicted file with the resolved text.', [
+  createDefinition('resolve', 'Resolve conflict', 'git resolve', 'Replace a conflicted file with resolved text or mark it for deletion.', [
     parameter('file', 'Conflicted file', PARAMETER_TYPES.SELECT, true, conflictFileOptions),
-    parameter('content', 'Resolved content', PARAMETER_TYPES.TEXT, true)
+    parameter('content', 'Resolved content', PARAMETER_TYPES.TEXT, false, null, { visibleWhen: params => !params.deleteFile }),
+    parameter('deleteFile', 'Delete file', PARAMETER_TYPES.TOGGLE, false, null, { default: () => false })
   ]),
   createDefinition('commit', 'Commit', 'git commit -m', 'Create a commit from staged changes.', [
     parameter('message', 'Commit message', PARAMETER_TYPES.TEXT, true, null, {
@@ -60,8 +61,9 @@ const COMMAND_DEFINITIONS = Object.freeze([
   createDefinition('revert', 'Revert', 'git revert', 'Create a new commit that reverses a selected commit.', [
     parameter('commit', 'Commit', PARAMETER_TYPES.SELECT, true, commitOptions)
   ]),
-  createDefinition('cherry-pick', 'Cherry-pick', 'git cherry-pick', 'Apply the changes introduced by a selected commit.', [
-    parameter('commit', 'Commit', PARAMETER_TYPES.SELECT, true, commitOptions)
+  createDefinition('cherry-pick', 'Cherry-pick', 'git cherry-pick', 'Apply a commit, or abort an in-progress cherry-pick to restore the pre-operation state.', [
+    parameter('commit', 'Commit', PARAMETER_TYPES.SELECT, true, commitOptions, { visibleWhen: params => !params.abort }),
+    parameter('abort', 'Abort cherry-pick', PARAMETER_TYPES.TOGGLE, false, null, { default: () => false })
   ]),
   createDefinition('fetch', 'Fetch', 'git fetch', 'Update remote-tracking references from a remote.', [
     parameter('remote', 'Remote', PARAMETER_TYPES.SELECT, true, remoteOptions)
@@ -241,18 +243,22 @@ export function formatCommand(command) {
     case 'merge':
     case 'rebase':
     case 'revert':
-    case 'cherry-pick':
     case 'fetch':
     case 'pull':
       parts = withOptional(parts, params.commit || params.branch || params.remote);
+      break;
+    case 'cherry-pick':
+      if (params.abort) parts.push('--abort');
+      else parts = withOptional(parts, params.commit);
       break;
     case 'diff':
     case 'add':
       parts = withOptional(parts, params.file);
       break;
     case 'resolve':
+      if (params.deleteFile) parts.push('--delete');
       parts = withOptional(parts, params.file);
-      if (params.content !== undefined) parts.push('--content', arg(params.content));
+      if (!params.deleteFile && params.content !== undefined) parts.push('--content', arg(params.content));
       break;
     case 'commit':
       if (params.message !== undefined && params.message !== '') {
@@ -310,6 +316,35 @@ export function createCommandController(repository, availableCommands = COMMANDS
   let builder = null;
   let history = [];
 
+  function executeValidatedCommand(validation, attemptedCommand) {
+    const commandForDisplay = clone(attemptedCommand);
+    const display = formatCommand(commandForDisplay);
+
+    if (!validation.valid) {
+      history = history.concat({
+        command: commandForDisplay,
+        display,
+        ok: false,
+        result: clone(validation),
+        phase: 'validation'
+      });
+      return { ...validation, command: commandForDisplay };
+    }
+
+    const command = clone(validation.command);
+    const result = repository.execute(command);
+    history = history.concat({
+      command,
+      display: formatCommand(command),
+      ok: Boolean(result.ok),
+      result: clone(result),
+      phase: result.phase || 'git'
+    });
+
+    if (result.ok) builder = null;
+    return { ...result, command };
+  }
+
   return {
     listCommands(query = '') {
       return searchCommands(query, availableCommands);
@@ -349,40 +384,12 @@ export function createCommandController(repository, availableCommands = COMMANDS
 
     execute() {
       const validation = this.validate();
+      return executeValidatedCommand(validation, validation.command || builder);
+    },
 
-      // Capture the attempted command before execution so history is immutable
-      // even when validation or Git execution fails.
-      const attemptedCommand = clone(validation.command || builder);
-      const display = formatCommand(attemptedCommand);
-
-      if (!validation.valid) {
-        history = history.concat({
-          command: attemptedCommand,
-          display,
-          ok: false,
-          result: clone(validation),
-          phase: 'validation'
-        });
-        return { ...validation, command: attemptedCommand };
-      }
-
-      const command = clone(validation.command);
-      const result = repository.execute(command);
-
-      history = history.concat({
-        command,
-        display: formatCommand(command),
-        ok: Boolean(result.ok),
-        result: clone(result),
-        phase: result.phase || 'git'
-      });
-
-      if (result.ok) builder = null;
-
-      return {
-        ...result,
-        command
-      };
+    executeCommand(command) {
+      const validation = validateCommandBuilder(command, repository.snapshot());
+      return executeValidatedCommand(validation, validation.command || command);
     },
 
     getHistory() {

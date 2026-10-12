@@ -98,6 +98,14 @@ function testConflictResolutionBuilder() {
     validation.command.params.content === 'Resolved README',
     'The palette should pass resolved content to the engine.'
   );
+  const deleteBuilder = updateCommandParameter(
+    updateCommandParameter(createCommandBuilder('resolve', state), 'file', 'README.md'),
+    'deleteFile',
+    true
+  );
+  const deleteValidation = validateCommandBuilder(deleteBuilder, state);
+  assert(deleteValidation.valid, 'A file conflict may be resolved by deleting that file.');
+  assert(deleteValidation.command.params.deleteFile === true, 'The palette should pass the delete resolution flag.');
 }
 
 function testBuilderValidation() {
@@ -286,7 +294,37 @@ function testEngineFailuresArePreserved() {
   assert(history[0].ok === false, 'History should mark failed commands.');
 }
 
+function testDirectCommandExecution() {
+  const repository = createGitEngine({
+    files: { 'README.md': 'base' },
+    commits: [
+      { id: 'root', message: 'root', tree: { 'README.md': 'base' } }
+    ],
+    branches: { main: 'root' },
+    headBranch: 'main',
+    conflicts: [{ file: 'README.md', base: 'base', ours: 'current', theirs: 'incoming' }],
+    mergeInProgress: { ours: 'root', theirs: 'incoming', branch: 'feature' },
+    workingTree: { 'README.md': '<<<<<<< HEAD\ncurrent\n=======\nincoming\n>>>>>>> incoming\n' }
+  });
+  const controller = createCommandController(repository, ['status']);
+  const resolved = controller.executeCommand({
+    type: 'resolve',
+    params: { file: 'README.md', content: 'resolved', deleteFile: false }
+  });
+  assert(resolved.ok, 'UI actions should be able to execute engine-supported conflict commands outside the scenario palette.');
+  assert(controller.getHistory().length === 1, 'direct UI command execution should be added to command history.');
+  assert(controller.getHistory()[0].display.includes('git resolve'), 'direct command history should retain the command syntax.');
+}
+
 function testFormatting() {
+  assert(
+    formatCommand({ type: 'cherry-pick', params: { abort: true } }) === 'git cherry-pick --abort',
+    'Cherry-pick abort formatting should expose the recovery command.'
+  );
+  assert(
+    formatCommand({ type: 'cherry-pick', params: { commit: 'abc1234' } }) === 'git cherry-pick abc1234',
+    'Cherry-pick formatting should include the selected source commit.'
+  );
   assert(
     formatCommand({ type: 'switch', params: { branch: 'feature' } }) === 'git switch feature',
     'Command formatting should be readable.'
@@ -311,5 +349,6 @@ function testFormatting() {
   testToggleAndConditionalParameters,
   testExecutionHistoryAndReset,
   testEngineFailuresArePreserved,
+  testDirectCommandExecution,
   testFormatting
 ].forEach(test => test());

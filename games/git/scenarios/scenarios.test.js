@@ -1,4 +1,5 @@
 import { createGitEngine } from '../engine.js';
+import { COMMANDS } from '../constants.js';
 import { createRandom } from './random.js';
 import {
   createObjective,
@@ -294,6 +295,227 @@ const fridayEvaluation = evaluateScenario(friday, fridayRepository.inspect());
 assert(
   fridayEvaluation.complete,
   'Friday merge scenario must complete after switching to main and merging feature.'
+);
+
+
+const patchScenario = generateRegisteredScenario('patch-wrong-route', {
+  seed: 'patch-wrong-route-regression'
+});
+const repeatedPatchScenario = generateRegisteredScenario('patch-wrong-route', {
+  seed: 'patch-wrong-route-regression'
+});
+const patchRepository = createGitEngine(patchScenario.repository);
+const patchState = patchRepository.inspect();
+const patchEvaluation = evaluateScenario(patchScenario, patchState);
+const patchObjectives = Object.fromEntries(
+  patchEvaluation.results.map(result => [result.id, result.satisfied])
+);
+
+assert(
+  JSON.stringify(patchScenario.repository) === JSON.stringify(repeatedPatchScenario.repository),
+  'patch wrong route scenario generation must be deterministic for a seed'
+);
+
+const patchCommits = Object.fromEntries(
+  patchScenario.repository.commits.map(commit => [commit.id, commit])
+);
+const patchFeatureCommit = patchCommits[patchScenario.parameters.featureWork];
+const patchFeatureTipCommit = patchCommits[patchScenario.parameters.featureTip];
+const patchReleaseCommit = patchCommits[patchScenario.parameters.releaseFollowup];
+assert(
+  patchFeatureCommit.parents.length === 1 &&
+  patchFeatureCommit.parents[0] === patchScenario.parameters.base,
+  'feature work must branch directly from the scenario base'
+);
+assert(
+  !Object.prototype.hasOwnProperty.call(patchFeatureCommit.tree, 'release-notes.md') &&
+  !Object.prototype.hasOwnProperty.call(patchFeatureCommit.tree, 'src/legacy-adapter.js') &&
+  !Object.prototype.hasOwnProperty.call(patchFeatureCommit.tree, 'CHANGELOG.md'),
+  'feature branch snapshots must not include release-only files'
+);
+assert(
+  Object.prototype.hasOwnProperty.call(patchReleaseCommit.tree, 'release-notes.md') &&
+  Object.prototype.hasOwnProperty.call(patchReleaseCommit.tree, 'src/legacy-adapter.js') &&
+  Object.prototype.hasOwnProperty.call(patchReleaseCommit.tree, 'CHANGELOG.md'),
+  'release history must retain its release-only files'
+);
+assert(
+  patchFeatureTipCommit.tree[patchScenario.parameters.featureFiles[0]] === 'render catalog cards' &&
+  patchFeatureTipCommit.tree[patchScenario.parameters.featureFiles[1]] === 'boost recently updated entries',
+  'feature tip must retain both feature changes'
+);
+assert(
+  JSON.stringify(patchScenario.availableCommands) === JSON.stringify(COMMANDS),
+  'patch wrong route scenario must expose the full supported command palette'
+);
+assert(
+  patchState.head.branch === 'main' &&
+  patchState.conflicts.length === 0 &&
+  !patchState.mergeInProgress,
+  'patch wrong route scenario must start on main without active conflicts'
+);
+
+const cherryPickScenario = generateRegisteredScenario('patch-wrong-route', {
+  seed: 'patch-wrong-route-cherry-pick-conflict'
+});
+const cherryPickEngine = createGitEngine(cherryPickScenario.repository);
+const cherryPickParameters = cherryPickScenario.parameters;
+const stashResult = cherryPickEngine.execute({ type: 'stash', params: { action: 'push', message: 'protect release edits' } });
+assert(stashResult.ok, 'scenario local edits must be stashable before cherry-pick');
+const cherryPickConflict = cherryPickEngine.execute({
+  type: 'cherry-pick',
+  params: { commit: cherryPickParameters.fix }
+});
+assert(!cherryPickConflict.ok, 'cherry-pick must stop when the release-side file conflicts');
+assert(
+  cherryPickConflict.error?.code === 'CHERRY_PICK_CONFLICT' ||
+  cherryPickConflict.code === 'CHERRY_PICK_CONFLICT',
+  'scenario cherry-pick must expose the expected conflict'
+);
+assert(
+  cherryPickEngine.inspect().conflicts.some(conflict => conflict.file === 'src/release-check.js'),
+  'scenario cherry-pick must conflict on src/release-check.js'
+);
+assert(
+  cherryPickEngine.inspect().head.commit === cherryPickParameters.releaseFollowup,
+  'conflicted cherry-pick must not advance the release branch'
+);
+assert(
+  cherryPickEngine.execute({
+    type: 'resolve',
+    params: { file: 'src/release-check.js', content: 'validate release package; retry safely' }
+  }).ok,
+  'the release-check conflict must be resolvable'
+);
+assert(
+  cherryPickEngine.execute({ type: 'add', params: { file: 'src/release-check.js' } }).ok,
+  'the resolved release-check file must be stageable'
+);
+const finishCherryPick = cherryPickEngine.execute({
+  type: 'commit',
+  params: { message: 'Correct retry handling' }
+});
+assert(finishCherryPick.ok, 'the resolved cherry-pick must complete');
+assert(
+  finishCherryPick.data?.commit?.parents?.length === 1,
+  'the cherry-picked correction must be a single-parent commit'
+);
+assert(
+  cherryPickEngine.inspect().head.commit === finishCherryPick.data.commit.id,
+  'the cherry-pick commit must become the release branch tip'
+);
+assert(
+  cherryPickEngine.execute({ type: 'stash', params: { action: 'pop' } }).ok,
+  'the original local edits must be restored after cherry-pick'
+);
+const cherryPickFinalState = cherryPickEngine.inspect();
+assert(
+  cherryPickFinalState.staging[cherryPickParameters.stagedLocalFile] === cherryPickParameters.stagedLocalContent &&
+  cherryPickFinalState.workingTree[cherryPickParameters.unstagedLocalFile] === cherryPickParameters.unstagedLocalContent &&
+  !Object.prototype.hasOwnProperty.call(cherryPickFinalState.staging, cherryPickParameters.unstagedLocalFile),
+  'stash restoration must preserve the original staged and unstaged edits'
+);
+
+assert(
+  patchObjectives['local-edits-preserved'] &&
+  patchObjectives['feature-work-isolated'] &&
+  patchObjectives['feature-branch-usable'],
+  'the starting state must expose preserved local edits and retain isolated feature work'
+);
+assert(
+  !patchObjectives['release-corrected'] &&
+  !patchObjectives['designated-fix-reachable'] &&
+  !patchObjectives['repository-end-state'],
+  'the release and final-state objectives must begin incomplete'
+);
+
+const patchFinalState = patchRepository.inspect();
+const patchParameters = patchScenario.parameters;
+const patchFeatureTree = patchFinalState.commits[patchParameters.featureTip].tree;
+const patchReleaseTree = {
+  ...patchFeatureTree,
+  'config/release.txt': patchParameters.correctedConfig,
+  'src/release-check.js': 'validate release package; retry safely',
+  'release-notes.md': 'Weekly package review completed.',
+  'CHANGELOG.md': 'Documented the compatibility review.'
+};
+for (const file of patchParameters.featureFiles) {
+  delete patchReleaseTree[file];
+}
+patchFinalState.commits['test-patch-cherry-pick'] = {
+  id: 'test-patch-cherry-pick',
+  message: 'An arbitrary message unrelated to the source commit message',
+  parents: [patchParameters.releaseFollowup],
+  tree: patchReleaseTree
+};
+patchFinalState.commits['test-patch-final-release'] = {
+  id: 'test-patch-final-release',
+  message: 'Test-only completed release state',
+  parents: ['test-patch-cherry-pick'],
+  tree: patchReleaseTree
+};
+patchFinalState.branches.main = 'test-patch-final-release';
+patchFinalState.workingTree = {
+  ...patchReleaseTree,
+  [patchParameters.stagedLocalFile]: patchParameters.stagedLocalContent,
+  [patchParameters.unstagedLocalFile]: patchParameters.unstagedLocalContent
+};
+patchFinalState.staging = {
+  [patchParameters.stagedLocalFile]: patchParameters.stagedLocalContent
+};
+patchFinalState.conflicts = [];
+patchFinalState.mergeInProgress = null;
+
+const patchFinalEvaluation = evaluateScenario(patchScenario, patchFinalState);
+assert(
+  patchFinalEvaluation.complete,
+  'all patch wrong route objectives must pass for a valid final repository state even when the cherry-pick message differs'
+);
+assert(
+  patchFinalEvaluation.results.find(result => result.id === 'designated-fix-reachable').satisfied,
+  'a single-parent commit carrying the designated correction must be accepted regardless of its message'
+);
+
+const alternatePatchFinalState = {
+  ...patchFinalState,
+  commits: {
+    ...patchFinalState.commits,
+    'test-patch-final-release': {
+      ...patchFinalState.commits['test-patch-final-release'],
+      parents: ['test-patch-cherry-pick']
+    }
+  }
+};
+assert(
+  evaluateScenario(patchScenario, alternatePatchFinalState).complete,
+  'the same release tree must satisfy objectives when reached through a different valid history shape'
+);
+
+const lostStagingState = {
+  ...patchFinalState,
+  staging: {}
+};
+assert(
+  !evaluateScenario(patchScenario, lostStagingState).complete,
+  'final completion must be revoked when the staged local edit is lost'
+);
+
+const shippedFeatureState = {
+  ...patchFinalState,
+  commits: {
+    ...patchFinalState.commits,
+    'test-patch-final-release': {
+      ...patchFinalState.commits['test-patch-final-release'],
+      tree: {
+        ...patchFinalState.commits['test-patch-final-release'].tree,
+        [patchParameters.featureFiles[0]]: patchFeatureTree[patchParameters.featureFiles[0]]
+      }
+    }
+  }
+};
+assert(
+  !evaluateScenario(patchScenario, shippedFeatureState).complete,
+  'final completion must be revoked if feature-only content enters the release tree'
 );
 
 console.log('Git scenario framework tests passed.');
