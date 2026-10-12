@@ -317,12 +317,6 @@ function renderInspection(kind, item) {
   }
 
   if (kind === 'remote-commit') {
-    const separator = id.indexOf('/');
-    const remoteName = id.slice(0, separator);
-    const commitId = id.slice(separator + 1);
-    return state.remotes[remoteName]?.commits?.[commitId] || null;
-  }
-  if (kind === 'remote-commit') {
     return '<div class="git-inspection-heading"><span class="section-label">Remote commit</span></div><dl>' +
       '<dt>ID</dt><dd><code>' + escapeHtml(item.id) + '</code></dd>' +
       '<dt>Message</dt><dd>' + escapeHtml(item.message) + '</dd>' +
@@ -463,6 +457,14 @@ function getInspectableItem(state, kind, id) {
   }
   if (kind === 'remote') {
     return state.remoteTracking[id] ? { name: id, commit: state.remoteTracking[id] } : null;
+  }
+  if (kind === 'remote-commit') {
+    const separator = id.indexOf('/');
+    if (separator < 1) return null;
+    const remoteName = id.slice(0, separator);
+    const commitId = id.slice(separator + 1);
+    const commit = state.remotes[remoteName]?.commits?.[commitId];
+    return commit ? { ...commit, id: commit.id || commitId } : null;
   }
   if (kind === 'remote-branch') {
     const separator = id.indexOf('/');
