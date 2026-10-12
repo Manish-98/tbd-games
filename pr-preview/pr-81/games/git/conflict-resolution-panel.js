@@ -84,7 +84,7 @@ export function containsConflictMarkers(content) {
     Object.values(CONFLICT_MARKERS).some(marker => content.includes(marker));
 }
 
-function isDraftApplied(file, draft, deleteFile, appliedDrafts) {
+export function isDraftApplied(file, draft, deleteFile, appliedDrafts) {
   const applied = appliedDrafts[file];
   return Boolean(applied) &&
     applied.content === draft &&
