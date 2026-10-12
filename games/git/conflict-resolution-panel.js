@@ -29,7 +29,7 @@ export function renderConflictResolutionPanel(
       deleteChoices[conflict.file] === true,
       appliedDrafts
     ) ? ' — applied, not staged' : '';
-    return '<option value="' + escapeHtml(conflict.file) + '"' +
+    return '<option data-conflict-option="' + escapeHtml(conflict.file) + '" value="' + escapeHtml(conflict.file) + '"' +
       (conflict.file === file ? ' selected' : '') + '>' +
       escapeHtml(conflict.file + optionStatus) + '</option>';
   }).join('');
