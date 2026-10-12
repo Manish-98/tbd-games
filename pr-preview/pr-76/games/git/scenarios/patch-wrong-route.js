@@ -113,7 +113,6 @@ function createScenarioGraph(seed) {
     tree: { ...tree }
   });
   ids.push(definitions[0].id);
-  trees.push({ ...tree });
 
   append('Prepare the weekly package', {
     'release-notes.md': 'Weekly package review completed.'
@@ -136,7 +135,7 @@ function createScenarioGraph(seed) {
     [FEATURE_FILES[1]]: 'boost recently updated entries'
   }, [5]);
 
-  return { commits: definitions, trees, ids };
+  return { commits: definitions, ids };
 }
 
 function createObjectives(options) {
