@@ -95,7 +95,6 @@ export function createPatchWrongRouteTemplate() {
 
 function createScenarioGraph(seed) {
   const definitions = [];
-  const trees = [];
   const ids = [];
   let tree = { ...BASELINE };
 
@@ -104,7 +103,6 @@ function createScenarioGraph(seed) {
     const parents = parentIndexes.map(index => ids[index]);
     const id = makeCommitId(seed, ids.length + 1, message, parents, tree);
     definitions.push({ id, message, parents, tree: { ...tree } });
-    trees.push({ ...tree });
     ids.push(id);
   };
 
@@ -143,7 +141,6 @@ function createScenarioGraph(seed) {
 
 function createObjectives(options) {
   const {
-    releaseFollowup,
     featureTip,
     fix,
     featureFiles,
