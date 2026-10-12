@@ -315,6 +315,35 @@ assert(
   JSON.stringify(patchScenario.repository) === JSON.stringify(repeatedPatchScenario.repository),
   'patch wrong route scenario generation must be deterministic for a seed'
 );
+
+const patchCommits = Object.fromEntries(
+  patchScenario.repository.commits.map(commit => [commit.id, commit])
+);
+const patchFeatureCommit = patchCommits[patchScenario.parameters.featureWork];
+const patchFeatureTipCommit = patchCommits[patchScenario.parameters.featureTip];
+const patchReleaseCommit = patchCommits[patchScenario.parameters.releaseFollowup];
+assert(
+  patchFeatureCommit.parents.length === 1 &&
+  patchFeatureCommit.parents[0] === patchScenario.parameters.base,
+  'feature work must branch directly from the scenario base'
+);
+assert(
+  !Object.prototype.hasOwnProperty.call(patchFeatureCommit.tree, 'release-notes.md') &&
+  !Object.prototype.hasOwnProperty.call(patchFeatureCommit.tree, 'src/legacy-adapter.js') &&
+  !Object.prototype.hasOwnProperty.call(patchFeatureCommit.tree, 'CHANGELOG.md'),
+  'feature branch snapshots must not include release-only files'
+);
+assert(
+  Object.prototype.hasOwnProperty.call(patchReleaseCommit.tree, 'release-notes.md') &&
+  Object.prototype.hasOwnProperty.call(patchReleaseCommit.tree, 'src/legacy-adapter.js') &&
+  Object.prototype.hasOwnProperty.call(patchReleaseCommit.tree, 'CHANGELOG.md'),
+  'release history must retain its release-only files'
+);
+assert(
+  patchFeatureTipCommit.tree[patchScenario.parameters.featureFiles[0]] === 'render catalog cards' &&
+  patchFeatureTipCommit.tree[patchScenario.parameters.featureFiles[1]] === 'boost recently updated entries',
+  'feature tip must retain both feature changes'
+);
 assert(
   JSON.stringify(patchScenario.availableCommands) === JSON.stringify(COMMANDS),
   'patch wrong route scenario must expose the full supported command palette'
