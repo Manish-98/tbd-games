@@ -6,8 +6,8 @@ function assert(condition, message) {
 
 const state = {
   workingTree: {
-    'config.txt': '<<<<<<< HEAD\\ncurrent\\n=======\\nincoming\\n>>>>>>> incoming\\n',
-    'src/app.js': '<<<<<<< HEAD\\nours\\n=======\\ntheirs\\n>>>>>>> incoming\\n'
+    'config.txt': '<<<<<<< HEAD\ncurrent\n=======\nincoming\n>>>>>>> incoming\n',
+    'src/app.js': '<<<<<<< HEAD\nours\n=======\ntheirs\n>>>>>>> incoming\n'
   },
   conflicts: [
     { file: 'config.txt', base: 'base config', ours: 'current config', theirs: 'incoming config' },
@@ -30,7 +30,7 @@ const unsafe = renderConflictResolutionPanel({
 assert(!unsafe.includes('<script>'), 'conflict contents must be HTML escaped');
 assert(unsafe.includes('&lt;script&gt;'), 'conflict contents must be displayed as plain text');
 assert(!unsafe.includes('<img src=x onerror=alert(1)>'), 'file names must be HTML escaped');
-assert(containsConflictMarkers('<<<<<<< HEAD\\nours\\n=======\\ntheirs\\n>>>>>>> incoming'));
+assert(containsConflictMarkers('<<<<<<< HEAD\nours\n=======\ntheirs\n>>>>>>> incoming'));
 assert(!containsConflictMarkers('resolved safely'));
 
 const applied = renderConflictResolutionPanel(
