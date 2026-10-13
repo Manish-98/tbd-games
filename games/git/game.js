@@ -5,6 +5,7 @@ import { createCommandController, getCommandDefinition, getParameterOptions, PAR
 import { createGitVisualization } from './visualization.js';
 import { renderInspectionOutput } from './inspection-output.js';
 import { renderConflictResolutionPanel, containsConflictMarkers, isDraftApplied } from './conflict-resolution-panel.js';
+import { getInspectorDefaults, renderFileInspector } from './file-inspector.js';
 import { READ_ONLY_COMMANDS } from './constants.js';
 import { evaluateScenario, generateRegisteredScenario, getScenarioTemplates } from './scenarios/index.js';
 
@@ -77,6 +78,7 @@ export function initGitGame(section) {
   let selectedTemplate = DEFAULT_SCENARIO;
   let executionError = '';
   let inspectionOutput = null;
+  let inspectorSelection = null;
   let conflictDrafts = {};
   let appliedConflictDrafts = {};
   let conflictDeleteChoices = {};
@@ -87,6 +89,7 @@ export function initGitGame(section) {
     if (destroyed) return;
     const state = repository.snapshot();
     const evaluation = evaluateScenario(scenario, state);
+    if (!inspectorSelection) inspectorSelection = getInspectorDefaults(state);
     scenarioHost.innerHTML = `<div class="git-story-card"><div><span class="section-label">Scenario</span><h3>${escapeHtml(scenario.parameters?.branch || scenario.templateId.replaceAll('-', ' '))}</h3><p>${escapeHtml(scenario.story)}</p></div><label class="git-scenario-picker"><span>Practice situation</span><select data-scenario-select>${scenarioOptions(templates, selectedTemplate)}</select></label></div>${renderObjectives(evaluation)}${evaluation.complete ? renderCompletion(scenario) : ''}`;
     synchronizeConflictDrafts(state);
     const conflictPanel = renderConflictResolutionPanel(
@@ -99,7 +102,7 @@ export function initGitGame(section) {
     const output = inspectionOutput
       ? renderInspectionOutput(inspectionOutput.command, inspectionOutput.data)
       : conflictPanel ? '' : '<section class="git-inspection-output git-inspection-empty" aria-label="Git command output"><div class="git-panel-heading"><span class="section-label">Command output</span><strong>Inspection</strong></div><p>Run a read-only Git command to inspect repository information.</p></section>';
-    commandHost.innerHTML = `<div class="git-command-layout"><aside class="git-command-list"><div class="git-panel-heading"><span class="section-label">Git commands</span><strong>${commands.listCommands().length}</strong></div><label class="git-search"><span>Find a command</span><input type="search" data-command-search placeholder="status, branch, merge…"></label><div data-command-list>${renderCommands(commands)}</div></aside><section class="git-builder" data-builder>${renderBuilder(commands, state, executionError)}${output}${conflictPanel}</section><aside class="git-history"><div class="git-panel-heading"><span class="section-label">Command history</span><strong>${commands.getHistory().length}</strong></div><ol>${renderHistory(commands)}</ol></aside></div>`;
+    commandHost.innerHTML = `<div class="git-command-layout"><aside class="git-command-list"><div class="git-panel-heading"><span class="section-label">Git commands</span><strong>${commands.listCommands().length}</strong></div><label class="git-search"><span>Find a command</span><input type="search" data-command-search placeholder="status, branch, merge…"></label><div data-command-list>${renderCommands(commands)}</div></aside><section class="git-builder" data-builder>${renderBuilder(commands, state, executionError)}${output}${renderFileInspector(state, inspectorSelection)}${conflictPanel}</section><aside class="git-history"><div class="git-panel-heading"><span class="section-label">Command history</span><strong>${commands.getHistory().length}</strong></div><ol>${renderHistory(commands)}</ol></aside></div>`;
     visualization.render(state);
   }
   function createScenario(id = selectedTemplate) {
@@ -109,6 +112,7 @@ export function initGitGame(section) {
     commands = createCommandController(repository, scenario.availableCommands);
     executionError = '';
     inspectionOutput = null;
+    inspectorSelection = null;
     conflictDrafts = {};
     appliedConflictDrafts = {};
     conflictDeleteChoices = {};
@@ -307,6 +311,16 @@ export function initGitGame(section) {
       conflictDeleteChoices[selectedConflictFile] = deleteChoice.checked;
       delete appliedConflictDrafts[selectedConflictFile];
       render();
+      return;
+    }
+    const inspectorControl = event.target.closest('[data-inspector-selection]');
+    if (inspectorControl) {
+      inspectorSelection = {
+        ...inspectorSelection,
+        [inspectorControl.dataset.inspectorSelection]: inspectorControl.value
+      };
+      render();
+      commandHost.querySelector('[data-inspector-selection="' + inspectorControl.dataset.inspectorSelection + '"]')?.focus();
       return;
     }
     const parameter = event.target.closest('[data-command-parameter]');
