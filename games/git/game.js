@@ -92,7 +92,13 @@ export function initGitGame(section) {
     if (!inspectorSelection) inspectorSelection = getInspectorDefaults(state);
     scenarioHost.innerHTML = `<div class="git-story-card"><div><span class="section-label">Scenario</span><h3>${escapeHtml(scenario.parameters?.branch || scenario.templateId.replaceAll('-', ' '))}</h3><p>${escapeHtml(scenario.story)}</p></div><label class="git-scenario-picker"><span>Practice situation</span><select data-scenario-select>${scenarioOptions(templates, selectedTemplate)}</select></label></div>${renderObjectives(evaluation)}${evaluation.complete ? renderCompletion(scenario) : ''}`;
     synchronizeConflictDrafts(state);
-    const conflictPanel = renderConflictResolutionPanel(state, conflictDrafts, selectedConflictFile, appliedConflictDrafts, conflictDeleteChoices);
+    const conflictPanel = renderConflictResolutionPanel(
+      state,
+      conflictDrafts,
+      selectedConflictFile,
+      appliedConflictDrafts,
+      conflictDeleteChoices
+    );
     const output = inspectionOutput
       ? renderInspectionOutput(inspectionOutput.command, inspectionOutput.data)
       : conflictPanel ? '' : '<section class="git-inspection-output git-inspection-empty" aria-label="Git command output"><div class="git-panel-heading"><span class="section-label">Command output</span><strong>Inspection</strong></div><p>Run a read-only Git command to inspect repository information.</p></section>';
@@ -175,7 +181,12 @@ export function initGitGame(section) {
   }
 
   function isCurrentConflictDraftApplied(file) {
-    return isDraftApplied(file, conflictDrafts[file] ?? '', conflictDeleteChoices[file] === true, appliedConflictDrafts);
+    return isDraftApplied(
+      file,
+      conflictDrafts[file] ?? '',
+      conflictDeleteChoices[file] === true,
+      appliedConflictDrafts
+    );
   }
 
   function executeConflictCommand(type, params) {
@@ -198,9 +209,16 @@ export function initGitGame(section) {
         refreshConflictPanelStatus();
         return;
       }
-      const result = executeConflictCommand('resolve', { file: conflict.file, content, deleteFile });
-      if (result.ok) appliedConflictDrafts[conflict.file] = { content, deleteFile };
-      else delete appliedConflictDrafts[conflict.file];
+      const result = executeConflictCommand('resolve', {
+        file: conflict.file,
+        content,
+        deleteFile
+      });
+      if (result.ok) {
+        appliedConflictDrafts[conflict.file] = { content, deleteFile };
+      } else {
+        delete appliedConflictDrafts[conflict.file];
+      }
       render();
       return;
     }
@@ -225,12 +243,21 @@ export function initGitGame(section) {
     const stage = panel.querySelector('[data-conflict-action="stage"]');
     panel.querySelectorAll('[data-conflict-option]').forEach(option => {
       const optionFile = option.dataset.conflictOption;
-      const isApplied = isDraftApplied(optionFile, conflictDrafts[optionFile] ?? '', conflictDeleteChoices[optionFile] === true, appliedConflictDrafts);
+      const isApplied = isDraftApplied(
+        optionFile,
+        conflictDrafts[optionFile] ?? '',
+        conflictDeleteChoices[optionFile] === true,
+        appliedConflictDrafts
+      );
       option.textContent = optionFile + (isApplied ? ' — applied, not staged' : '');
     });
-    if (status) status.textContent = markerWarning
-      ? 'The final content still contains conflict markers.'
-      : applied ? 'Resolution applied. Stage this file to clear its conflict.' : 'Edit the final content, then apply the resolution.';
+    if (status) {
+      status.textContent = markerWarning
+        ? 'The final content still contains conflict markers.'
+        : applied
+          ? 'Resolution applied. Stage this file to clear its conflict.'
+          : 'Edit the final content, then apply the resolution.';
+    }
     if (stage) stage.disabled = !applied || markerWarning;
   }
 
